@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <!-- SEO Meta Tags -->
+  <title>암행어흥 - 신뢰할 수 있는 리뷰 플랫폼</title>
+  <meta name="description" content="암행어흥은 미스터리 쇼핑 기반의 신뢰할 수 있는 리뷰 플랫폼입니다. 검증된 리뷰어가 실제 방문하여 작성한 솔직한 리뷰를 확인하세요.">
+  <meta name="keywords" content="암행어흥, 미스터리쇼핑, 리뷰, 맛집리뷰, 신뢰리뷰, 체험단">
+  <meta name="author" content="암행어흥">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://amhangeoheung.com/">
+  <meta property="og:title" content="암행어흥 - 신뢰할 수 있는 리뷰 플랫폼">
+  <meta property="og:description" content="미스터리 쇼핑 기반의 검증된 리뷰 플랫폼. 솔직한 리뷰로 현명한 소비를 도와드립니다.">
+  <meta property="og:image" content="https://amhangeoheung.com/icons/og-image.png">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://amhangeoheung.com/">
+  <meta property="twitter:title" content="암행어흥 - 신뢰할 수 있는 리뷰 플랫폼">
+  <meta property="twitter:description" content="미스터리 쇼핑 기반의 검증된 리뷰 플랫폼">
+  <meta property="twitter:image" content="https://amhangeoheung.com/icons/og-image.png">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="암행어흥">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon.png">
+
+  <!-- Theme Color -->
+  <meta name="theme-color" content="#FF6B35">
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* 로딩 화면 스타일 */
+    .loading-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #FF6B35 0%, #FF8C5A 100%);
+      z-index: 9999;
+      transition: opacity 0.3s ease-out;
+    }
+
+    .loading-container.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-logo {
+      width: 80px;
+      height: 80px;
+      background: white;
+      border-radius: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      animation: pulse 2s infinite;
+    }
+
+    .loading-logo svg {
+      width: 48px;
+      height: 48px;
+      fill: #FF6B35;
+    }
+
+    .loading-text {
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .loading-subtitle {
+      color: rgba(255, 255, 255, 0.8);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+    }
+
+    .loading-spinner {
+      margin-top: 32px;
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* 에러 화면 스타일 */
+    .error-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .error-container.show {
+      display: flex;
+    }
+
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .error-message {
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    .retry-button {
+      background: white;
+      color: #FF6B35;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .retry-button:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <!-- 로딩 화면 -->
+  <div id="loading" class="loading-container">
+    <div class="loading-logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+    </div>
+    <div class="loading-text">암행어흥</div>
+    <div class="loading-subtitle">신뢰할 수 있는 리뷰 플랫폼</div>
+    <div class="loading-spinner"></div>
+
+    <!-- 에러 화면 (필요시 표시) -->
+    <div id="error" class="error-container">
+      <div class="error-icon">😿</div>
+      <div class="error-message">앱을 불러오는 중 문제가 발생했습니다.<br>네트워크 연결을 확인해주세요.</div>
+      <button class="retry-button" onclick="location.reload()">다시 시도</button>
+    </div>
+  </div>
+
+  <script>
+    // 로딩 타임아웃 처리 (30초)
+    const loadingTimeout = setTimeout(() => {
+      document.querySelector('.loading-spinner').style.display = 'none';
+      document.querySelector('.loading-subtitle').style.display = 'none';
+      document.getElementById('error').classList.add('show');
+    }, 30000);
+
+    // Flutter 앱 로드 완료 시 로딩 화면 숨기기
+    window.addEventListener('flutter-first-frame', function() {
+      clearTimeout(loadingTimeout);
+      const loading = document.getElementById('loading');
+      loading.classList.add('fade-out');
+      setTimeout(() => {
+        loading.remove();
+      }, 300);
+    });
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

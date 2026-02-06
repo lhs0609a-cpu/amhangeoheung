@@ -1,0 +1,64 @@
+{
+    "name": "암행어흥 - 신뢰할 수 있는 리뷰 플랫폼",
+    "short_name": "암행어흥",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FFFFFF",
+    "theme_color": "#FF6B35",
+    "description": "미스터리 쇼핑 기반의 검증된 리뷰 플랫폼. 솔직한 리뷰로 현명한 소비를 도와드립니다.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "categories": ["lifestyle", "food", "shopping"],
+    "lang": "ko",
+    "dir": "ltr",
+    "scope": "/",
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshots/home.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "홈 화면"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "미션 찾기",
+            "short_name": "미션",
+            "description": "참여 가능한 미션 목록 보기",
+            "url": "/#/missions",
+            "icons": [{ "src": "icons/Icon-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "내 리뷰",
+            "short_name": "리뷰",
+            "description": "작성한 리뷰 목록 보기",
+            "url": "/#/reviews",
+            "icons": [{ "src": "icons/Icon-192.png", "sizes": "192x192" }]
+        }
+    ]
+}
