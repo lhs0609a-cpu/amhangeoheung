@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../network/api_client.dart';
+import '../../app_router.dart';
 
 /// 백그라운드 메시지 핸들러 (top-level function 필수)
 @pragma('vm:entry-point')
@@ -149,6 +150,10 @@ class FcmService {
       initSettings,
       onDidReceiveNotificationResponse: (response) {
         debugPrint('[FCM] Local notification tapped: ${response.payload}');
+        final type = response.payload;
+        if (type != null && type.isNotEmpty) {
+          _navigateByType({'type': type});
+        }
       },
     );
 
@@ -196,8 +201,35 @@ class FcmService {
 
   /// 알림 타입에 따른 화면 라우팅
   void _navigateByType(Map<String, dynamic> data) {
-    // 라우팅은 go_router의 context가 필요하므로
-    // 추후 GoRouter 통합 시 구현
-    debugPrint('[FCM] Navigate by type: ${data['type']}');
+    final type = data['type'] as String? ?? '';
+    final router = AppRouter.router;
+
+    debugPrint('[FCM] Navigate by type: $type');
+
+    switch (type) {
+      case 'settlement_complete':
+      case 'settlement_failed':
+        router.go('/settlements');
+        break;
+      case 'review_published':
+        final reviewId = data['reviewId'] as String?;
+        if (reviewId != null) {
+          router.go('/reviews/$reviewId');
+        } else {
+          router.go('/reviews');
+        }
+        break;
+      case 'mission_expired':
+        final missionId = data['missionId'] as String?;
+        if (missionId != null) {
+          router.go('/missions/$missionId');
+        } else {
+          router.go('/missions');
+        }
+        break;
+      default:
+        router.go('/notifications');
+        break;
+    }
   }
 }

@@ -6,6 +6,7 @@
 const supabase = require('../config/supabase');
 const { cancelPayment } = require('../utils/tossPayments');
 const { createNotification } = require('../utils/notificationService');
+const NT = require('../config/notificationTypes');
 
 /**
  * 미션 만료 처리
@@ -50,7 +51,6 @@ async function processMissionExpiry() {
           console.log(`[MISSION_EXPIRY] Payment cancelled: missionId=${mission.id}`);
         } catch (paymentError) {
           console.error(`[MISSION_EXPIRY] Payment cancel failed for mission ${mission.id}:`, paymentError.message);
-          // 결제 환불 실패해도 미션은 취소 처리 진행 (수동 처리 필요 플래그)
         }
       }
 
@@ -82,13 +82,16 @@ async function processMissionExpiry() {
         .single();
 
       if (business?.owner_id) {
-        await createNotification(
+        const notifResult = await createNotification(
           business.owner_id,
-          'mission_expired',
+          NT.MISSION_EXPIRED,
           '미션 모집이 만료되었습니다',
           '모집 기간이 종료되어 미션이 자동 취소되었습니다. 결제 금액은 환불됩니다.',
           { missionId: mission.id }
         );
+        if (!notifResult.success) {
+          console.error(`[MISSION_EXPIRY] Notification failed for mission ${mission.id}:`, notifResult.error);
+        }
       }
 
       console.log(`[MISSION_EXPIRY] Cancelled: missionId=${mission.id}`);

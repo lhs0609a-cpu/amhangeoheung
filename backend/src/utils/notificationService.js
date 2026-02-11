@@ -3,6 +3,8 @@ const { sendPushNotification, sendMulticastNotification } = require('../services
 
 /**
  * 알림 생성 + FCM 푸시 발송
+ * DB 알림 저장 후 FCM 발송까지 await하여 결과 확인
+ * FCM 실패해도 DB 알림은 이미 저장된 상태이므로 success: true 반환
  */
 async function createNotification(userId, type, title, message, data = {}) {
   try {
@@ -22,12 +24,12 @@ async function createNotification(userId, type, title, message, data = {}) {
     }
     console.log(`[NOTIFICATION] Created: type=${type}, userId=${userId}`);
 
-    // FCM 푸시 발송 (비동기 — DB 알림 저장과 독립적으로 실행)
-    setImmediate(() => {
-      sendPushNotification(userId, title, message, { type, ...data }).catch(err => {
-        console.error('[NOTIFICATION] FCM push failed:', err.message);
-      });
-    });
+    // FCM 푸시 발송 (await하여 결과 확인, 실패해도 DB 알림은 이미 저장됨)
+    try {
+      await sendPushNotification(userId, title, message, { type, ...data });
+    } catch (pushErr) {
+      console.error(`[NOTIFICATION] FCM push failed for userId=${userId}:`, pushErr.message);
+    }
 
     return { success: true };
   } catch (error) {
@@ -60,12 +62,12 @@ async function createBulkNotifications(userIds, type, title, message, data = {})
 
     console.log(`[NOTIFICATION] Bulk created: type=${type}, count=${userIds.length}`);
 
-    // FCM 푸시 발송 (비동기)
-    setImmediate(() => {
-      sendMulticastNotification(userIds, title, message, { type, ...data }).catch(err => {
-        console.error('[NOTIFICATION] Bulk FCM push failed:', err.message);
-      });
-    });
+    // FCM 푸시 발송 (await)
+    try {
+      await sendMulticastNotification(userIds, title, message, { type, ...data });
+    } catch (pushErr) {
+      console.error('[NOTIFICATION] Bulk FCM push failed:', pushErr.message);
+    }
 
     return { success: true };
   } catch (error) {

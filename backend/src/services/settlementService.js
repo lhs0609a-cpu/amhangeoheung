@@ -5,6 +5,7 @@
 
 const supabase = require('../config/supabase');
 const { createNotification } = require('../utils/notificationService');
+const NT = require('../config/notificationTypes');
 
 const MAX_RETRY_COUNT = 3;
 
@@ -54,13 +55,16 @@ async function processAutoSettlement() {
           })
           .eq('id', escrow.id);
 
-        await createNotification(
+        const notifResult = await createNotification(
           reviewer?.id || escrow.reviewer_id,
-          'settlement_failed',
+          NT.SETTLEMENT_FAILED,
           '정산 계좌를 등록해주세요',
           '정산 계좌가 등록되지 않아 정산이 보류되었습니다.',
           { escrowId: escrow.id }
         );
+        if (!notifResult.success) {
+          console.error(`[SETTLEMENT] Notification failed for escrow ${escrow.id}:`, notifResult.error);
+        }
         failed++;
         continue;
       }
@@ -112,13 +116,16 @@ async function processAutoSettlement() {
           })
           .eq('id', reviewer.id);
 
-        await createNotification(
+        const notifResult = await createNotification(
           reviewer.id,
-          'settlement_complete',
+          NT.SETTLEMENT_COMPLETE,
           '정산이 완료되었습니다',
           `${escrow.reviewer_fee.toLocaleString()}원이 정산되었습니다.`,
           { escrowId: escrow.id, amount: escrow.reviewer_fee }
         );
+        if (!notifResult.success) {
+          console.error(`[SETTLEMENT] Notification failed for escrow ${escrow.id}:`, notifResult.error);
+        }
 
         console.log(`[SETTLEMENT] Success: escrowId=${escrow.id}, amount=${escrow.reviewer_fee}`);
         succeeded++;

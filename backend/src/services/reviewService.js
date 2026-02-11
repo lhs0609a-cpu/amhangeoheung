@@ -6,6 +6,7 @@
 const supabase = require('../config/supabase');
 const { createNotification } = require('../utils/notificationService');
 const { PREVIEW_PERIOD_HOURS, AUTO_RELEASE_DAYS } = require('../config/constants');
+const NT = require('../config/notificationTypes');
 
 /**
  * 자동 리뷰 게시 처리
@@ -82,13 +83,16 @@ async function processAutoPublish() {
         .in('status', ['paid', 'hold']);
 
       // 리뷰어에게 알림
-      await createNotification(
+      const notifResult1 = await createNotification(
         review.reviewer_id,
-        'review_published',
+        NT.REVIEW_PUBLISHED,
         '리뷰가 공개되었습니다',
         '작성하신 리뷰가 자동 공개되었습니다.',
         { reviewId: review.id, missionId: review.mission_id }
       );
+      if (!notifResult1.success) {
+        console.error(`[REVIEW_PUBLISH] Reviewer notification failed for review ${review.id}:`, notifResult1.error);
+      }
 
       // 업체에게 알림 (business_id로 owner_id 조회)
       const { data: business } = await supabase
@@ -98,13 +102,16 @@ async function processAutoPublish() {
         .single();
 
       if (business?.owner_id) {
-        await createNotification(
+        const notifResult2 = await createNotification(
           business.owner_id,
-          'review_published',
+          NT.REVIEW_PUBLISHED,
           '새 리뷰가 공개되었습니다',
           '미션 리뷰가 공개되었습니다. 확인해보세요.',
           { reviewId: review.id, missionId: review.mission_id }
         );
+        if (!notifResult2.success) {
+          console.error(`[REVIEW_PUBLISH] Business notification failed for review ${review.id}:`, notifResult2.error);
+        }
       }
 
       console.log(`[REVIEW_PUBLISH] Published: reviewId=${review.id}`);

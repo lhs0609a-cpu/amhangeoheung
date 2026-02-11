@@ -92,8 +92,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     if (response.success && response.user != null) {
       state = AuthState.authenticated(response.user!);
-      // FCM 토큰 등록
-      FcmService().registerTokenWithBackend(null);
+      // FCM 토큰 등록 (실패해도 로그인은 정상 진행)
+      try {
+        await FcmService().registerTokenWithBackend(null);
+      } catch (_) {}
       return true;
     } else {
       state = state.copyWith(
@@ -124,8 +126,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     if (response.success && response.user != null) {
       state = AuthState.authenticated(response.user!);
-      // FCM 토큰 등록
-      FcmService().registerTokenWithBackend(null);
+      // FCM 토큰 등록 (실패해도 회원가입은 정상 진행)
+      try {
+        await FcmService().registerTokenWithBackend(null);
+      } catch (_) {}
       return true;
     } else {
       state = state.copyWith(
