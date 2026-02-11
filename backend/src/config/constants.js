@@ -77,7 +77,7 @@ module.exports = {
   },
 
   // 업체 선공개 기간 (시간)
-  PREVIEW_PERIOD_HOURS: 48,
+  PREVIEW_PERIOD_HOURS: 72,
 
   // 자동 에스크로 해제 대기 (일)
   AUTO_RELEASE_DAYS: 7,

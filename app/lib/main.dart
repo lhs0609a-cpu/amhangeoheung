@@ -3,16 +3,26 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'core/theme/app_theme.dart';
 import 'core/network/api_client.dart';
 import 'core/config/environment.dart';
+import 'core/services/fcm_service.dart';
 import 'app_router.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // 환경 설정 초기화
   _initializeEnvironment();
+
+  // Firebase 초기화
+  try {
+    await Firebase.initializeApp();
+    await FcmService().initialize();
+  } catch (e) {
+    debugPrint('[FIREBASE] Initialization failed: $e');
+  }
 
   // 상태바 스타일 설정 (웹이 아닌 경우에만)
   if (!kIsWeb) {

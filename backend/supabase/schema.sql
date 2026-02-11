@@ -508,3 +508,18 @@ CREATE TABLE notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX idx_notifications_user ON notifications(user_id, is_read, created_at DESC);
+
+-- ============================================
+-- 디바이스 토큰 테이블 (FCM 푸시 알림)
+-- ============================================
+CREATE TABLE device_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  platform VARCHAR(20) NOT NULL CHECK (platform IN ('android', 'ios', 'web')),
+  is_active BOOLEAN DEFAULT TRUE,
+  last_used_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_device_tokens_user ON device_tokens(user_id, is_active);

@@ -7,6 +7,8 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const { startScheduler, stopScheduler } = require('./services/schedulerService');
+const { initializeFirebase } = require('./config/firebase');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -136,6 +138,9 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 
+// Firebase Admin SDK 초기화
+initializeFirebase();
+
 app.listen(PORT, () => {
   console.log(`
   ╔═══════════════════════════════════════════╗
@@ -147,7 +152,24 @@ app.listen(PORT, () => {
   ║                                           ║
   ╚═══════════════════════════════════════════╝
   `);
+
+  // 스케줄러 시작 (환경변수로 제어)
+  if (process.env.SCHEDULER_ENABLED === 'true') {
+    startScheduler();
+  } else {
+    console.log('[SCHEDULER] Disabled (set SCHEDULER_ENABLED=true to enable)');
+  }
 });
+
+// Graceful shutdown
+const gracefulShutdown = (signal) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  stopScheduler();
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // 처리되지 않은 Promise 거부 처리
 process.on('unhandledRejection', (err) => {

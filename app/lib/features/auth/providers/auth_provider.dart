@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/user_model.dart';
 import '../data/models/auth_response.dart';
 import '../data/repositories/auth_repository.dart';
+import '../../../core/services/fcm_service.dart';
 
 // Auth Repository Provider
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -91,6 +92,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     if (response.success && response.user != null) {
       state = AuthState.authenticated(response.user!);
+      // FCM 토큰 등록
+      FcmService().registerTokenWithBackend(null);
       return true;
     } else {
       state = state.copyWith(
@@ -121,6 +124,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     if (response.success && response.user != null) {
       state = AuthState.authenticated(response.user!);
+      // FCM 토큰 등록
+      FcmService().registerTokenWithBackend(null);
       return true;
     } else {
       state = state.copyWith(
@@ -133,6 +138,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // 로그아웃
   Future<void> logout() async {
+    // FCM 토큰 제거 (로그아웃 전에 실행)
+    await FcmService().removeTokenFromBackend();
     await _repository.logout();
     state = AuthState.unauthenticated();
   }

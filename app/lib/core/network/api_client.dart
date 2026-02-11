@@ -97,8 +97,8 @@ class ApiClient {
   }
 
   // DELETE 요청
-  Future<Response> delete(String path) {
-    return _dio.delete(path);
+  Future<Response> delete(String path, {dynamic data}) {
+    return _dio.delete(path, data: data);
   }
 
   // 파일 업로드

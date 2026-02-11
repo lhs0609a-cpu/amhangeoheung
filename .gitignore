@@ -16,6 +16,11 @@ Thumbs.db
 *.swp
 *.swo
 
+# Firebase (sensitive credentials)
+firebase-service-account.json
+google-services.json
+GoogleService-Info.plist
+
 # Uploads
 uploads/
 
