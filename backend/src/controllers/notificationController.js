@@ -1,11 +1,14 @@
 const supabase = require('../config/supabase');
 
+const MAX_LIMIT = 100;
+
 /**
  * GET /api/notifications — 내 알림 목록
  */
 exports.getNotifications = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 20), MAX_LIMIT);
     const offset = (page - 1) * limit;
 
     const { data: notifications, error, count } = await supabase
@@ -13,7 +16,7 @@ exports.getNotifications = async (req, res, next) => {
       .select('*', { count: 'exact' })
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: false })
-      .range(offset, offset + parseInt(limit) - 1);
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
@@ -22,8 +25,8 @@ exports.getNotifications = async (req, res, next) => {
       data: {
         notifications: notifications || [],
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page,
+          limit,
           total: count || 0,
           pages: Math.ceil((count || 0) / limit),
         },

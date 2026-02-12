@@ -49,17 +49,21 @@ async function processAutoPublish() {
 
   for (const review of reviews) {
     try {
-      // 리뷰 상태 → published
-      const { error: reviewError } = await supabase
+      // 멱등성: 원자적으로 published 상태로 변경하여 중복 처리 방지
+      const { data: claimed, error: reviewError } = await supabase
         .from('reviews')
         .update({
           status: 'published',
           published_at: now,
         })
-        .eq('id', review.id);
+        .eq('id', review.id)
+        .in('status', ['submitted', 'preview'])
+        .select('id');
 
-      if (reviewError) {
-        console.error(`[REVIEW_PUBLISH] Failed to publish review ${review.id}:`, reviewError.message);
+      if (reviewError || !claimed || claimed.length === 0) {
+        if (reviewError) {
+          console.error(`[REVIEW_PUBLISH] Failed to publish review ${review.id}:`, reviewError.message);
+        }
         failed++;
         continue;
       }

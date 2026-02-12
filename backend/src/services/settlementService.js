@@ -42,6 +42,20 @@ async function processAutoSettlement() {
 
   for (const escrow of escrows) {
     try {
+      // 멱등성: 원자적으로 releasing 상태로 변경하여 중복 처리 방지
+      const { data: claimed, error: claimError } = await supabase
+        .from('escrows')
+        .update({ status: 'releasing' })
+        .eq('id', escrow.id)
+        .eq('status', 'paid')
+        .eq('auto_release_executed', false)
+        .select('id');
+
+      if (claimError || !claimed || claimed.length === 0) {
+        // 다른 인스턴스가 이미 처리 중
+        continue;
+      }
+
       const reviewer = escrow.reviewer;
 
       // 리뷰어 계좌 정보 없으면 hold 처리

@@ -7,6 +7,9 @@ const cron = require('node-cron');
 const { processAutoSettlement } = require('./settlementService');
 const { processAutoPublish } = require('./reviewService');
 const { processMissionExpiry } = require('./missionService');
+const supabase = require('../config/supabase');
+
+const NOTIFICATION_RETENTION_DAYS = 90;
 
 const jobs = [];
 
@@ -61,10 +64,25 @@ function startScheduler() {
   });
   jobs.push(expiryJob);
 
+  // 매일 04:00 KST - 오래된 알림 정리
+  const cleanupJob = cron.schedule('0 4 * * *', async () => {
+    console.log('[SCHEDULER] Running: cleanupOldNotifications');
+    try {
+      const result = await cleanupOldNotifications();
+      console.log(`[SCHEDULER] Notification cleanup done: deleted=${result.deleted}`);
+    } catch (err) {
+      console.error('[SCHEDULER] Notification cleanup error:', err.message);
+    }
+  }, {
+    timezone: 'Asia/Seoul',
+  });
+  jobs.push(cleanupJob);
+
   console.log('[SCHEDULER] All cron jobs initialized');
   console.log('[SCHEDULER]   - Settlement:     every day at 02:00 KST');
   console.log('[SCHEDULER]   - Review publish:  every hour at :00');
   console.log('[SCHEDULER]   - Mission expiry:  every day at 03:00 KST');
+  console.log('[SCHEDULER]   - Notification cleanup: every day at 04:00 KST');
 }
 
 /**
@@ -76,6 +94,28 @@ function stopScheduler() {
   }
   jobs.length = 0;
   console.log('[SCHEDULER] All cron jobs stopped');
+}
+
+/**
+ * 오래된 알림 정리 (90일 이상 + 읽음 처리된 알림 삭제)
+ */
+async function cleanupOldNotifications() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - NOTIFICATION_RETENTION_DAYS);
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .delete()
+    .eq('is_read', true)
+    .lt('created_at', cutoff.toISOString())
+    .select('id');
+
+  if (error) {
+    console.error('[NOTIFICATION_CLEANUP] Delete error:', error.message);
+    return { deleted: 0 };
+  }
+
+  return { deleted: data?.length || 0 };
 }
 
 module.exports = { startScheduler, stopScheduler };

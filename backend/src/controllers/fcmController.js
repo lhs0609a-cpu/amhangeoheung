@@ -5,6 +5,17 @@
 
 const supabase = require('../config/supabase');
 
+// FCM 토큰 형식 검증 (영숫자 + 특수문자, 50~300자)
+const FCM_TOKEN_REGEX = /^[a-zA-Z0-9_:=-]+$/;
+const FCM_TOKEN_MIN_LENGTH = 50;
+const FCM_TOKEN_MAX_LENGTH = 300;
+
+function isValidFcmToken(token) {
+  if (typeof token !== 'string') return false;
+  if (token.length < FCM_TOKEN_MIN_LENGTH || token.length > FCM_TOKEN_MAX_LENGTH) return false;
+  return FCM_TOKEN_REGEX.test(token);
+}
+
 /**
  * 디바이스 토큰 등록
  * POST /api/notifications/device-token
@@ -19,6 +30,13 @@ exports.registerDeviceToken = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'token과 platform은 필수 입력값입니다.',
+      });
+    }
+
+    if (!isValidFcmToken(token)) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 토큰 형식입니다.',
       });
     }
 

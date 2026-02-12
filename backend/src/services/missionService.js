@@ -41,6 +41,19 @@ async function processMissionExpiry() {
 
   for (const mission of missions) {
     try {
+      // 멱등성: 원자적으로 cancelled 상태로 변경하여 중복 처리 방지
+      const { data: claimed, error: claimError } = await supabase
+        .from('missions')
+        .update({ status: 'cancelled' })
+        .eq('id', mission.id)
+        .eq('status', 'recruiting')
+        .select('id');
+
+      if (claimError || !claimed || claimed.length === 0) {
+        // 다른 인스턴스가 이미 처리 중
+        continue;
+      }
+
       // 결제 환불 처리 (transaction_id가 있는 경우)
       if (mission.transaction_id) {
         try {
