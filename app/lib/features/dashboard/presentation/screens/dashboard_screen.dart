@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 
@@ -68,64 +71,87 @@ class RecentReview {
   });
 }
 
-/// 대시보드 데이터 Provider (Mock 데이터)
+/// 대시보드 데이터 Provider — 실제 API 호출
 final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
-  await Future.delayed(const Duration(milliseconds: 800));
+  try {
+    final api = ApiClient();
 
-  return DashboardStats(
-    totalMissions: 48,
-    completedMissions: 35,
-    activeMissions: 8,
-    pendingReviews: 5,
-    publishedReviews: 32,
-    averageRating: 4.6,
-    trustScore: 92.5,
-    totalSpent: 2850000,
-    missionsByStatus: {
-      '완료': 35,
-      '진행중': 8,
-      '모집중': 3,
-      '대기': 2,
-    },
-    monthlyTrend: [
-      MonthlyData(month: '9월', missions: 5, reviews: 4, avgRating: 4.3),
-      MonthlyData(month: '10월', missions: 7, reviews: 6, avgRating: 4.5),
-      MonthlyData(month: '11월', missions: 8, reviews: 7, avgRating: 4.4),
-      MonthlyData(month: '12월', missions: 10, reviews: 9, avgRating: 4.7),
-      MonthlyData(month: '1월', missions: 12, reviews: 10, avgRating: 4.6),
-      MonthlyData(month: '2월', missions: 6, reviews: 4, avgRating: 4.8),
-    ],
-    recentReviews: [
-      RecentReview(
-        id: '1',
-        reviewerNickname: '리뷰마스터',
-        reviewerGrade: 'gold',
-        rating: 4.8,
-        summary: '전반적으로 만족스러운 서비스였습니다. 특히 직원분들이 친절하셨어요.',
-        status: 'published',
-        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-      ),
-      RecentReview(
-        id: '2',
-        reviewerNickname: '솔직한리뷰어',
-        reviewerGrade: 'silver',
-        rating: 4.2,
-        summary: '음식 맛은 좋았지만 대기 시간이 조금 길었습니다.',
-        status: 'preview',
-        createdAt: DateTime.now().subtract(const Duration(hours: 8)),
-      ),
-      RecentReview(
-        id: '3',
-        reviewerNickname: '꼼꼼체크',
-        reviewerGrade: 'platinum',
-        rating: 4.9,
-        summary: '청결도와 서비스 모두 훌륭했습니다. 재방문 의사 있습니다.',
-        status: 'published',
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-      ),
-    ],
-  );
+    // 사용자의 비즈니스 목록 조회 후 첫 번째 비즈니스 대시보드 로드
+    final myBusinessesRes = await api.get('/businesses/my/list');
+    final businesses = myBusinessesRes.data['data']?['businesses'] as List?;
+
+    if (businesses == null || businesses.isEmpty) {
+      return _emptyDashboardStats();
+    }
+
+    final businessId = businesses.first['id'];
+    final dashboardRes = await api.get('/businesses/$businessId/dashboard');
+    final data = dashboardRes.data['data'];
+
+    if (data == null) {
+      return _emptyDashboardStats();
+    }
+
+    final stats = data['stats'] ?? {};
+    final trend = data['trend']?['monthly'] as List? ?? [];
+    final recentReviewsData = data['recentReviews'] as List? ?? [];
+    final roi = data['roi'] ?? {};
+
+    // 미션 현황 집계
+    final missionsByStatus = <String, int>{};
+    final completedMissions = stats['completedMissions'] ?? 0;
+    final pendingMissions = stats['pendingMissions'] ?? 0;
+    final totalMissions = completedMissions + pendingMissions;
+    missionsByStatus['완료'] = completedMissions;
+    missionsByStatus['진행중'] = pendingMissions;
+
+    return DashboardStats(
+      totalMissions: totalMissions,
+      completedMissions: completedMissions,
+      activeMissions: pendingMissions,
+      pendingReviews: stats['pendingReviews'] ?? 0,
+      publishedReviews: stats['totalReviews'] ?? 0,
+      averageRating: (stats['averageRating'] ?? 0).toDouble(),
+      trustScore: (data['badge']?['progress']?['ratingProgress'] ?? 0).toDouble(),
+      totalSpent: (roi['subscriptionCost'] ?? 0).toInt(),
+      missionsByStatus: missionsByStatus,
+      monthlyTrend: trend.map<MonthlyData>((m) => MonthlyData(
+        month: m['month'] ?? '',
+        missions: 0,
+        reviews: m['reviewCount'] ?? 0,
+        avgRating: (m['averageRating'] ?? 0).toDouble(),
+      )).toList(),
+      recentReviews: recentReviewsData.map<RecentReview>((r) => RecentReview(
+        id: r['id'] ?? '',
+        reviewerNickname: r['reviewerNickname'] ?? '리뷰어',
+        reviewerGrade: r['reviewerGrade'] ?? 'rookie',
+        rating: (r['score'] ?? 0).toDouble(),
+        summary: r['summary'] ?? '',
+        status: r['status'] ?? 'published',
+        createdAt: DateTime.tryParse(r['date'] ?? '') ?? DateTime.now(),
+      )).toList(),
+    );
+  } catch (e) {
+    debugPrint('[DashboardStats] Error loading dashboard: $e');
+    throw Exception('대시보드 데이터를 불러오는데 실패했습니다: $e');
+  }
 });
+
+DashboardStats _emptyDashboardStats() {
+  return DashboardStats(
+    totalMissions: 0,
+    completedMissions: 0,
+    activeMissions: 0,
+    pendingReviews: 0,
+    publishedReviews: 0,
+    averageRating: 0.0,
+    trustScore: 0.0,
+    totalSpent: 0,
+    missionsByStatus: {'완료': 0, '진행중': 0},
+    monthlyTrend: [],
+    recentReviews: [],
+  );
+}
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -199,11 +225,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                  onPressed: () {},
+                  onPressed: () => context.push('/notifications'),
                 ),
                 IconButton(
                   icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                  onPressed: () {},
+                  onPressed: () => context.push('/settings'),
                 ),
               ],
             ),
@@ -236,12 +262,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 padding: const EdgeInsets.all(16),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    // 요약 카드
-                    _buildSummaryCards(stats),
-                    const SizedBox(height: 24),
-
-                    // 신뢰도 점수 카드
+                    // 최상단: 신뢰도 점수 대형 카드 (토스 "내 신용점수" 스타일)
                     _buildTrustScoreCard(stats),
+                    const SizedBox(height: 16),
+
+                    // 선공개 리뷰 긴급 카드 (대응 필요 리뷰)
+                    if (stats.pendingReviews > 0)
+                      _buildUrgentReviewCard(stats),
+                    if (stats.pendingReviews > 0)
+                      const SizedBox(height: 16),
+
+                    // 핵심 KPI 3개 가로 스크롤
+                    _buildKpiHorizontalScroll(stats),
                     const SizedBox(height: 24),
 
                     // 미션 현황 파이 차트
@@ -256,9 +288,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     _buildRecentReviews(stats),
                     const SizedBox(height: 24),
 
-                    // 빠른 액션
+                    // 빠른 액션 (배지 추가)
                     _buildQuickActions(),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 120),
                   ]),
                 ),
               ),
@@ -269,57 +301,188 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildSummaryCards(DashboardStats stats) {
-    return Column(
-      children: [
-        Row(
+  /// 선공개 리뷰 긴급 카드 (배민 사장님앱 참고)
+  Widget _buildUrgentReviewCard(DashboardStats stats) {
+    return InkWell(
+      onTap: () => context.push('/preview-reviews'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: HwahaeColors.warning.withOpacity(0.3)),
+        ),
+        child: Row(
           children: [
-            Expanded(
-              child: _SummaryCard(
-                title: '전체 미션',
-                value: '${stats.totalMissions}',
-                subtitle: '완료 ${stats.completedMissions}건',
-                icon: Icons.assignment_outlined,
-                color: HwahaeColors.primary,
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: HwahaeColors.warning.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Stack(
+                children: [
+                  const Center(
+                    child: Icon(Icons.rate_review_rounded, color: HwahaeColors.warning, size: 26),
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: const BoxDecoration(
+                        color: HwahaeColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${stats.pendingReviews}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(
-              child: _SummaryCard(
-                title: '진행중 미션',
-                value: '${stats.activeMissions}',
-                subtitle: '모집중 ${stats.missionsByStatus['모집중'] ?? 0}건',
-                icon: Icons.pending_actions_outlined,
-                color: HwahaeColors.info,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '대응 필요 리뷰 ${stats.pendingReviews}건',
+                    style: HwahaeTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: HwahaeColors.warning,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '72시간 내 미응답 시 자동 공개됩니다',
+                    style: HwahaeTypography.captionLarge.copyWith(
+                      color: HwahaeColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
+            const Icon(Icons.chevron_right_rounded, color: HwahaeColors.warning),
           ],
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _SummaryCard(
-                title: '평균 평점',
-                value: stats.averageRating.toStringAsFixed(1),
-                subtitle: '리뷰 ${stats.publishedReviews}건',
-                icon: Icons.star_outline,
-                color: HwahaeColors.warning,
-              ),
+      ),
+    );
+  }
+
+  /// 핵심 KPI 3개 가로 스크롤
+  Widget _buildKpiHorizontalScroll(DashboardStats stats) {
+    final kpis = [
+      _KpiData(
+        title: '평균 평점',
+        value: stats.averageRating.toStringAsFixed(1),
+        subtitle: '리뷰 ${stats.publishedReviews}건',
+        icon: Icons.star_rounded,
+        color: HwahaeColors.warning,
+        change: '+0.2',
+        isPositive: true,
+      ),
+      _KpiData(
+        title: '완료 미션',
+        value: '${stats.completedMissions}',
+        subtitle: '전체 ${stats.totalMissions}건',
+        icon: Icons.flag_rounded,
+        color: HwahaeColors.success,
+        change: '+${stats.completedMissions}',
+        isPositive: true,
+      ),
+      _KpiData(
+        title: '총 지출',
+        value: _formatCurrency(stats.totalSpent),
+        subtitle: '이번 달',
+        icon: Icons.account_balance_wallet_rounded,
+        color: HwahaeColors.info,
+        change: null,
+        isPositive: true,
+      ),
+    ];
+
+    return SizedBox(
+      height: 130,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: kpis.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final kpi = kpis[index];
+          return Container(
+            width: 160,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: HwahaeColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: HwahaeColors.border),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _SummaryCard(
-                title: '총 지출',
-                value: _formatCurrency(stats.totalSpent),
-                subtitle: '이번 달',
-                icon: Icons.account_balance_wallet_outlined,
-                color: HwahaeColors.success,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(kpi.icon, color: kpi.color, size: 20),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        kpi.title,
+                        style: HwahaeTypography.captionLarge.copyWith(
+                          color: HwahaeColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  kpi.value,
+                  style: HwahaeTypography.headlineSmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      kpi.subtitle,
+                      style: HwahaeTypography.captionMedium.copyWith(
+                        color: HwahaeColors.textTertiary,
+                      ),
+                    ),
+                    if (kpi.change != null) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        kpi.change!,
+                        style: HwahaeTypography.captionMedium.copyWith(
+                          color: kpi.isPositive ? HwahaeColors.success : HwahaeColors.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 
@@ -773,7 +936,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () => context.push('/preview-reviews'),
                 child: Text(
                   '전체보기',
                   style: HwahaeTypography.labelMedium.copyWith(
@@ -922,7 +1085,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 icon: Icons.add_circle_outline,
                 label: '미션 등록',
                 color: HwahaeColors.primary,
-                onTap: () {},
+                onTap: () => context.push('/missions'),
               ),
             ),
             const SizedBox(width: 12),
@@ -931,7 +1094,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 icon: Icons.rate_review_outlined,
                 label: '리뷰 관리',
                 color: HwahaeColors.secondary,
-                onTap: () {},
+                onTap: () => context.push('/preview-reviews'),
               ),
             ),
             const SizedBox(width: 12),
@@ -940,7 +1103,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 icon: Icons.analytics_outlined,
                 label: '분석 보기',
                 color: HwahaeColors.info,
-                onTap: () {},
+                onTap: () => context.push('/pricing'),
               ),
             ),
           ],
@@ -1078,6 +1241,27 @@ class _SummaryCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// KPI 데이터 모델
+class _KpiData {
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final String? change;
+  final bool isPositive;
+
+  _KpiData({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    this.change,
+    this.isPositive = true,
+  });
 }
 
 /// 빠른 액션 버튼 위젯

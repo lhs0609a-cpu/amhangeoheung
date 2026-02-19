@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
@@ -11,6 +16,7 @@ import '../../../../shared/widgets/error_view.dart';
 import '../../providers/mission_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../data/models/mission_model.dart';
+import '../../data/repositories/mission_repository.dart';
 
 class MissionDetailScreen extends ConsumerWidget {
   final String missionId;
@@ -53,97 +59,330 @@ class MissionDetailScreen extends ConsumerWidget {
   }
 }
 
-class _MissionDetailContent extends ConsumerWidget {
+class _MissionDetailContent extends ConsumerStatefulWidget {
   final MissionModel mission;
 
   const _MissionDetailContent({required this.mission});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MissionDetailContent> createState() => _MissionDetailContentState();
+}
+
+class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
+  MissionModel get mission => widget.mission;
+  Timer? _stayTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start periodic timer for in_progress missions
+    if (mission.status == 'in_progress') {
+      _stayTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _stayTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Calculate stay duration since check-in
+  Duration? _getStayDuration() {
+    if (mission.checkInTime == null) return null;
+    return DateTime.now().difference(mission.checkInTime!);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 상태 배너
-                _buildStatusBanner(),
+          child: CustomScrollView(
+            slivers: [
+              // 상단 고정: 업체명 + 보상금액 + 상태 (쿠팡 상품 상세 스타일)
+              SliverToBoxAdapter(child: _buildStickyHeader()),
 
-                Padding(
-                  padding: const EdgeInsets.all(16),
+              // 진행 상태 Stepper
+              SliverToBoxAdapter(child: _buildMissionStepper()),
+
+              // 접기/펴기 섹션들 (ExpansionTile)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 카테고리 & 지역
-                      Row(
-                        children: [
-                          _buildInfoChip(
-                            _getCategoryIcon(mission.category),
-                            mission.category ?? '기타',
-                          ),
-                          const SizedBox(width: 8),
-                          _buildInfoChip(Icons.location_on, mission.region ?? '지역 미정'),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // 제목
-                      Text(
-                        mission.business?.name ?? mission.category ?? '미션',
-                        style: HwahaeTypography.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '정확한 업체명은 미션 배정 후 공개됩니다.',
-                        style: HwahaeTypography.bodySmall.copyWith(
-                          color: HwahaeColors.textSecondary,
+                      // 미션 안내 (접기)
+                      _buildExpandableSection(
+                        title: '미션 안내 (${mission.missionTypeDisplayName})',
+                        icon: Icons.assignment_outlined,
+                        initiallyExpanded: true,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ...mission.verificationRequirements.asMap().entries.map((entry) =>
+                              _buildMissionStep('${entry.key + 1}', entry.value),
+                            ),
+                            _buildMissionStep(
+                              '${mission.verificationRequirements.length + 1}',
+                              '정형화된 리뷰 작성 (단점 1개 이상 필수)',
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 24),
 
-                      // 페이백 정보
-                      _buildRewardCard(),
-                      const SizedBox(height: 24),
-
-                      // 미션 설명
-                      Text(
-                        '미션 안내',
-                        style: HwahaeTypography.titleMedium,
+                      // 평가 항목 (접기)
+                      _buildExpandableSection(
+                        title: '평가 항목',
+                        icon: Icons.star_outline_rounded,
+                        child: Column(
+                          children: [
+                            _buildEvaluationItem('대기 시간', '입장부터 서비스까지 시간 측정'),
+                            _buildEvaluationItem('서비스 품질', '서비스 품질 평가'),
+                            _buildEvaluationItem('청결도', '테이블, 바닥, 화장실'),
+                            _buildEvaluationItem('직원 응대', '인사, 친절도, 불만 대응'),
+                            _buildEvaluationItem('가성비', '가격 대비 만족도'),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      _buildMissionStep('1', '배정된 업체를 방문하여 이용'),
-                      _buildMissionStep('2', '서비스 품질 평가 (대기시간, 청결도, 품질 등)'),
-                      _buildMissionStep('3', '영수증 촬영 및 현장 사진 3장 이상'),
-                      _buildMissionStep('4', '정형화된 리뷰 작성 (단점 1개 이상 필수)'),
-                      const SizedBox(height: 24),
 
-                      // 평가 항목
-                      Text(
-                        '평가 항목',
-                        style: HwahaeTypography.titleMedium,
+                      // 주의사항 (접기)
+                      _buildExpandableSection(
+                        title: '주의사항',
+                        icon: Icons.warning_amber_rounded,
+                        child: _buildWarningContent(),
                       ),
-                      const SizedBox(height: 12),
-                      _buildEvaluationItem('대기 시간', '입장부터 서비스까지 시간 측정'),
-                      _buildEvaluationItem('서비스 품질', '서비스 품질 평가'),
-                      _buildEvaluationItem('청결도', '테이블, 바닥, 화장실'),
-                      _buildEvaluationItem('직원 응대', '인사, 친절도, 불만 대응'),
-                      _buildEvaluationItem('가성비', '가격 대비 만족도'),
-                      const SizedBox(height: 24),
 
-                      // 주의사항
-                      _buildWarningSection(),
+                      const SizedBox(height: 120),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
 
         // 하단 CTA
         _buildBottomCTA(context, ref),
       ],
+    );
+  }
+
+  /// 상단 고정 헤더: 업체명 + 보상금액 + 상태 + 카테고리
+  Widget _buildStickyHeader() {
+    final statusInfo = _getStatusInfo();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: HwahaeColors.surface,
+        border: Border(
+          bottom: BorderSide(color: HwahaeColors.border),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 카테고리 & 지역 & 상태
+          Row(
+            children: [
+              _buildInfoChip(
+                _getCategoryIcon(mission.category),
+                mission.category ?? '기타',
+              ),
+              const SizedBox(width: 8),
+              _buildInfoChip(Icons.location_on, mission.region ?? '지역 미정'),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: statusInfo.color,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  statusInfo.label,
+                  style: HwahaeTypography.labelSmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 업체명
+          Text(
+            mission.business?.name ?? mission.category ?? '미션',
+            style: HwahaeTypography.headlineSmall.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 보상 금액 (강조)
+          _buildRewardCard(),
+        ],
+      ),
+    );
+  }
+
+  /// 미션 진행 상태 수평 Stepper
+  Widget _buildMissionStepper() {
+    final steps = ['모집중', '배정', '진행', '심사', '완료'];
+    final statusMap = {
+      'recruiting': 0,
+      'assigned': 1,
+      'in_progress': 2,
+      'review_submitted': 3,
+      'completed': 4,
+    };
+    final currentStep = statusMap[mission.status] ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      child: Row(
+        children: List.generate(steps.length * 2 - 1, (index) {
+          if (index.isOdd) {
+            // 연결선
+            final stepIndex = index ~/ 2;
+            final isCompleted = stepIndex < currentStep;
+            return Expanded(
+              child: Container(
+                height: 3,
+                color: isCompleted ? HwahaeColors.success : HwahaeColors.border,
+              ),
+            );
+          }
+
+          final stepIndex = index ~/ 2;
+          final isActive = stepIndex == currentStep;
+          final isCompleted = stepIndex < currentStep;
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? HwahaeColors.primary
+                      : isCompleted
+                          ? HwahaeColors.success
+                          : HwahaeColors.surfaceVariant,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: isCompleted
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : isActive
+                          ? Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          : null,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                steps[stepIndex],
+                style: HwahaeTypography.captionSmall.copyWith(
+                  color: isActive
+                      ? HwahaeColors.primary
+                      : isCompleted
+                          ? HwahaeColors.success
+                          : HwahaeColors.textTertiary,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
+  /// 접기/펴기 섹션 위젯
+  Widget _buildExpandableSection({
+    required String title,
+    required IconData icon,
+    required Widget child,
+    bool initiallyExpanded = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: HwahaeColors.surface,
+        borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+        border: Border.all(color: HwahaeColors.border),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: initiallyExpanded,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          leading: Icon(icon, color: HwahaeColors.primary, size: 22),
+          title: Text(
+            title,
+            style: HwahaeTypography.titleSmall.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          children: [child],
+        ),
+      ),
+    );
+  }
+
+  /// 주의사항 내용 (ExpansionTile 내부용)
+  Widget _buildWarningContent() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: HwahaeColors.warningLight,
+        borderRadius: BorderRadius.circular(HwahaeTheme.radiusSM),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildWarningItem('미션 수행 중 신분이 노출되면 미션이 무효됩니다'),
+          _buildWarningItem('영수증은 반드시 보관해주세요'),
+          _buildWarningItem('미션 기한 내 리뷰를 제출해야 보상이 지급됩니다'),
+          _buildWarningItem('허위/부실 리뷰는 패널티 사유가 됩니다'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWarningItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, size: 16, color: HwahaeColors.warning),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: HwahaeTypography.bodySmall.copyWith(
+                color: HwahaeColors.warning,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -213,7 +452,9 @@ class _MissionDetailContent extends ConsumerWidget {
       case 'in_progress':
         return _StatusInfo(
           label: '미션 진행중',
-          subtitle: '방문 후 리뷰를 작성해주세요',
+          subtitle: mission.missionType == 'visit'
+              ? '방문 후 리뷰를 작성해주세요'
+              : '미션 수행 후 리뷰를 작성해주세요',
           color: HwahaeColors.warning,
         );
       case 'review_submitted':
@@ -477,6 +718,12 @@ class _MissionDetailContent extends ConsumerWidget {
 
   // 배정됨 - 체크인 버튼
   Widget _buildAssignedCTA(BuildContext context, WidgetRef ref) {
+    final visitDeadline = mission.visitDeadline;
+    final daysUntilDeadline = mission.daysUntilVisitDeadline;
+    final hoursUntilDeadline = mission.hoursUntilVisitDeadline;
+    final isVisitMission = mission.missionType == 'visit';
+    final needsGps = isVisitMission && mission.gpsRequired;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -488,51 +735,131 @@ class _MissionDetailContent extends ConsumerWidget {
             color: HwahaeColors.infoLight,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Row(
+          child: Column(
             children: [
-              const Icon(Icons.store, color: HwahaeColors.info, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${mission.business?.name ?? "업체"} - ${mission.business?.address ?? "주소 확인 필요"}',
-                  style: HwahaeTypography.bodySmall.copyWith(
-                    color: HwahaeColors.info,
+              Row(
+                children: [
+                  Icon(mission.missionTypeIcon, color: HwahaeColors.info, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${mission.business?.name ?? "업체"} - ${mission.business?.address ?? "주소 확인 필요"}',
+                      style: HwahaeTypography.bodySmall.copyWith(
+                        color: HwahaeColors.info,
+                      ),
+                    ),
                   ),
+                ],
+              ),
+              if (visitDeadline != null && daysUntilDeadline != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.event, color: HwahaeColors.info, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        daysUntilDeadline > 0
+                            ? '미션 기한: ${daysUntilDeadline}일 남음 (3일 이내 수행 필수)'
+                            : hoursUntilDeadline != null && hoursUntilDeadline > 0
+                                ? '미션 기한: ${hoursUntilDeadline}시간 남음'
+                                : '미션 기한 만료 임박!',
+                        style: HwahaeTypography.bodySmall.copyWith(
+                          color: HwahaeColors.info,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+              ],
+              // 미션 유형별 인증 요구사항 안내
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.checklist, color: HwahaeColors.info, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '인증: ${mission.verificationRequirements.join(", ")}',
+                      style: HwahaeTypography.bodySmall.copyWith(
+                        color: HwahaeColors.info,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: HwahaeSecondaryButton(
-                text: '위치 보기',
-                icon: Icons.map,
-                onPressed: () => _openMapLocation(context),
+        // GPS 필요한 방문 미션: 위치 보기 + 체크인 버튼
+        if (needsGps)
+          Row(
+            children: [
+              Expanded(
+                child: HwahaeSecondaryButton(
+                  text: '위치 보기',
+                  icon: Icons.map,
+                  onPressed: () => _openMapLocation(context),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: HwahaePrimaryButton(
-                text: '체크인 하기',
-                icon: Icons.location_on,
-                onPressed: () => _showCheckInWithVerification(context, ref),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: HwahaePrimaryButton(
+                  text: '체크인 하기',
+                  icon: Icons.location_on,
+                  onPressed: () => _showCheckInWithVerification(context, ref),
+                ),
               ),
+            ],
+          )
+        // GPS 불필요한 방문 미션: 위치 보기 (선택) + 미션 시작
+        else if (isVisitMission)
+          Row(
+            children: [
+              Expanded(
+                child: HwahaeSecondaryButton(
+                  text: '위치 보기',
+                  icon: Icons.map,
+                  onPressed: () => _openMapLocation(context),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: HwahaePrimaryButton(
+                  text: '미션 시작',
+                  icon: Icons.play_arrow,
+                  onPressed: () => _startMissionWithoutGps(context, ref),
+                ),
+              ),
+            ],
+          )
+        // 비방문 미션: 미션 시작 버튼만
+        else
+          SizedBox(
+            width: double.infinity,
+            child: HwahaePrimaryButton(
+              text: '미션 시작',
+              icon: Icons.play_arrow,
+              onPressed: () => _startMissionWithoutGps(context, ref),
             ),
-          ],
-        ),
+          ),
       ],
     );
   }
 
   // 진행중 - 리뷰 작성 버튼
   Widget _buildInProgressCTA(BuildContext context) {
+    final stayDuration = _getStayDuration();
+    final visitDeadline = mission.visitDeadline;
+    final hoursUntilDeadline = mission.hoursUntilVisitDeadline;
+    final daysUntilDeadline = mission.daysUntilVisitDeadline;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 진행 상황 표시
+        // Stay timer and deadline info
         Container(
           padding: const EdgeInsets.all(12),
           margin: const EdgeInsets.only(bottom: 12),
@@ -540,18 +867,46 @@ class _MissionDetailContent extends ConsumerWidget {
             color: HwahaeColors.warningLight,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Row(
+          child: Column(
             children: [
-              const Icon(Icons.access_time, color: HwahaeColors.warning, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '체크인 완료! 방문 후 리뷰를 작성해주세요.',
-                  style: HwahaeTypography.bodySmall.copyWith(
-                    color: HwahaeColors.warning,
+              Row(
+                children: [
+                  const Icon(Icons.access_time, color: HwahaeColors.warning, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      stayDuration != null
+                          ? '체류 중: ${stayDuration.inMinutes}분 ${stayDuration.inSeconds % 60}초'
+                          : '체크인 완료!',
+                      style: HwahaeTypography.bodySmall.copyWith(
+                        color: HwahaeColors.warning,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
+              if (visitDeadline != null && hoursUntilDeadline != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.event, color: HwahaeColors.warning, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        daysUntilDeadline != null && daysUntilDeadline > 0
+                            ? '방문 마감: ${daysUntilDeadline}일 남음'
+                            : hoursUntilDeadline > 0
+                                ? '방문 마감: ${hoursUntilDeadline}시간 남음'
+                                : '방문 마감 임박!',
+                        style: HwahaeTypography.bodySmall.copyWith(
+                          color: HwahaeColors.warning,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -740,18 +1095,39 @@ class _MissionDetailContent extends ConsumerWidget {
               Navigator.pop(dialogContext);
               // 체크아웃 API 호출
               try {
-                await Future.delayed(const Duration(milliseconds: 500));
+                final response = await ref
+                    .read(missionActionProvider.notifier)
+                    .checkOut(mission.id);
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('체크아웃이 완료되었습니다'),
-                    backgroundColor: HwahaeColors.success,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                if (response.success) {
+                  // 미션 상세 새로고침
+                  ref.invalidate(missionDetailProvider(mission.id));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        response.stayMinutes != null
+                            ? '체크아웃 완료! 체류 시간: ${response.stayMinutes}분'
+                            : '체크아웃이 완료되었습니다',
+                      ),
+                      backgroundColor: HwahaeColors.success,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  ),
-                );
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(response.message ?? '체크아웃에 실패했습니다'),
+                      backgroundColor: HwahaeColors.error,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  );
+                }
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -880,16 +1256,70 @@ class _MissionDetailContent extends ConsumerWidget {
     );
   }
 
-  /// GPS Mock Location 탐지를 포함한 체크인 프로세스
+  /// GPS 없이 미션 시작 (비방문 미션 또는 GPS 선택적 방문 미션)
+  void _startMissionWithoutGps(BuildContext context, WidgetRef ref) async {
+    try {
+      final response = await ref
+          .read(missionActionProvider.notifier)
+          .checkIn(
+            mission.id,
+            latitude: 0,
+            longitude: 0,
+          );
+
+      if (!context.mounted) return;
+
+      if (response.success) {
+        ref.invalidate(missionDetailProvider(mission.id));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? '미션이 시작되었습니다.'),
+            backgroundColor: HwahaeColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? '미션 시작에 실패했습니다.'),
+            backgroundColor: HwahaeColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('미션 시작에 실패했습니다.'),
+          backgroundColor: HwahaeColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+    }
+  }
+
+  /// GPS Mock Location 탐지를 포함한 체크인 프로세스 (구간별 점진적 반경 완화)
   void _showCheckInWithVerification(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _CheckInVerificationSheet(
+      builder: (sheetContext) => _CheckInVerificationSheet(
         mission: mission,
         onCheckInSuccess: () {
-          Navigator.pop(context);
+          Navigator.pop(sheetContext);
+          // Refresh mission detail to reflect check-in
+          ref.invalidate(missionDetailProvider(mission.id));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('체크인 완료! 이제 방문을 시작하세요.'),
@@ -967,6 +1397,11 @@ class _CheckInVerificationSheetState
   _CheckInStep _currentStep = _CheckInStep.initial;
   String? _errorMessage;
   bool _isMockDetected = false;
+  String? _detectedZone;
+  int? _detectedDistance;
+  String? _zoneMessage;
+  File? _capturedPhoto;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   Widget build(BuildContext context) {
@@ -1020,272 +1455,103 @@ class _CheckInVerificationSheetState
   }
 
   Widget _buildStepContent() {
+    // 단순화된 3단계 사용자 경험
     switch (_currentStep) {
       case _CheckInStep.initial:
         return _buildInitialStep();
       case _CheckInStep.verifying:
+      case _CheckInStep.photoUploading:
         return _buildVerifyingStep();
-      case _CheckInStep.mockDetected:
-        return _buildMockDetectedStep();
-      case _CheckInStep.locationError:
-        return _buildLocationErrorStep();
-      case _CheckInStep.outOfRange:
-        return _buildOutOfRangeStep();
       case _CheckInStep.success:
+      case _CheckInStep.yellowZone:
         return _buildSuccessStep();
+      case _CheckInStep.orangeZone:
+      case _CheckInStep.photoCapture:
+        return _buildAdditionalVerificationStep();
+      case _CheckInStep.mockDetected:
+      case _CheckInStep.locationError:
+      case _CheckInStep.outOfRange:
+        return _buildFailureStep();
     }
   }
 
+  /// 초기 화면: 간결한 위치 인증 시작
   Widget _buildInitialStep() {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: HwahaeColors.primaryContainer,
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.location_searching,
-            size: 48,
+            size: 52,
             color: HwahaeColors.primary,
           ),
         ),
         const SizedBox(height: 24),
-        _buildInfoCard(
-          icon: Icons.security,
-          title: '위치 보안 검증',
-          description: 'GPS 조작 방지 시스템으로\n실제 위치를 확인합니다.',
+        Text(
+          '업체 근처에 계신가요?',
+          style: HwahaeTypography.titleMedium.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        const SizedBox(height: 12),
-        _buildInfoCard(
-          icon: Icons.my_location,
-          title: '업체 반경 확인',
-          description: '업체 위치 100m 이내에서만\n체크인이 가능합니다.',
+        const SizedBox(height: 8),
+        Text(
+          '실제 업체 위치에서 체크인해주세요',
+          style: HwahaeTypography.bodyMedium.copyWith(
+            color: HwahaeColors.textSecondary,
+          ),
         ),
       ],
     );
   }
 
+  /// 확인 중: 통합된 로딩 화면 (토스 본인인증 UX)
   Widget _buildVerifyingStep() {
     return Column(
       children: [
         const SizedBox(
-          width: 80,
-          height: 80,
+          width: 72,
+          height: 72,
           child: CircularProgressIndicator(
             color: HwahaeColors.primary,
-            strokeWidth: 6,
+            strokeWidth: 5,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 28),
         Text(
-          '위치 확인 중...',
-          style: HwahaeTypography.titleMedium,
+          '잠깐만 기다려주세요',
+          style: HwahaeTypography.titleMedium.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
-          'GPS 신호를 분석하고 있습니다',
-          style: HwahaeTypography.bodySmall.copyWith(
+          '위치를 확인하고 있습니다...',
+          style: HwahaeTypography.bodyMedium.copyWith(
             color: HwahaeColors.textSecondary,
           ),
         ),
-        const SizedBox(height: 24),
-        _buildVerificationStepIndicator('GPS 신호 수집', true, true),
-        _buildVerificationStepIndicator('Mock Location 탐지', true, false),
-        _buildVerificationStepIndicator('위치 일관성 검증', false, false),
-        _buildVerificationStepIndicator('업체 반경 확인', false, false),
       ],
     );
   }
 
-  Widget _buildMockDetectedStep() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: HwahaeColors.errorLight,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.gps_off,
-            size: 48,
-            color: HwahaeColors.error,
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          '가짜 GPS 감지됨',
-          style: HwahaeTypography.titleLarge.copyWith(
-            color: HwahaeColors.error,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: HwahaeColors.errorLight,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Text(
-                'GPS 위치 조작이 감지되었습니다.\n실제 업체 위치에서 다시 시도해주세요.',
-                style: HwahaeTypography.bodyMedium.copyWith(
-                  color: HwahaeColors.error,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Icon(Icons.warning, color: HwahaeColors.error, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '반복 시도 시 계정이 제한될 수 있습니다',
-                      style: HwahaeTypography.captionLarge.copyWith(
-                        color: HwahaeColors.error,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLocationErrorStep() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: HwahaeColors.warningLight,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.location_off,
-            size: 48,
-            color: HwahaeColors.warning,
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          '위치 확인 실패',
-          style: HwahaeTypography.titleLarge.copyWith(
-            color: HwahaeColors.warning,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: HwahaeColors.warningLight,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            _errorMessage ?? 'GPS 신호를 받을 수 없습니다.\n실외에서 다시 시도해주세요.',
-            style: HwahaeTypography.bodyMedium.copyWith(
-              color: HwahaeColors.warning,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildTipCard(
-          '위치 권한이 "항상 허용"으로 설정되어 있는지 확인해주세요.',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOutOfRangeStep() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: HwahaeColors.infoLight,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.wrong_location,
-            size: 48,
-            color: HwahaeColors.info,
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          '업체 범위 밖',
-          style: HwahaeTypography.titleLarge.copyWith(
-            color: HwahaeColors.info,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: HwahaeColors.infoLight,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Text(
-                '현재 위치가 업체로부터\n100m 이상 떨어져 있습니다.',
-                style: HwahaeTypography.bodyMedium.copyWith(
-                  color: HwahaeColors.info,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: HwahaeColors.surface,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.store, size: 16, color: HwahaeColors.info),
-                    const SizedBox(width: 8),
-                    Text(
-                      widget.mission.business?.name ?? '업체',
-                      style: HwahaeTypography.labelMedium.copyWith(
-                        color: HwahaeColors.info,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
+  /// 성공: 체크인 완료 (Yellow zone도 성공으로 통합)
   Widget _buildSuccessStep() {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: HwahaeColors.successLight,
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.check_circle,
-            size: 48,
+            size: 52,
             color: HwahaeColors.success,
           ),
         ),
@@ -1297,12 +1563,122 @@ class _CheckInVerificationSheetState
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Text(
           '체크인이 성공적으로 완료되었습니다',
           style: HwahaeTypography.bodyMedium.copyWith(
             color: HwahaeColors.textSecondary,
           ),
+        ),
+      ],
+    );
+  }
+
+  /// 추가 인증 필요: Orange zone - 사진 촬영 (간소화)
+  Widget _buildAdditionalVerificationStep() {
+    return Column(
+      children: [
+        if (_capturedPhoto != null) ...[
+          // 촬영된 사진 미리보기
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.file(
+              _capturedPhoto!,
+              height: 180,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '업체 간판이 잘 보이는지 확인해주세요',
+            style: HwahaeTypography.bodyMedium.copyWith(
+              color: HwahaeColors.textSecondary,
+            ),
+          ),
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFF3E0),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.camera_alt_rounded,
+              size: 52,
+              color: Color(0xFFFF9800),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            '추가 인증이 필요합니다',
+            style: HwahaeTypography.titleMedium.copyWith(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFE65100),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '업체 간판 사진을 촬영해 인증해주세요',
+            style: HwahaeTypography.bodyMedium.copyWith(
+              color: HwahaeColors.textSecondary,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// 실패: 모든 오류 상태를 통합
+  Widget _buildFailureStep() {
+    final String title;
+    final String message;
+    final IconData icon;
+    final Color color;
+
+    if (_isMockDetected) {
+      title = '위치 확인 실패';
+      message = '위치 설정을 확인하고 실제 업체에서 다시 시도해주세요.';
+      icon = Icons.gps_off;
+      color = HwahaeColors.error;
+    } else if (_detectedZone == 'red') {
+      final distanceText = _detectedDistance != null ? '${_detectedDistance}m' : '500m 이상';
+      title = '업체에서 너무 멀어요';
+      message = '현재 $distanceText 떨어져 있습니다.\n업체 근처로 이동 후 다시 시도해주세요.';
+      icon = Icons.wrong_location;
+      color = HwahaeColors.error;
+    } else {
+      title = '위치 확인 실패';
+      message = _errorMessage ?? 'GPS 신호를 받을 수 없습니다.\n실외에서 다시 시도해주세요.';
+      icon = Icons.location_off;
+      color = HwahaeColors.warning;
+    }
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 52, color: color),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          title,
+          style: HwahaeTypography.titleMedium.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          style: HwahaeTypography.bodyMedium.copyWith(
+            color: HwahaeColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -1421,12 +1797,13 @@ class _CheckInVerificationSheetState
         return SizedBox(
           width: double.infinity,
           child: HwahaePrimaryButton(
-            text: '위치 인증 시작',
+            text: '내 위치 확인하기',
             icon: Icons.gps_fixed,
             onPressed: _startLocationVerification,
           ),
         );
       case _CheckInStep.verifying:
+      case _CheckInStep.photoUploading:
         return const SizedBox.shrink();
       case _CheckInStep.mockDetected:
         return SizedBox(
@@ -1446,6 +1823,58 @@ class _CheckInVerificationSheetState
             onPressed: _startLocationVerification,
           ),
         );
+      case _CheckInStep.yellowZone:
+        // Yellow zone: check-in already succeeded, just confirm
+        return SizedBox(
+          width: double.infinity,
+          child: HwahaePrimaryButton(
+            text: '확인',
+            onPressed: widget.onCheckInSuccess,
+          ),
+        );
+      case _CheckInStep.orangeZone:
+        // Orange zone: need to take a photo
+        return SizedBox(
+          width: double.infinity,
+          child: HwahaePrimaryButton(
+            text: '사진 촬영하기',
+            icon: Icons.camera_alt,
+            onPressed: _captureVerificationPhoto,
+          ),
+        );
+      case _CheckInStep.photoCapture:
+        return Column(
+          children: [
+            if (_capturedPhoto != null) ...[
+              SizedBox(
+                width: double.infinity,
+                child: HwahaePrimaryButton(
+                  text: '이 사진으로 인증',
+                  icon: Icons.check,
+                  onPressed: _submitPhotoVerification,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: HwahaeSecondaryButton(
+                  text: '다시 촬영',
+                  icon: Icons.refresh,
+                  onPressed: _captureVerificationPhoto,
+                ),
+              ),
+            ] else ...[
+              SizedBox(
+                width: double.infinity,
+                child: HwahaePrimaryButton(
+                  text: '사진 촬영',
+                  icon: Icons.camera_alt,
+                  onPressed: _captureVerificationPhoto,
+                ),
+              ),
+            ],
+          ],
+        );
       case _CheckInStep.success:
         return SizedBox(
           width: double.infinity,
@@ -1462,6 +1891,9 @@ class _CheckInVerificationSheetState
       _currentStep = _CheckInStep.verifying;
       _errorMessage = null;
       _isMockDetected = false;
+      _detectedZone = null;
+      _detectedDistance = null;
+      _zoneMessage = null;
     });
 
     // 위치 검증 수행
@@ -1486,29 +1918,132 @@ class _CheckInVerificationSheetState
       return;
     }
 
-    // 업체 위치와 거리 확인 (업체 좌표가 있는 경우)
-    final businessLat = widget.mission.business?.latitude;
-    final businessLng = widget.mission.business?.longitude;
+    // 백엔드 API를 통해 GPS 존 판별 + 체크인 시도
+    final position = locationState.position!;
+    final checkInResponse = await ref
+        .read(missionActionProvider.notifier)
+        .checkIn(
+          widget.mission.id,
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
 
-    if (businessLat != null && businessLng != null) {
-      final isWithinRange = locationNotifier.isWithinRadius(
-        businessLat,
-        businessLng,
-        100.0, // 100미터 반경
-      );
+    _detectedZone = checkInResponse.zone;
+    _detectedDistance = checkInResponse.distance;
+    _zoneMessage = checkInResponse.message;
 
-      if (!isWithinRange) {
+    if (checkInResponse.success) {
+      // Green or Yellow zone: check-in succeeded
+      if (checkInResponse.zone == 'yellow') {
+        setState(() {
+          _currentStep = _CheckInStep.yellowZone;
+        });
+      } else {
+        // Green zone
+        setState(() {
+          _currentStep = _CheckInStep.success;
+        });
+      }
+    } else {
+      // Check-in failed — determine which zone
+      if (checkInResponse.zone == 'orange' &&
+          checkInResponse.requiresPhotoVerification) {
+        // Orange zone: need photo verification
+        setState(() {
+          _currentStep = _CheckInStep.orangeZone;
+        });
+      } else if (checkInResponse.zone == 'red') {
+        // Red zone: blocked
         setState(() {
           _currentStep = _CheckInStep.outOfRange;
         });
-        return;
+      } else {
+        // Generic error
+        setState(() {
+          _currentStep = _CheckInStep.locationError;
+          _errorMessage = checkInResponse.message;
+        });
       }
     }
+  }
 
-    // 체크인 성공
+  /// Capture a verification photo (orange zone)
+  Future<void> _captureVerificationPhoto() async {
+    try {
+      final XFile? photo = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1280,
+        maxHeight: 960,
+        imageQuality: 80,
+      );
+
+      if (photo != null) {
+        setState(() {
+          _capturedPhoto = File(photo.path);
+          _currentStep = _CheckInStep.photoCapture;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = '카메라를 사용할 수 없습니다.';
+        _currentStep = _CheckInStep.locationError;
+      });
+    }
+  }
+
+  /// Submit photo verification for orange zone check-in
+  Future<void> _submitPhotoVerification() async {
+    if (_capturedPhoto == null) return;
+
     setState(() {
-      _currentStep = _CheckInStep.success;
+      _currentStep = _CheckInStep.photoUploading;
     });
+
+    try {
+      // Read photo and encode as base64
+      final bytes = await _capturedPhoto!.readAsBytes();
+      final base64Photo = base64Encode(bytes);
+
+      final locationState = ref.read(locationVerificationProvider);
+      final position = locationState.position;
+
+      if (position == null) {
+        setState(() {
+          _currentStep = _CheckInStep.locationError;
+          _errorMessage = '위치 정보를 가져올 수 없습니다. 다시 시도해주세요.';
+        });
+        return;
+      }
+
+      // Re-submit check-in with photo
+      final checkInResponse = await ref
+          .read(missionActionProvider.notifier)
+          .checkIn(
+            widget.mission.id,
+            latitude: position.latitude,
+            longitude: position.longitude,
+            verificationPhoto: base64Photo,
+          );
+
+      if (checkInResponse.success) {
+        // Refresh mission detail
+        ref.invalidate(missionDetailProvider(widget.mission.id));
+        setState(() {
+          _currentStep = _CheckInStep.success;
+          _zoneMessage = checkInResponse.message;
+        });
+      } else {
+        setState(() {
+          _currentStep = _CheckInStep.locationError;
+          _errorMessage = checkInResponse.message ?? '사진 인증에 실패했습니다.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _currentStep = _CheckInStep.locationError;
+        _errorMessage = '사진 인증에 실패했습니다: ${e.toString()}';
+      });
+    }
   }
 }
 
@@ -1517,7 +2052,11 @@ enum _CheckInStep {
   verifying,
   mockDetected,
   locationError,
-  outOfRange,
+  outOfRange,        // red zone (500m+)
+  yellowZone,        // yellow zone (100-200m) — warning
+  orangeZone,        // orange zone (200-500m) — photo required
+  photoCapture,      // taking photo for orange zone verification
+  photoUploading,    // uploading photo
   success,
 }
 

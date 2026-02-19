@@ -2,20 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
+import '../../../../core/providers/user_type_provider.dart';
 import '../../../review/data/models/review_model.dart';
 import '../../../mission/data/models/mission_model.dart';
 import '../../providers/home_provider.dart';
 import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/skeleton_widgets.dart';
-
-/// 사용자 타입 enum
-enum UserType { reviewer, business, consumer }
+import '../../../ranking/data/models/ranking_model.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -26,7 +24,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentBannerIndex = 0;
-  UserType? _userType;
 
   final List<String> _categories = [
     '전체',
@@ -41,28 +38,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserType();
     Future.microtask(() {
       ref.read(homeDataProvider.notifier).loadHomeData();
     });
   }
 
-  Future<void> _loadUserType() async {
-    final prefs = await SharedPreferences.getInstance();
-    final typeString = prefs.getString('user_type_preference');
-    if (typeString != null && mounted) {
-      setState(() {
-        _userType = UserType.values.firstWhere(
-          (e) => e.name == typeString,
-          orElse: () => UserType.consumer,
-        );
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final homeState = ref.watch(homeDataProvider);
+    final userType = ref.watch(userTypeProvider);
 
     return Scaffold(
       backgroundColor: HwahaeColors.background,
@@ -79,34 +63,435 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // 앱바
                   _buildAppBar(),
 
-                  // 배너 슬라이더 (타입별 맞춤)
-                  SliverToBoxAdapter(child: _buildBannerSlider()),
+                  // 리뷰어 홈: "오늘의 미션 브리핑" 레이아웃
+                  if (userType == UserType.reviewer) ...[
+                    // 진행 중 미션 스티키 카드
+                    SliverToBoxAdapter(child: _buildActiveMissionCard(homeState)),
+                    // 오늘의 미션 추천
+                    SliverToBoxAdapter(child: _buildMissionsSection(homeState)),
+                    // 정산 대기 금액 카드
+                    SliverToBoxAdapter(child: _buildSettlementCard()),
+                    // 등급 진행 상황
+                    SliverToBoxAdapter(child: _buildGradeProgressCard()),
+                    // 베스트 리뷰
+                    SliverToBoxAdapter(child: _buildBestReviewsSection(homeState)),
+                  ],
 
-                  // 퀵 액션 (타입별)
-                  if (_userType != null)
-                    SliverToBoxAdapter(child: _buildQuickActions()),
-
-                  // 카테고리 탭 (소비자 타입만)
-                  if (_userType == UserType.consumer || _userType == null)
+                  // 소비자 홈: 검색 + 탐색 레이아웃
+                  if (userType == UserType.consumer) ...[
+                    // 검색 바
+                    SliverToBoxAdapter(child: _buildSearchBar()),
+                    // 내 주변 TOP 업체
+                    SliverToBoxAdapter(child: _buildTopBusinessSection(homeState)),
+                    // 카테고리 탭
                     SliverToBoxAdapter(child: _buildCategoryTabs()),
+                    // 최근 인증 리뷰 피드
+                    SliverToBoxAdapter(child: _buildBestReviewsSection(homeState)),
+                    // 카테고리별 탐색
+                    SliverToBoxAdapter(child: _buildCategoryExplore()),
+                  ],
 
-                  // 이번 달 TOP 업체
-                  SliverToBoxAdapter(child: _buildTopBusinessSection(homeState)),
-
-                  // 참여 가능한 미션
-                  SliverToBoxAdapter(child: _buildMissionsSection(homeState)),
-
-                  // 베스트 리뷰
-                  SliverToBoxAdapter(child: _buildBestReviewsSection(homeState)),
-
-                  // 우수 리뷰어
-                  SliverToBoxAdapter(child: _buildTopReviewersSection()),
+                  // 업체 홈: 대시보드 요약 (실제 대시보드로 리다이렉트)
+                  if (userType == UserType.business) ...[
+                    SliverToBoxAdapter(child: _buildQuickActions()),
+                    SliverToBoxAdapter(child: _buildTopBusinessSection(homeState)),
+                    SliverToBoxAdapter(child: _buildBestReviewsSection(homeState)),
+                  ],
 
                   // 하단 여백 (네비게이션 바 고려)
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
             ),
+    );
+  }
+
+  /// 리뷰어 홈: 진행 중 미션 스티키 카드
+  Widget _buildActiveMissionCard(HomeDataState homeState) {
+    final activeMissions = homeState.availableMissions
+        .where((m) => m.status == 'in_progress' || m.status == 'assigned')
+        .toList();
+
+    if (activeMissions.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: HwahaeColors.gradientPrimary,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.explore_rounded, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '새로운 미션을 찾아보세요',
+                      style: HwahaeTypography.titleSmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '내 주변 미션을 확인해보세요',
+                      style: HwahaeTypography.captionLarge.copyWith(
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: () => context.push('/missions'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '미션 찾기',
+                    style: HwahaeTypography.labelSmall.copyWith(
+                      color: HwahaeColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final mission = activeMissions.first;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: InkWell(
+        onTap: () => context.push('/missions/${mission.id}'),
+        borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: HwahaeColors.gradientWarm,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.flag_rounded, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '진행 중 미션',
+                      style: HwahaeTypography.labelSmall.copyWith(
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      mission.business?.name ?? mission.category ?? '미션',
+                      style: HwahaeTypography.titleSmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (mission.daysUntilDeadline != null)
+                      Text(
+                        'D-${mission.daysUntilDeadline}',
+                        style: HwahaeTypography.captionLarge.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (activeMissions.length > 1)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '+${activeMissions.length - 1}',
+                    style: HwahaeTypography.labelSmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right_rounded, color: Colors.white),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 리뷰어 홈: 정산 대기 금액 카드
+  Widget _buildSettlementCard() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: InkWell(
+        onTap: () => context.push('/settlements'),
+        borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: HwahaeColors.surface,
+            borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
+            border: Border.all(color: HwahaeColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: HwahaeColors.secondaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: HwahaeColors.secondary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '정산 대기',
+                      style: HwahaeTypography.captionLarge.copyWith(
+                        color: HwahaeColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '0원',
+                      style: HwahaeTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: HwahaeColors.textTertiary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 리뷰어 홈: 등급 진행 상황
+  Widget _buildGradeProgressCard() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: InkWell(
+        onTap: () => context.push('/ranking?tab=reviewer'),
+        borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: HwahaeColors.surface,
+            borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
+            border: Border.all(color: HwahaeColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: HwahaeColors.gradeRookie.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.eco_rounded, size: 14, color: HwahaeColors.gradeRookie),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Rookie',
+                          style: HwahaeTypography.labelSmall.copyWith(
+                            color: HwahaeColors.gradeRookie,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '다음 등급까지',
+                    style: HwahaeTypography.captionMedium.copyWith(
+                      color: HwahaeColors.textTertiary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: const LinearProgressIndicator(
+                  value: 0.0,
+                  minHeight: 8,
+                  backgroundColor: HwahaeColors.surfaceVariant,
+                  valueColor: AlwaysStoppedAnimation<Color>(HwahaeColors.primary),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '미션 0/5 완료',
+                style: HwahaeTypography.captionMedium.copyWith(
+                  color: HwahaeColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 소비자 홈: 검색 바
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: InkWell(
+        onTap: () => context.push('/search'),
+        borderRadius: BorderRadius.circular(HwahaeTheme.radiusFull),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: BoxDecoration(
+            color: HwahaeColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(HwahaeTheme.radiusFull),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.search_rounded, color: HwahaeColors.textTertiary),
+              const SizedBox(width: 12),
+              Text(
+                '업체, 카테고리, 지역 검색',
+                style: HwahaeTypography.bodyMedium.copyWith(
+                  color: HwahaeColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 소비자 홈: 카테고리별 탐색
+  Widget _buildCategoryExplore() {
+    final categories = [
+      {'icon': Icons.restaurant, 'label': '음식점', 'gradient': HwahaeColors.gradientWarm},
+      {'icon': Icons.coffee, 'label': '카페', 'gradient': HwahaeColors.gradientAccent},
+      {'icon': Icons.spa, 'label': '뷰티', 'gradient': HwahaeColors.gradientSunset},
+      {'icon': Icons.fitness_center, 'label': '건강', 'gradient': HwahaeColors.gradientCool},
+      {'icon': Icons.park, 'label': '레저', 'gradient': HwahaeColors.gradientOcean},
+      {'icon': Icons.school, 'label': '교육', 'gradient': HwahaeColors.gradientPrimary},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        _buildSectionHeader('카테고리별 탐색'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 1.1,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final cat = categories[index];
+              return InkWell(
+                onTap: () => context.push('/search'),
+                borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: HwahaeColors.surface,
+                    borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+                    border: Border.all(color: HwahaeColors.border),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: cat['gradient'] as List<Color>),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(cat['icon'] as IconData, color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        cat['label'] as String,
+                        style: HwahaeTypography.labelSmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -484,9 +869,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   /// 사용자 타입별 퀵 액션
   Widget _buildQuickActions() {
+    final userType = ref.watch(userTypeProvider);
     List<_QuickActionData> actions;
 
-    switch (_userType) {
+    switch (userType) {
       case UserType.reviewer:
         actions = [
           _QuickActionData(
@@ -521,7 +907,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: Icons.preview_rounded,
             label: '선공개 리뷰',
             gradient: HwahaeColors.gradientWarm,
-            badge: '2',
             onTap: () => context.push('/preview-reviews'),
           ),
           _QuickActionData(
@@ -540,7 +925,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: Icons.payment_rounded,
             label: '구독 관리',
             gradient: HwahaeColors.gradientCool,
-            onTap: () => context.push('/business-pricing'),
+            onTap: () => context.push('/pricing'),
           ),
         ];
         break;
@@ -579,53 +964,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 사용자 타입 표시 (선택적)
-          if (_userType != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getUserTypeColor().withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getUserTypeIcon(),
-                          size: 14,
-                          color: _getUserTypeColor(),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _getUserTypeLabel(),
-                          style: HwahaeTypography.labelSmall.copyWith(
-                            color: _getUserTypeColor(),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+          // 사용자 타입 표시
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getUserTypeColor(userType).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      // 유형 변경
-                      _showChangeUserTypeDialog();
-                    },
-                    child: Text(
-                      '변경',
-                      style: HwahaeTypography.labelSmall.copyWith(
-                        color: HwahaeColors.textTertiary,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _getUserTypeIcon(userType),
+                        size: 14,
+                        color: _getUserTypeColor(userType),
                       ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _getUserTypeLabel(userType),
+                        style: HwahaeTypography.labelSmall.copyWith(
+                          color: _getUserTypeColor(userType),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                InkWell(
+                  onTap: _showChangeUserTypeDialog,
+                  child: Text(
+                    '변경',
+                    style: HwahaeTypography.labelSmall.copyWith(
+                      color: HwahaeColors.textTertiary,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
           // 퀵 액션 그리드
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -699,38 +1080,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Color _getUserTypeColor() {
-    switch (_userType) {
+  Color _getUserTypeColor(UserType userType) {
+    switch (userType) {
       case UserType.reviewer:
         return HwahaeColors.warning;
       case UserType.business:
         return HwahaeColors.accent;
       case UserType.consumer:
-      default:
         return HwahaeColors.primary;
     }
   }
 
-  IconData _getUserTypeIcon() {
-    switch (_userType) {
+  IconData _getUserTypeIcon(UserType userType) {
+    switch (userType) {
       case UserType.reviewer:
         return Icons.rate_review_rounded;
       case UserType.business:
         return Icons.storefront_rounded;
       case UserType.consumer:
-      default:
         return Icons.person_rounded;
     }
   }
 
-  String _getUserTypeLabel() {
-    switch (_userType) {
+  String _getUserTypeLabel(UserType userType) {
+    switch (userType) {
       case UserType.reviewer:
         return '리뷰어';
       case UserType.business:
         return '업체';
       case UserType.consumer:
-      default:
         return '소비자';
     }
   }
@@ -772,15 +1150,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildUserTypeOption(UserType type, String title, String description, IconData icon, Color color) {
-    final isSelected = _userType == type;
+    final currentType = ref.watch(userTypeProvider);
+    final isSelected = currentType == type;
 
-    return GestureDetector(
+    return InkWell(
       onTap: () async {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_type_preference', type.name);
-        setState(() {
-          _userType = type;
-        });
+        await ref.read(userTypeProvider.notifier).setUserType(type);
         if (mounted) Navigator.pop(context);
       },
       child: Container(
@@ -886,29 +1261,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildTopBusinessSection(HomeDataState homeState) {
+    final businesses = homeState.topBusinesses;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('이번 달 TOP 업체', emoji: '🏆', onSeeAll: () {
           context.push('/ranking');
         }),
-        SizedBox(
-          height: 150,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: 5,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              return _buildTopBusinessCard(index + 1);
-            },
+        if (businesses.isEmpty)
+          _buildEmptyState(icon: Icons.store_outlined, message: 'TOP 업체 데이터가 없습니다')
+        else
+          SizedBox(
+            height: 150,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: businesses.length.clamp(0, 5),
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                return _buildTopBusinessCard(businesses[index]);
+              },
+            ),
           ),
-        ),
       ],
     );
   }
 
-  Widget _buildTopBusinessCard(int rank) {
+  Widget _buildTopBusinessCard(RegionalRankingModel business) {
+    final rank = business.rank;
     final gradients = [
       HwahaeColors.gradientWarm,
       HwahaeColors.gradientCool,
@@ -916,9 +1297,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       [HwahaeColors.textSecondary, HwahaeColors.textTertiary],
       [HwahaeColors.textSecondary, HwahaeColors.textTertiary],
     ];
+    final gradientIndex = (rank - 1).clamp(0, gradients.length - 1);
 
     return GestureDetector(
-      onTap: () => context.push('/business/business_$rank'),
+      onTap: () {
+        if (business.businessId != null) {
+          context.push('/trust/${business.businessId}');
+        }
+      },
       child: Container(
         width: 130,
         padding: const EdgeInsets.all(14),
@@ -927,13 +1313,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
           border: Border.all(
             color: rank <= 3
-                ? gradients[rank - 1][0].withOpacity(0.2)
+                ? gradients[gradientIndex][0].withOpacity(0.2)
                 : HwahaeColors.border,
           ),
           boxShadow: rank <= 3
               ? [
                   BoxShadow(
-                    color: gradients[rank - 1][0].withOpacity(0.1),
+                    color: gradients[gradientIndex][0].withOpacity(0.1),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -949,7 +1335,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               height: 32,
               decoration: BoxDecoration(
                 gradient: rank <= 3
-                    ? LinearGradient(colors: gradients[rank - 1])
+                    ? LinearGradient(colors: gradients[gradientIndex])
                     : null,
                 color: rank > 3 ? HwahaeColors.surfaceVariant : null,
                 shape: BoxShape.circle,
@@ -981,7 +1367,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: 10),
             // 업체명
             Text(
-              '${rank}위 업체',
+              business.businessName ?? '${rank}위 업체',
               style: HwahaeTypography.labelSmall.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -990,7 +1376,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             // 신뢰도
             Text(
-              '신뢰도 ${100 - (rank * 2)}%',
+              business.trustScore != null
+                  ? '신뢰도 ${business.trustScore!.toStringAsFixed(0)}%'
+                  : '신뢰도 -',
               style: HwahaeTypography.captionSmall.copyWith(
                 color: HwahaeColors.secondary,
                 fontWeight: FontWeight.w500,
@@ -1259,6 +1647,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildTopReviewersSection() {
+    final homeState = ref.watch(homeDataProvider);
+    final reviewers = homeState.topReviewers;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1266,26 +1657,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _buildSectionHeader('우수 리뷰어', emoji: '👑', onSeeAll: () {
           context.push('/ranking?tab=reviewer');
         }),
-        SizedBox(
-          height: 110,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: 6,
-            separatorBuilder: (_, __) => const SizedBox(width: 16),
-            itemBuilder: (context, index) {
-              return _buildReviewerChip(index + 1);
-            },
+        if (reviewers.isEmpty)
+          _buildEmptyState(icon: Icons.person_outline, message: '우수 리뷰어 데이터가 없습니다')
+        else
+          SizedBox(
+            height: 110,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: reviewers.length.clamp(0, 6),
+              separatorBuilder: (_, __) => const SizedBox(width: 16),
+              itemBuilder: (context, index) {
+                return _buildReviewerChip(reviewers[index]);
+              },
+            ),
           ),
-        ),
       ],
     );
   }
 
-  Widget _buildReviewerChip(int rank) {
-    final grades = ['diamond', 'platinum', 'gold', 'gold', 'silver', 'silver'];
-    final grade = grades[rank - 1];
+  Widget _buildReviewerChip(ReviewerRankingModel reviewer) {
+    final grade = reviewer.reviewerGrade ?? 'silver';
     final colors = HwahaeColors.getGradeGradient(grade);
+    final displayName = reviewer.nickname ?? '리뷰어';
+    final initial = displayName.isNotEmpty ? displayName[0] : '?';
 
     return Column(
       children: [
@@ -1309,7 +1704,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               alignment: Alignment.center,
               child: Text(
-                '리$rank',
+                initial,
                 style: HwahaeTypography.titleSmall.copyWith(
                   color: colors[0],
                   fontWeight: FontWeight.w600,
@@ -1336,7 +1731,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  '$rank',
+                  '${reviewer.rank}',
                   style: HwahaeTypography.badge.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -1348,7 +1743,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          '리뷰어$rank',
+          displayName,
           style: HwahaeTypography.labelSmall.copyWith(
             fontWeight: FontWeight.w500,
           ),

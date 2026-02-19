@@ -1,25 +1,197 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/hwahae_colors.dart';
+import '../../../../core/theme/hwahae_typography.dart';
+import '../../../../core/theme/hwahae_theme.dart';
+import '../../data/models/review_model.dart';
+import '../../providers/review_provider.dart';
 
-class ReviewListScreen extends StatefulWidget {
+class ReviewListScreen extends ConsumerStatefulWidget {
   const ReviewListScreen({super.key});
 
   @override
-  State<ReviewListScreen> createState() => _ReviewListScreenState();
+  ConsumerState<ReviewListScreen> createState() => _ReviewListScreenState();
 }
 
-class _ReviewListScreenState extends State<ReviewListScreen> {
+class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
   String _selectedCategory = '전체';
+  String _selectedSort = '최신순';
+  bool _isCompactMode = false; // 컴팩트 모드 토글
   final List<String> _categories = ['전체', '음식점', '카페', '병원', '미용실', '온라인몰'];
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(reviewsProvider.notifier).loadReviews();
+    });
+  }
+
+  /// Shimmer 스켈레톤 로딩
+  Widget _buildShimmerLoading() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: HwahaeColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: HwahaeColors.divider),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _shimmerBox(40, 40, isCircle: true),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _shimmerBox(120, 14),
+                      const SizedBox(height: 6),
+                      _shimmerBox(80, 10),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _shimmerBox(double.infinity, 12),
+              const SizedBox(height: 8),
+              _shimmerBox(200, 12),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _shimmerBox(56, 56, borderRadius: 10),
+                  const SizedBox(width: 8),
+                  _shimmerBox(56, 56, borderRadius: 10),
+                  const SizedBox(width: 8),
+                  _shimmerBox(56, 56, borderRadius: 10),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _shimmerBox(double width, double height, {bool isCircle = false, double borderRadius = 6}) {
+    return Container(
+      width: width == double.infinity ? null : width,
+      height: height,
+      decoration: BoxDecoration(
+        color: HwahaeColors.surfaceVariant,
+        borderRadius: isCircle ? null : BorderRadius.circular(borderRadius),
+        shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+      ),
+    );
+  }
+
+  void _onCategorySelected(String category) {
+    setState(() {
+      _selectedCategory = category;
+    });
+    final categoryParam = category == '전체' ? null : category;
+    ref.read(reviewsProvider.notifier).setCategory(categoryParam);
+  }
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 365) {
+      return '${(difference.inDays / 365).floor()}년 전';
+    } else if (difference.inDays > 30) {
+      return '${(difference.inDays / 30).floor()}개월 전';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}일 전';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}시간 전';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}분 전';
+    } else {
+      return '방금 전';
+    }
+  }
+
+  IconData _getCategoryIcon(String? category) {
+    switch (category) {
+      case '음식점':
+      case '한식':
+      case '중식':
+      case '일식':
+      case '양식':
+        return Icons.restaurant;
+      case '카페':
+        return Icons.local_cafe;
+      case '병원':
+        return Icons.local_hospital;
+      case '미용실':
+      case '뷰티':
+        return Icons.content_cut;
+      case '온라인몰':
+        return Icons.shopping_bag;
+      default:
+        return Icons.store;
+    }
+  }
+
+  Color _getBadgeColor(String? badgeLevel) {
+    switch (badgeLevel) {
+      case 'platinum':
+        return HwahaeColors.gradePlatinum;
+      case 'gold':
+        return HwahaeColors.gradeGold;
+      case 'silver':
+        return HwahaeColors.gradeSilver;
+      case 'bronze':
+        return HwahaeColors.gradeBronze;
+      default:
+        return HwahaeColors.textTertiary;
+    }
+  }
+
+  String _getBadgeDisplayName(String? badgeLevel) {
+    switch (badgeLevel) {
+      case 'platinum':
+        return '플래티넘';
+      case 'gold':
+        return '골드';
+      case 'silver':
+        return '실버';
+      case 'bronze':
+        return '브론즈';
+      default:
+        return '';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final reviewsState = ref.watch(reviewsProvider);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: HwahaeColors.background,
       appBar: AppBar(
         title: const Text('인증 리뷰'),
         actions: [
+          // 컴팩트/상세 보기 토글
+          IconButton(
+            icon: Icon(
+              _isCompactMode ? Icons.view_agenda_outlined : Icons.view_list_outlined,
+            ),
+            onPressed: () {
+              setState(() {
+                _isCompactMode = !_isCompactMode;
+              });
+            },
+            tooltip: _isCompactMode ? '상세 보기' : '컴팩트 보기',
+          ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
@@ -47,13 +219,11 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
                     label: Text(category),
                     selected: isSelected,
                     onSelected: (selected) {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
+                      _onCategorySelected(category);
                     },
-                    selectedColor: AppColors.primary,
+                    selectedColor: HwahaeColors.primary,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      color: isSelected ? Colors.white : HwahaeColors.textSecondary,
                     ),
                     checkmarkColor: Colors.white,
                   ),
@@ -64,28 +234,158 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
 
           // 리뷰 목록
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                return _buildReviewCard(context, index);
-              },
-            ),
+            child: _buildReviewList(reviewsState),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildReviewCard(BuildContext context, int index) {
-    return GestureDetector(
-      onTap: () => context.push('/review/$index'),
+  Widget _buildReviewList(ReviewsState state) {
+    if (state.isLoading) {
+      return _buildShimmerLoading();
+    }
+
+    if (state.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: HwahaeColors.error.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  size: 40,
+                  color: HwahaeColors.error,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '리뷰를 불러올 수 없습니다',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                state.error!,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: HwahaeColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  final categoryParam = _selectedCategory == '전체' ? null : _selectedCategory;
+                  ref.read(reviewsProvider.notifier).loadReviews(category: categoryParam);
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('다시 시도'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: HwahaeColors.primary,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (state.reviews.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: HwahaeColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.rate_review_outlined,
+                  size: 40,
+                  color: HwahaeColors.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '리뷰가 없습니다',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _selectedCategory == '전체'
+                    ? '아직 등록된 리뷰가 없습니다.'
+                    : '$_selectedCategory 카테고리에 등록된 리뷰가 없습니다.',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: HwahaeColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: HwahaeColors.primary,
+      onRefresh: () async {
+        final categoryParam = _selectedCategory == '전체' ? null : _selectedCategory;
+        await ref.read(reviewsProvider.notifier).loadReviews(category: categoryParam);
+      },
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: state.reviews.length,
+        itemBuilder: (context, index) {
+          return _isCompactMode
+              ? _buildCompactReviewCard(context, state.reviews[index])
+              : _buildReviewCard(context, state.reviews[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildReviewCard(BuildContext context, ReviewModel review) {
+    final reviewerName = review.reviewer?.nickname ?? '익명 리뷰어';
+    final reviewerGrade = review.reviewer?.gradeDisplayName ?? '루키';
+    final businessName = review.business?.name ?? '알 수 없는 업체';
+    final businessCategory = review.business?.category;
+    final businessCity = review.business?.addressCity;
+    final badgeLevel = review.business?.badgeLevel;
+    final timeAgo = _formatTimeAgo(review.publishedAt ?? review.createdAt);
+
+    return Semantics(
+      label: '$businessName, 별점 ${review.totalScore.toStringAsFixed(1)}, $timeAgo',
+      button: true,
+      child: InkWell(
+      onTap: () => context.push('/reviews/${review.id}'),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: HwahaeColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.divider),
+          border: Border.all(color: HwahaeColors.divider),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,8 +396,8 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
-                    child: const Icon(Icons.person, color: AppColors.primary),
+                    backgroundColor: HwahaeColors.primary.withOpacity(0.1),
+                    child: const Icon(Icons.person, color: HwahaeColors.primary),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -107,7 +407,7 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
                         Row(
                           children: [
                             Text(
-                              '리뷰어${index + 1}',
+                              reviewerName,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -119,19 +419,15 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.1),
+                                color: HwahaeColors.primary.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                index % 3 == 0
-                                    ? '마스터'
-                                    : index % 3 == 1
-                                        ? '시니어'
-                                        : '정규',
+                                reviewerGrade,
                                 style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.primary,
+                                  color: HwahaeColors.primary,
                                 ),
                               ),
                             ),
@@ -139,43 +435,44 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${3 + index}일 전',
+                          timeAgo,
                           style: const TextStyle(
                             fontSize: 12,
-                            color: AppColors.textTertiary,
+                            color: HwahaeColors.textTertiary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      children: const [
-                        Icon(
-                          Icons.verified,
-                          size: 14,
-                          color: AppColors.success,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          '인증됨',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.success,
+                  if (review.status == 'published')
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: HwahaeColors.success.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.verified,
+                            size: 14,
+                            color: HwahaeColors.success,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 4),
+                          Text(
+                            '인증됨',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: HwahaeColors.success,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -185,7 +482,7 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: HwahaeColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -194,12 +491,12 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: HwahaeColors.surface,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      index % 2 == 0 ? Icons.restaurant : Icons.local_cafe,
-                      color: AppColors.textSecondary,
+                      _getCategoryIcon(businessCategory),
+                      color: HwahaeColors.textSecondary,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -208,50 +505,54 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '맛있는 ${index % 2 == 0 ? "한식당" : "카페"} ${index + 1}',
+                          businessName,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${['강남구', '서초구', '송파구'][index % 3]} • ${index % 2 == 0 ? "한식" : "카페"}',
+                          [
+                            if (businessCity != null) businessCity,
+                            if (businessCategory != null) businessCategory,
+                          ].join(' \u2022 '),
                           style: const TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: HwahaeColors.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.badgeGold.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.verified_user,
-                          size: 14,
-                          color: AppColors.badgeGold,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          '골드',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.badgeGold,
+                  if (badgeLevel != null && badgeLevel.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getBadgeColor(badgeLevel).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.verified_user,
+                            size: 14,
+                            color: _getBadgeColor(badgeLevel),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            _getBadgeDisplayName(badgeLevel),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _getBadgeColor(badgeLevel),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -261,19 +562,20 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  const Icon(Icons.star, color: AppColors.secondary, size: 20),
+                  const Icon(Icons.star, color: HwahaeColors.secondary, size: 20),
                   const SizedBox(width: 4),
                   Text(
-                    '${4.0 + (index % 10) / 10}',
+                    review.totalScore.toStringAsFixed(1),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(width: 16),
-                  _buildMiniScore('맛', 4 + index % 2),
-                  _buildMiniScore('청결', 3 + index % 3),
-                  _buildMiniScore('서비스', 4 + index % 2),
+                  if (review.scores != null)
+                    ...review.scores!.entries.take(3).map(
+                      (entry) => _buildMiniScore(entry.key, entry.value),
+                    ),
                 ],
               ),
             ),
@@ -284,69 +586,96 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '전반적으로 만족스러운 식사였습니다. 특히 반찬이 신선하고 맛있었어요.',
-                    style: TextStyle(fontSize: 14, height: 1.5),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.error.withOpacity(0.2),
-                      ),
+                  // 장점 요약 또는 리뷰 요약
+                  if (review.summary != null && review.summary!.isNotEmpty)
+                    Text(
+                      review.summary!,
+                      style: const TextStyle(fontSize: 14, height: 1.5),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  else if (review.pros.isNotEmpty)
+                    Text(
+                      review.pros.join(', '),
+                      style: const TextStyle(fontSize: 14, height: 1.5),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    child: Row(
-                      children: const [
-                        Icon(
-                          Icons.thumb_down_outlined,
-                          size: 16,
-                          color: AppColors.error,
+
+                  // 개선점 (cons)
+                  if (review.cons.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: HwahaeColors.error.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: HwahaeColors.error.withOpacity(0.2),
                         ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '대기 시간이 길었어요 (약 15분)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.error,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.thumb_down_outlined,
+                            size: 16,
+                            color: HwahaeColors.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              review.cons.first,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: HwahaeColors.error,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
 
             // 이미지
-            Container(
-              height: 80,
-              margin: const EdgeInsets.all(16),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: 3,
-                itemBuilder: (context, i) {
-                  return Container(
-                    width: 80,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.image,
-                      color: AppColors.textTertiary,
-                    ),
-                  );
-                },
-              ),
-            ),
+            if (review.photos.isNotEmpty)
+              Container(
+                height: 80,
+                margin: const EdgeInsets.all(16),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: review.photos.length,
+                  itemBuilder: (context, i) {
+                    final photo = review.photos[i];
+                    return Container(
+                      width: 80,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: HwahaeColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                        image: photo.url.isNotEmpty
+                            ? DecorationImage(
+                                image: NetworkImage(photo.url),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: photo.url.isEmpty
+                          ? const Icon(
+                              Icons.image,
+                              color: HwahaeColors.textTertiary,
+                            )
+                          : null,
+                    );
+                  },
+                ),
+              )
+            else
+              const SizedBox(height: 16),
 
             // 하단 액션
             const Divider(height: 1),
@@ -354,9 +683,15 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  _buildActionButton(Icons.thumb_up_outlined, '도움됨 ${12 + index}'),
+                  _buildActionButton(
+                    Icons.thumb_up_outlined,
+                    '도움됨 ${review.helpfulCount}',
+                  ),
                   const SizedBox(width: 16),
-                  _buildActionButton(Icons.comment_outlined, '댓글 ${index}'),
+                  _buildActionButton(
+                    Icons.comment_outlined,
+                    '댓글',
+                  ),
                   const Spacer(),
                   _buildActionButton(Icons.share_outlined, '공유'),
                 ],
@@ -364,6 +699,7 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -377,7 +713,7 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
             label,
             style: const TextStyle(
               fontSize: 12,
-              color: AppColors.textSecondary,
+              color: HwahaeColors.textSecondary,
             ),
           ),
           const SizedBox(width: 4),
@@ -395,16 +731,115 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
   Widget _buildActionButton(IconData icon, String label) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.textSecondary),
+        Icon(icon, size: 18, color: HwahaeColors.textSecondary),
         const SizedBox(width: 4),
         Text(
           label,
           style: const TextStyle(
             fontSize: 12,
-            color: AppColors.textSecondary,
+            color: HwahaeColors.textSecondary,
           ),
         ),
       ],
+    );
+  }
+
+  /// 컴팩트 리뷰 카드: 업체명 + 별점 + 한 줄 요약 + 사진 1장
+  Widget _buildCompactReviewCard(BuildContext context, ReviewModel review) {
+    final businessName = review.business?.name ?? '알 수 없는 업체';
+    final timeAgo = _formatTimeAgo(review.publishedAt ?? review.createdAt);
+    final hasPhoto = review.photos.isNotEmpty;
+    final summary = review.summary ?? (review.pros.isNotEmpty ? review.pros.first : '');
+
+    return Semantics(
+      label: '$businessName, 별점 ${review.totalScore.toStringAsFixed(1)}',
+      button: true,
+      child: InkWell(
+        onTap: () => context.push('/reviews/${review.id}'),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: HwahaeColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: HwahaeColors.divider),
+          ),
+          child: Row(
+            children: [
+              // 사진 1장 (있으면)
+              if (hasPhoto)
+                Container(
+                  width: 56,
+                  height: 56,
+                  margin: const EdgeInsets.only(right: 14),
+                  decoration: BoxDecoration(
+                    color: HwahaeColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(10),
+                    image: review.photos.first.url.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(review.photos.first.url),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: review.photos.first.url.isEmpty
+                      ? const Icon(Icons.image, color: HwahaeColors.textTertiary, size: 20)
+                      : null,
+                ),
+              // 텍스트 영역
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          businessName,
+                          style: HwahaeTypography.labelLarge.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // 별점
+                        Icon(Icons.star, color: HwahaeColors.getRatingColor(review.totalScore), size: 14),
+                        const SizedBox(width: 2),
+                        Text(
+                          review.totalScore.toStringAsFixed(1),
+                          style: HwahaeTypography.labelSmall.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: HwahaeColors.getRatingColor(review.totalScore),
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          timeAgo,
+                          style: HwahaeTypography.captionSmall.copyWith(
+                            color: HwahaeColors.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (summary.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        summary,
+                        style: HwahaeTypography.bodySmall.copyWith(
+                          color: HwahaeColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded, size: 18, color: HwahaeColors.textTertiary),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -415,48 +850,70 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '필터',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text('정렬', style: TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ChoiceChip(label: const Text('최신순'), selected: true, onSelected: (_) {}),
-                  ChoiceChip(label: const Text('평점 높은순'), selected: false, onSelected: (_) {}),
-                  ChoiceChip(label: const Text('도움순'), selected: false, onSelected: (_) {}),
+                  const Text(
+                    '필터',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('정렬', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ['최신순', '평점 높은순', '도움순'].map((sort) {
+                      return ChoiceChip(
+                        label: Text(sort),
+                        selected: _selectedSort == sort,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setModalState(() {
+                              _selectedSort = sort;
+                            });
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  // 인증 상태 (카테고리 중복 제거 → 인증 상태 필터로 대체)
+                  const Text('인증 상태', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: ['전체', '인증됨', '미인증'].map((status) {
+                      return ChoiceChip(
+                        label: Text(status),
+                        selected: false,
+                        onSelected: (selected) {},
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {});
+                        _onCategorySelected(_selectedCategory);
+                      },
+                      child: const Text('적용하기'),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const Text('평점', style: TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ChoiceChip(label: const Text('전체'), selected: true, onSelected: (_) {}),
-                  ChoiceChip(label: const Text('4점 이상'), selected: false, onSelected: (_) {}),
-                  ChoiceChip(label: const Text('3점 이상'), selected: false, onSelected: (_) {}),
-                ],
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('적용하기'),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

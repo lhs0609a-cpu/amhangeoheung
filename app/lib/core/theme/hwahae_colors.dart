@@ -34,7 +34,7 @@ class HwahaeColors {
   // === Text Colors ===
   static const Color textPrimary = Color(0xFF1A1A2E);
   static const Color textSecondary = Color(0xFF6B6B80);
-  static const Color textTertiary = Color(0xFFA0A0B0);
+  static const Color textTertiary = Color(0xFF8E8E9E);
   static const Color textDisabled = Color(0xFFD0D0D8);
   static const Color textOnDark = Color(0xFFFAFAFC);
 
@@ -48,13 +48,50 @@ class HwahaeColors {
   static const Color info = Color(0xFF3B82F6);
   static const Color infoLight = Color(0xFFDBEAFE);
 
-  // === Grade Colors (리뷰어 등급) - 네온 스타일 ===
-  static const Color gradeRookie = Color(0xFF9CA3AF);
+  // === Grade Colors (리뷰어 등급) ===
+  static const Color gradeRookie = Color(0xFFD1D5DB); // 연회색 (새싹)
   static const Color gradeBronze = Color(0xFFD97706);
-  static const Color gradeSilver = Color(0xFF9CA3AF);
+  static const Color gradeSilver = Color(0xFFC0C0C0); // 은빛
   static const Color gradeGold = Color(0xFFF59E0B);
   static const Color gradePlatinum = Color(0xFF06B6D4);
   static const Color gradeDiamond = Color(0xFF8B5CF6);
+
+  // === Mission Type Colors (미션 유형) ===
+  static const Color missionRegular = Color(0xFF3B82F6);     // 일반 미션 - 블루
+  static const Color missionHidden = Color(0xFF8B5CF6);      // 히든 미션 - 퍼플
+  static const Color missionSeason = Color(0xFFEC4899);      // 시즌 미션 - 핑크
+  static const Color missionUrgent = Color(0xFFEF4444);      // 긴급 미션 - 레드
+  static const Color missionPremium = Color(0xFFF59E0B);     // 프리미엄 미션 - 골드
+
+  // === Rating Semantic Colors ===
+  static const Color ratingExcellent = Color(0xFF10B981);    // 4.5+ 녹색
+  static const Color ratingGood = Color(0xFFF59E0B);         // 3.5~4.4 골드
+  static const Color ratingAverage = Color(0xFFF97316);      // 3.0~3.4 주황
+  static const Color ratingPoor = Color(0xFFEF4444);         // 3.0 미만 빨강
+
+  /// 평점에 따른 시맨틱 색상 반환
+  static Color getRatingColor(double rating) {
+    if (rating >= 4.5) return ratingExcellent;
+    if (rating >= 3.5) return ratingGood;
+    if (rating >= 3.0) return ratingAverage;
+    return ratingPoor;
+  }
+
+  /// 미션 유형별 색상 반환
+  static Color getMissionTypeColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'hidden':
+        return missionHidden;
+      case 'season':
+        return missionSeason;
+      case 'urgent':
+        return missionUrgent;
+      case 'premium':
+        return missionPremium;
+      default:
+        return missionRegular;
+    }
+  }
 
   // === Border & Divider ===
   static const Color divider = Color(0xFFE8E8EE);
@@ -143,11 +180,11 @@ class HwahaeColors {
       case 'gold':
         return [const Color(0xFFF59E0B), const Color(0xFFFBBF24)];
       case 'silver':
-        return [const Color(0xFF6B7280), const Color(0xFF9CA3AF)];
+        return [const Color(0xFFA8A8B3), const Color(0xFFC0C0C0)];
       case 'bronze':
         return [const Color(0xFFD97706), const Color(0xFFF59E0B)];
       default:
-        return [const Color(0xFF9CA3AF), const Color(0xFFD1D5DB)];
+        return [const Color(0xFFBBBBC5), const Color(0xFFD1D5DB)];
     }
   }
 }

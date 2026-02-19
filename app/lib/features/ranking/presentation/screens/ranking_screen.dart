@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
@@ -60,50 +62,71 @@ class ReviewerRanking {
   });
 }
 
-/// 랭킹 데이터 Provider (Mock 데이터)
+/// 업체 랭킹 Provider (API 연동)
 final businessRankingProvider = FutureProvider<List<BusinessRanking>>((ref) async {
-  await Future.delayed(const Duration(milliseconds: 800));
-  return List.generate(20, (index) {
-    final categories = ['음식점', '카페', '뷰티', '건강', '레저', '교육'];
-    final regions = ['강남구', '마포구', '송파구', '서초구', '용산구', '종로구'];
-    return BusinessRanking(
-      id: 'business_$index',
-      rank: index + 1,
-      name: '${categories[index % categories.length]} ${index + 1}호점',
-      category: categories[index % categories.length],
-      region: regions[index % regions.length],
-      trustScore: 98.0 - (index * 0.8),
-      reviewCount: 150 - (index * 5),
-      avgRating: 4.9 - (index * 0.05),
-      rankChange: index < 3 ? (3 - index) : (index % 5 == 0 ? -1 : 0),
-    );
-  });
+  try {
+    final response = await ApiClient.instance.dio.get('/businesses', queryParameters: {
+      'sort': 'trust_score',
+      'order': 'desc',
+      'limit': 20,
+    });
+    final data = response.data;
+    if (data['success'] == true) {
+      final list = data['data']['businesses'] as List? ?? [];
+      return list.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final json = entry.value;
+        return BusinessRanking(
+          id: json['id'] ?? '',
+          rank: idx + 1,
+          name: json['name'] ?? '',
+          category: json['category'] ?? '',
+          region: json['address_city'] ?? '',
+          trustScore: (json['trust_score'] ?? 0).toDouble(),
+          reviewCount: json['review_count'] ?? 0,
+          avgRating: (json['avg_rating'] ?? 0).toDouble(),
+          rankChange: json['rank_change'] ?? 0,
+        );
+      }).toList();
+    }
+    return [];
+  } catch (e) {
+    debugPrint('[BusinessRanking] Error loading rankings: $e');
+    throw Exception('업체 랭킹을 불러오는데 실패했습니다: $e');
+  }
 });
 
+/// 리뷰어 랭킹 Provider (API 연동)
 final reviewerRankingProvider = FutureProvider<List<ReviewerRanking>>((ref) async {
-  await Future.delayed(const Duration(milliseconds: 800));
-  final grades = ['diamond', 'diamond', 'platinum', 'platinum', 'gold', 'gold', 'gold', 'silver', 'silver', 'silver'];
-  final specialtiesList = [
-    ['음식점', '카페'],
-    ['뷰티', '건강'],
-    ['음식점'],
-    ['레저', '교육'],
-    ['카페', '뷰티'],
-  ];
-
-  return List.generate(20, (index) {
-    return ReviewerRanking(
-      id: 'reviewer_$index',
-      rank: index + 1,
-      nickname: '리뷰마스터${index + 1}',
-      grade: grades[index % grades.length],
-      completedMissions: 100 - (index * 3),
-      avgRating: 4.9 - (index * 0.03),
-      helpfulCount: 500 - (index * 20),
-      rankChange: index < 3 ? (2 - index) : (index % 4 == 0 ? 1 : index % 3 == 0 ? -1 : 0),
-      specialties: specialtiesList[index % specialtiesList.length],
-    );
-  });
+  try {
+    final response = await ApiClient.instance.dio.get('/reviews/trending', queryParameters: {
+      'type': 'reviewers',
+      'limit': 20,
+    });
+    final data = response.data;
+    if (data['success'] == true) {
+      final list = data['data']['reviewers'] as List? ?? [];
+      return list.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final json = entry.value;
+        return ReviewerRanking(
+          id: json['id'] ?? '',
+          rank: idx + 1,
+          nickname: json['nickname'] ?? json['name'] ?? '리뷰어',
+          grade: json['reviewer_grade'] ?? 'rookie',
+          completedMissions: json['completed_missions'] ?? 0,
+          avgRating: (json['avg_rating'] ?? 0).toDouble(),
+          helpfulCount: json['helpful_count'] ?? 0,
+          rankChange: json['rank_change'] ?? 0,
+          specialties: List<String>.from(json['specialties'] ?? []),
+        );
+      }).toList();
+    }
+    return [];
+  } catch (e) {
+    debugPrint('[ReviewerRanking] Error loading rankings: $e');
+    throw Exception('리뷰어 랭킹을 불러오는데 실패했습니다: $e');
+  }
 });
 
 class RankingScreen extends ConsumerStatefulWidget {
@@ -305,6 +328,70 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
 }
 
 /// 업체 랭킹 탭
+/// 랭킹 스켈레톤 로딩
+Widget _buildRankingShimmer() {
+  return ListView.builder(
+    padding: const EdgeInsets.all(16),
+    itemCount: 8,
+    itemBuilder: (context, index) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: HwahaeColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: HwahaeColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: HwahaeColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 140,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: HwahaeColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: 80,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: HwahaeColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 48,
+              height: 14,
+              decoration: BoxDecoration(
+                color: HwahaeColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 class _BusinessRankingTab extends ConsumerWidget {
   final String selectedPeriod;
 
@@ -315,9 +402,7 @@ class _BusinessRankingTab extends ConsumerWidget {
     final rankingAsync = ref.watch(businessRankingProvider);
 
     return rankingAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: HwahaeColors.primary),
-      ),
+      loading: () => _buildRankingShimmer(),
       error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -325,6 +410,11 @@ class _BusinessRankingTab extends ConsumerWidget {
             const Icon(Icons.error_outline, size: 48, color: HwahaeColors.error),
             const SizedBox(height: 16),
             Text('랭킹을 불러올 수 없습니다', style: HwahaeTypography.bodyMedium),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => ref.invalidate(businessRankingProvider),
+              child: const Text('다시 시도'),
+            ),
           ],
         ),
       ),
@@ -702,9 +792,7 @@ class _ReviewerRankingTab extends ConsumerWidget {
     final rankingAsync = ref.watch(reviewerRankingProvider);
 
     return rankingAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: HwahaeColors.primary),
-      ),
+      loading: () => _buildRankingShimmer(),
       error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -712,6 +800,11 @@ class _ReviewerRankingTab extends ConsumerWidget {
             const Icon(Icons.error_outline, size: 48, color: HwahaeColors.error),
             const SizedBox(height: 16),
             Text('랭킹을 불러올 수 없습니다', style: HwahaeTypography.bodyMedium),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => ref.invalidate(reviewerRankingProvider),
+              child: const Text('다시 시도'),
+            ),
           ],
         ),
       ),

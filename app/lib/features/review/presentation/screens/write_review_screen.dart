@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -28,6 +29,18 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
   final _consController = TextEditingController();
   final _imagePicker = ImagePicker();
 
+  // Wizard state - 3단계로 통합
+  int _currentStep = 0;
+  static const int _totalSteps = 3;
+  late final PageController _pageController;
+
+  static const List<String> _stepLabels = ['점수 매기기', '상세 리뷰', '확인 후 제출'];
+  static const List<IconData> _stepIcons = [Icons.star_rounded, Icons.edit_rounded, Icons.check_circle_rounded];
+
+  // Topic selection
+  List<Map<String, String>> _selectedTopics = [];
+  final _tipsController = TextEditingController();
+
   Map<String, int> _scores = {
     '대기 시간': 0,
     '서비스 품질': 0,
@@ -41,6 +54,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
   bool _isSubmitting = false;
   bool _isLoadingMission = true;
   String? _missionError;
+  Timer? _autoSaveTimer;
 
   // 미션 데이터
   String _businessName = '';
@@ -52,7 +66,19 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: 0);
     _loadMissionData();
+    // Auto-save every 30 seconds
+    _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _autoSaveDraft();
+    });
+  }
+
+  void _autoSaveDraft() {
+    // Only auto-save if there's meaningful content
+    if (_currentStep > 0 || _scores.values.any((v) => v > 0)) {
+      _saveDraft(silent: true);
+    }
   }
 
   Future<void> _loadMissionData() async {
@@ -92,10 +118,93 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _reviewController.dispose();
     _consController.dispose();
+    _tipsController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
+
+  // ---------------------------------------------------------------------------
+  // Step validation
+  // ---------------------------------------------------------------------------
+
+  /// Returns null if the current step is valid, or an error message string.
+  String? _validateCurrentStep() {
+    switch (_currentStep) {
+      case 0: // 점수 매기기 (평가 + 토픽 통합)
+        final hasAllScores = _scores.values.every((score) => score > 0);
+        if (!hasAllScores) {
+          return '모든 항목을 평가해주세요';
+        }
+        return null;
+      case 1: // 상세 리뷰 (리뷰 텍스트 + 개선점 + 사진 + 영수증 통합)
+        if (_reviewController.text.length < 100) {
+          return '리뷰는 100자 이상 작성해주세요 (현재 ${_reviewController.text.length}자)';
+        }
+        if (_consController.text.isEmpty) {
+          return '개선점을 최소 1개 이상 작성해주세요';
+        }
+        if (_photos.length < 3) {
+          return '사진을 3장 이상 첨부해주세요 (현재 ${_photos.length}장)';
+        }
+        final receiptState = ref.read(receiptVerificationProvider);
+        if (!receiptState.isVerified) {
+          return '영수증 검증을 완료해주세요';
+        }
+        return null;
+      case 2: // 확인 후 제출
+        return null;
+      default:
+        return null;
+    }
+  }
+
+  void _goToNextStep() {
+    final error = _validateCurrentStep();
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: HwahaeColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (_currentStep < _totalSteps - 1) {
+      setState(() {
+        _currentStep++;
+      });
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _goToPreviousStep() {
+    if (_currentStep > 0) {
+      setState(() {
+        _currentStep--;
+      });
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -163,59 +272,818 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            // 업체 정보
-            _buildBusinessInfo(),
-            const SizedBox(height: 24),
+            // Progress indicator + step labels (fixed at top)
+            _buildProgressSection(),
 
-            // 항목별 평가
-            _buildSectionTitle('항목별 평가', '각 항목을 1~5점으로 평가해주세요'),
-            const SizedBox(height: 16),
-            ..._scores.keys.map((key) => _buildScoreItem(key)),
-            const SizedBox(height: 24),
-
-            // 상세 리뷰
-            _buildSectionTitle('상세 리뷰', '최소 100자 이상 작성해주세요'),
-            const SizedBox(height: 12),
-            _buildReviewTextField(),
-            const SizedBox(height: 24),
-
-            // 개선이 필요한 점
-            _buildSectionTitle(
-              '개선이 필요한 점',
-              '솔직한 피드백은 업체 개선에 도움이 됩니다',
-              isRequired: true,
+            // Business info (fixed at top of every step)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _buildBusinessInfo(),
             ),
-            const SizedBox(height: 12),
-            _buildConsTextField(),
-            const SizedBox(height: 24),
 
-            // 사진 첨부
-            _buildSectionTitle(
-              '사진 첨부',
-              '최소 3장 이상 첨부해주세요 (음식, 매장 내부 등)',
+            // Step pages (3단계 통합)
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _buildStep1ScoresAndTopics(),
+                  _buildStep2ReviewAndPhotos(receiptState),
+                  _buildStep3Summary(receiptState),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            _buildPhotoSection(),
-            const SizedBox(height: 24),
-
-            // 영수증 첨부 (중복 검사 포함)
-            _buildSectionTitle(
-              '영수증 첨부',
-              '결제 영수증을 촬영해주세요 (필수)',
-              isRequired: true,
-            ),
-            const SizedBox(height: 12),
-            _buildReceiptSection(receiptState),
-            const SizedBox(height: 100),
           ],
         ),
       ),
-      bottomNavigationBar: _buildSubmitButton(),
+      bottomNavigationBar: _buildBottomNavigation(),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Progress section
+  // ---------------------------------------------------------------------------
+
+  Widget _buildProgressSection() {
+    final progress = (_currentStep + 1) / _totalSteps;
+
+    return Container(
+      color: HwahaeColors.surface,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Column(
+        children: [
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: HwahaeColors.border,
+              valueColor: const AlwaysStoppedAnimation<Color>(HwahaeColors.primary),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Step labels with icons
+          Row(
+            children: List.generate(_totalSteps, (index) {
+              final isActive = index == _currentStep;
+              final isCompleted = index < _currentStep;
+              return Expanded(
+                child: InkWell(
+                  onTap: () {
+                    if (index < _currentStep) {
+                      setState(() {
+                        _currentStep = index;
+                      });
+                      _pageController.animateToPage(
+                        _currentStep,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? HwahaeColors.primary
+                              : isCompleted
+                                  ? HwahaeColors.success
+                                  : HwahaeColors.surfaceVariant,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: isCompleted
+                              ? const Icon(Icons.check, color: Colors.white, size: 18)
+                              : Icon(
+                                  _stepIcons[index],
+                                  color: isActive
+                                      ? Colors.white
+                                      : HwahaeColors.textSecondary,
+                                  size: 18,
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _stepLabels[index],
+                        style: HwahaeTypography.captionMedium.copyWith(
+                          color: isActive
+                              ? HwahaeColors.primary
+                              : isCompleted
+                                  ? HwahaeColors.success
+                                  : HwahaeColors.textSecondary,
+                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step 1 : Score ratings
+  // ---------------------------------------------------------------------------
+
+  /// Step 1: 점수 매기기 (평가 + 토픽 통합)
+  Widget _buildStep1ScoresAndTopics() {
+    final categoryKey = _businessCategory.toLowerCase();
+    final topics = _topicDefinitions[categoryKey] ?? _topicDefinitions['default']!;
+    final positiveTopics = topics.where((t) => t['type'] == 'positive').toList();
+    final negativeTopics = topics.where((t) => t['type'] == 'negative').toList();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionTitle('항목별 평가', '각 항목을 1~5점으로 평가해주세요'),
+        const SizedBox(height: 16),
+        ..._scores.keys.map((key) => _buildScoreItem(key)),
+        const SizedBox(height: 16),
+        _buildAverageScore(),
+        const SizedBox(height: 32),
+
+        // 토픽 선택 (통합)
+        _buildSectionTitle('이 업체는 어땠나요?', '해당하는 토픽을 선택해주세요 (선택)'),
+        const SizedBox(height: 16),
+        Text('좋았던 점', style: HwahaeTypography.labelLarge.copyWith(color: HwahaeColors.success)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: positiveTopics.map((topic) => _buildTopicChip(topic)).toList(),
+        ),
+        const SizedBox(height: 20),
+        Text('아쉬웠던 점', style: HwahaeTypography.labelLarge.copyWith(color: HwahaeColors.error)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: negativeTopics.map((topic) => _buildTopicChip(topic)).toList(),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildAverageScore() {
+    final filledCount = _scores.values.where((s) => s > 0).length;
+    final total = _scores.values.fold<int>(0, (sum, s) => sum + s);
+    final average = filledCount > 0 ? total / filledCount : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: HwahaeColors.primaryContainer,
+        borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.star_rounded, color: HwahaeColors.warning, size: 28),
+          const SizedBox(width: 8),
+          Text(
+            '평균 ${average.toStringAsFixed(1)}점',
+            style: HwahaeTypography.titleSmall.copyWith(
+              color: HwahaeColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '($filledCount/${_scores.length} 항목 평가됨)',
+            style: HwahaeTypography.captionLarge.copyWith(
+              color: HwahaeColors.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step 2 : Topic selection + Tips
+  // ---------------------------------------------------------------------------
+
+  // Predefined topics per category (client-side fallback)
+  static const Map<String, List<Map<String, String>>> _topicDefinitions = {
+    'restaurant': [
+      {'key': 'taste_good', 'label': '맛있어요', 'type': 'positive', 'icon': '😋'},
+      {'key': 'service_good', 'label': '친절해요', 'type': 'positive', 'icon': '😊'},
+      {'key': 'clean', 'label': '깨끗해요', 'type': 'positive', 'icon': '✨'},
+      {'key': 'value_good', 'label': '가성비 좋아요', 'type': 'positive', 'icon': '💰'},
+      {'key': 'atmosphere', 'label': '분위기 좋아요', 'type': 'positive', 'icon': '🎵'},
+      {'key': 'taste_bad', 'label': '맛이 아쉬워요', 'type': 'negative', 'icon': '😕'},
+      {'key': 'service_bad', 'label': '불친절해요', 'type': 'negative', 'icon': '😤'},
+      {'key': 'dirty', 'label': '위생이 아쉬워요', 'type': 'negative', 'icon': '🚫'},
+      {'key': 'expensive', 'label': '비싸요', 'type': 'negative', 'icon': '💸'},
+      {'key': 'wait_long', 'label': '대기가 길어요', 'type': 'negative', 'icon': '⏳'},
+    ],
+    'default': [
+      {'key': 'service_good', 'label': '친절해요', 'type': 'positive', 'icon': '😊'},
+      {'key': 'clean', 'label': '깨끗해요', 'type': 'positive', 'icon': '✨'},
+      {'key': 'value_good', 'label': '가성비 좋아요', 'type': 'positive', 'icon': '💰'},
+      {'key': 'skill_good', 'label': '실력이 좋아요', 'type': 'positive', 'icon': '💪'},
+      {'key': 'service_bad', 'label': '불친절해요', 'type': 'negative', 'icon': '😤'},
+      {'key': 'expensive', 'label': '비싸요', 'type': 'negative', 'icon': '💸'},
+    ],
+  };
+
+  Widget _buildStep2Topics() {
+    final categoryKey = _businessCategory.toLowerCase();
+    final topics = _topicDefinitions[categoryKey] ?? _topicDefinitions['default']!;
+    final positiveTopics = topics.where((t) => t['type'] == 'positive').toList();
+    final negativeTopics = topics.where((t) => t['type'] == 'negative').toList();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionTitle('이 업체는 어땠나요?', '해당하는 토픽을 선택해주세요 (복수 선택 가능)'),
+        const SizedBox(height: 16),
+
+        // Positive topics
+        Text('좋았던 점', style: HwahaeTypography.labelLarge.copyWith(color: HwahaeColors.success)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: positiveTopics.map((topic) => _buildTopicChip(topic)).toList(),
+        ),
+        const SizedBox(height: 20),
+
+        // Negative topics
+        Text('아쉬웠던 점', style: HwahaeTypography.labelLarge.copyWith(color: HwahaeColors.error)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: negativeTopics.map((topic) => _buildTopicChip(topic)).toList(),
+        ),
+        const SizedBox(height: 24),
+
+        // Tips input
+        _buildSectionTitle('꿀팁/노하우', '다른 방문자에게 도움이 될 팁을 공유해주세요 (선택)'),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _tipsController,
+          maxLines: 3,
+          style: HwahaeTypography.bodyMedium,
+          decoration: InputDecoration(
+            hintText: '예: 주차는 뒷편 공영주차장 이용 추천 / 런치 메뉴가 가성비 좋음',
+            hintStyle: HwahaeTypography.bodyMedium.copyWith(color: HwahaeColors.textTertiary),
+            filled: true,
+            fillColor: HwahaeColors.surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              borderSide: const BorderSide(color: HwahaeColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              borderSide: const BorderSide(color: HwahaeColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              borderSide: const BorderSide(color: HwahaeColors.primary, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: HwahaeColors.infoLight,
+            borderRadius: BorderRadius.circular(HwahaeTheme.radiusSM),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.lightbulb_outline, size: 16, color: HwahaeColors.info),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '꿀팁을 작성하면 품질 보너스를 받을 수 있어요!',
+                  style: HwahaeTypography.captionLarge.copyWith(color: HwahaeColors.info),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopicChip(Map<String, String> topic) {
+    final isSelected = _selectedTopics.any((t) => t['key'] == topic['key']);
+
+    return FilterChip(
+      label: Text('${topic['icon']} ${topic['label']}'),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          if (selected) {
+            _selectedTopics.add({
+              'key': topic['key']!,
+              'label': topic['label']!,
+              'type': topic['type']!,
+            });
+          } else {
+            _selectedTopics.removeWhere((t) => t['key'] == topic['key']);
+          }
+        });
+      },
+      backgroundColor: HwahaeColors.surface,
+      selectedColor: topic['type'] == 'positive'
+          ? HwahaeColors.success.withOpacity(0.15)
+          : HwahaeColors.error.withOpacity(0.15),
+      checkmarkColor: topic['type'] == 'positive' ? HwahaeColors.success : HwahaeColors.error,
+      side: BorderSide(
+        color: isSelected
+            ? (topic['type'] == 'positive' ? HwahaeColors.success : HwahaeColors.error)
+            : HwahaeColors.border,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      labelStyle: HwahaeTypography.bodySmall.copyWith(
+        color: isSelected
+            ? (topic['type'] == 'positive' ? HwahaeColors.success : HwahaeColors.error)
+            : HwahaeColors.textPrimary,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step 3 : Review text + Cons + Tips
+  // ---------------------------------------------------------------------------
+
+  /// Step 2: 상세 리뷰 (텍스트 + 개선점 + 사진 + 영수증 통합)
+  Widget _buildStep2ReviewAndPhotos(ReceiptVerificationState receiptState) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionTitle('상세 리뷰', '최소 100자 이상 작성해주세요'),
+        const SizedBox(height: 12),
+        _buildReviewTextField(),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '${_reviewController.text.length}자 / 최소 100자',
+            style: HwahaeTypography.captionMedium.copyWith(
+              color: _reviewController.text.length >= 100
+                  ? HwahaeColors.success
+                  : HwahaeColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _buildSectionTitle(
+          '개선이 필요한 점',
+          '솔직한 피드백은 업체 개선에 도움이 됩니다',
+          isRequired: true,
+        ),
+        const SizedBox(height: 12),
+        _buildConsTextField(),
+        const SizedBox(height: 24),
+
+        // 꿀팁 (토픽 단계에서 이동)
+        _buildSectionTitle('꿀팁/노하우', '다른 방문자에게 도움이 될 팁을 공유해주세요 (선택)'),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _tipsController,
+          maxLines: 3,
+          style: HwahaeTypography.bodyMedium,
+          decoration: InputDecoration(
+            hintText: '예: 주차는 뒷편 공영주차장 이용 추천 / 런치 메뉴가 가성비 좋음',
+            hintStyle: HwahaeTypography.bodyMedium.copyWith(color: HwahaeColors.textTertiary),
+            filled: true,
+            fillColor: HwahaeColors.surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              borderSide: const BorderSide(color: HwahaeColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              borderSide: const BorderSide(color: HwahaeColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              borderSide: const BorderSide(color: HwahaeColors.primary, width: 2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // 사진 첨부 (Step 4에서 통합)
+        _buildSectionTitle(
+          '사진 첨부',
+          '최소 3장 이상 첨부해주세요 (음식, 매장 내부 등)',
+        ),
+        const SizedBox(height: 12),
+        _buildPhotoSection(),
+        const SizedBox(height: 24),
+
+        // 영수증 (Step 4에서 통합)
+        _buildSectionTitle(
+          '영수증 첨부',
+          '결제 영수증을 촬영해주세요 (필수)',
+          isRequired: true,
+        ),
+        const SizedBox(height: 12),
+        _buildReceiptSection(receiptState),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step 4 : Photos + Receipt
+  // ---------------------------------------------------------------------------
+
+  Widget _buildStep4Photos(ReceiptVerificationState receiptState) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionTitle(
+          '사진 첨부',
+          '최소 3장 이상 첨부해주세요 (음식, 매장 내부 등)',
+        ),
+        const SizedBox(height: 12),
+        _buildPhotoSection(),
+        const SizedBox(height: 24),
+        _buildSectionTitle(
+          '영수증 첨부',
+          '결제 영수증을 촬영해주세요 (필수)',
+          isRequired: true,
+        ),
+        const SizedBox(height: 12),
+        _buildReceiptSection(receiptState),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step 5 : Summary + Submit
+  // ---------------------------------------------------------------------------
+
+  /// Step 3: 확인 후 제출
+  Widget _buildStep3Summary(ReceiptVerificationState receiptState) {
+    final filledCount = _scores.values.where((s) => s > 0).length;
+    final total = _scores.values.fold<int>(0, (sum, s) => sum + s);
+    final average = filledCount > 0 ? total / filledCount : 0.0;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionTitle('리뷰 요약', '작성한 내용을 확인해주세요'),
+        const SizedBox(height: 16),
+
+        // Scores summary
+        _buildSummaryCard(
+          icon: Icons.star_rounded,
+          iconColor: HwahaeColors.warning,
+          title: '항목별 평가',
+          child: Column(
+            children: [
+              ..._scores.entries.map((entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(entry.key, style: HwahaeTypography.bodyMedium),
+                        Row(
+                          children: List.generate(
+                            5,
+                            (i) => Icon(
+                              i < entry.value
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              color: i < entry.value
+                                  ? HwahaeColors.warning
+                                  : HwahaeColors.border,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+              const Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('평균 점수', style: HwahaeTypography.labelLarge),
+                  Text(
+                    '${average.toStringAsFixed(1)}점',
+                    style: HwahaeTypography.labelLarge.copyWith(
+                      color: HwahaeColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Review text summary
+        _buildSummaryCard(
+          icon: Icons.rate_review,
+          iconColor: HwahaeColors.primary,
+          title: '상세 리뷰',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _reviewController.text.isNotEmpty
+                    ? _reviewController.text
+                    : '(작성되지 않음)',
+                style: HwahaeTypography.bodyMedium.copyWith(
+                  color: _reviewController.text.isNotEmpty
+                      ? HwahaeColors.textPrimary
+                      : HwahaeColors.textTertiary,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${_reviewController.text.length}자',
+                style: HwahaeTypography.captionMedium.copyWith(
+                  color: HwahaeColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Cons summary
+        _buildSummaryCard(
+          icon: Icons.feedback,
+          iconColor: HwahaeColors.error,
+          title: '개선이 필요한 점',
+          child: Text(
+            _consController.text.isNotEmpty
+                ? _consController.text
+                : '(작성되지 않음)',
+            style: HwahaeTypography.bodyMedium.copyWith(
+              color: _consController.text.isNotEmpty
+                  ? HwahaeColors.textPrimary
+                  : HwahaeColors.textTertiary,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Photos summary
+        _buildSummaryCard(
+          icon: Icons.photo_library,
+          iconColor: HwahaeColors.info,
+          title: '첨부 사진',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${_photos.length}장 첨부됨',
+                style: HwahaeTypography.bodyMedium,
+              ),
+              if (_photos.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 60,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _photos.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        width: 60,
+                        margin: EdgeInsets.only(right: index < _photos.length - 1 ? 6 : 0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(_photos[index].path),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Receipt summary
+        _buildSummaryCard(
+          icon: Icons.receipt_long,
+          iconColor: receiptState.isVerified
+              ? HwahaeColors.success
+              : HwahaeColors.textSecondary,
+          title: '영수증',
+          child: Row(
+            children: [
+              Icon(
+                receiptState.isVerified ? Icons.check_circle : Icons.cancel,
+                color: receiptState.isVerified
+                    ? HwahaeColors.success
+                    : HwahaeColors.error,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                receiptState.isVerified ? '검증 완료' : '미검증',
+                style: HwahaeTypography.bodyMedium.copyWith(
+                  color: receiptState.isVerified
+                      ? HwahaeColors.success
+                      : HwahaeColors.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (receiptState.isVerified && receiptState.receiptData != null) ...[
+                const SizedBox(width: 12),
+                Text(
+                  receiptState.receiptData!.totalAmount != null
+                      ? '${_formatCurrency(receiptState.receiptData!.totalAmount!)}원'
+                      : '',
+                  style: HwahaeTypography.bodyMedium.copyWith(
+                    color: HwahaeColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Warning notice
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: HwahaeColors.warningLight,
+            borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline, color: HwahaeColors.warning, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '제출 후에는 수정이 불가능합니다.\n리뷰는 검토 후 업체에 선공개됩니다.',
+                  style: HwahaeTypography.bodySmall.copyWith(
+                    color: HwahaeColors.warning,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: HwahaeColors.surface,
+        borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+        border: Border.all(color: HwahaeColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: HwahaeTypography.labelLarge.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bottom navigation (Back / Next / Submit)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildBottomNavigation() {
+    final isLastStep = _currentStep == _totalSteps - 1;
+    final isFirstStep = _currentStep == 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: HwahaeColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            // Back button
+            if (!isFirstStep)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _goToPreviousStep,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: const BorderSide(color: HwahaeColors.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+                    ),
+                  ),
+                  child: Text(
+                    '이전',
+                    style: HwahaeTypography.labelLarge.copyWith(
+                      color: HwahaeColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            if (!isFirstStep) const SizedBox(width: 12),
+
+            // Next / Submit button
+            Expanded(
+              flex: isFirstStep ? 1 : 1,
+              child: isLastStep
+                  ? SizedBox(
+                      width: double.infinity,
+                      child: HwahaePrimaryButton(
+                        text: _isSubmitting ? '제출 중...' : '리뷰 제출하기',
+                        onPressed: _isSubmitting ? null : _submitReview,
+                      ),
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _goToNextStep,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: HwahaeColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(HwahaeTheme.radiusMD),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          '다음',
+                          style: HwahaeTypography.labelLarge.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Existing helper widgets (preserved)
+  // ---------------------------------------------------------------------------
 
   Widget _buildBusinessInfo() {
     // 미션 상태에 따른 배지 색상 및 텍스트
@@ -415,6 +1283,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
       controller: _reviewController,
       maxLines: 6,
       style: HwahaeTypography.bodyMedium,
+      onChanged: (_) => setState(() {}),
       decoration: InputDecoration(
         hintText: '방문 경험을 상세히 작성해주세요...\n\n- 주문한 메뉴와 맛 평가\n- 매장 분위기와 청결 상태\n- 서비스 품질과 특이사항',
         hintStyle: HwahaeTypography.bodyMedium.copyWith(
@@ -445,36 +1314,65 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
   }
 
   Widget _buildConsTextField() {
-    return TextFormField(
-      controller: _consController,
-      maxLines: 3,
-      style: HwahaeTypography.bodyMedium,
-      decoration: InputDecoration(
-        hintText: '개선이 필요한 점을 작성해주세요...',
-        hintStyle: HwahaeTypography.bodyMedium.copyWith(
-          color: HwahaeColors.textTertiary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Helper text with writing guide
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: HwahaeColors.infoLight,
+            borderRadius: BorderRadius.circular(HwahaeTheme.radiusSM),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline, size: 16, color: HwahaeColors.info),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Tip: 구체적인 개선점을 작성해주세요. 업체가 실제로 개선할 수 있는 내용이 좋습니다.',
+                  style: HwahaeTypography.captionLarge.copyWith(
+                    color: HwahaeColors.info,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        filled: true,
-        fillColor: HwahaeColors.errorLight,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-          borderSide: const BorderSide(color: HwahaeColors.error),
+        TextFormField(
+          controller: _consController,
+          maxLines: 3,
+          style: HwahaeTypography.bodyMedium,
+          decoration: InputDecoration(
+            hintText: '예: 주차 공간이 부족합니다 / 대기 시간이 길었습니다',
+            hintStyle: HwahaeTypography.bodyMedium.copyWith(
+              color: HwahaeColors.textTertiary,
+            ),
+            filled: true,
+            fillColor: HwahaeColors.surfaceVariant,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              borderSide: const BorderSide(color: HwahaeColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              borderSide: const BorderSide(color: HwahaeColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              borderSide: const BorderSide(color: HwahaeColors.primary, width: 2),
+            ),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return '개선점을 최소 1개 이상 작성해주세요';
+            }
+            return null;
+          },
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-          borderSide: BorderSide(color: HwahaeColors.error.withOpacity(0.3)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-          borderSide: const BorderSide(color: HwahaeColors.error, width: 2),
-        ),
-      ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return '개선점을 최소 1개 이상 작성해주세요';
-        }
-        return null;
-      },
+      ],
     );
   }
 
@@ -885,26 +1783,26 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
               color: HwahaeColors.error,
             ),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: HwahaeColors.surface,
-              borderRadius: BorderRadius.circular(8),
+          const SizedBox(height: 8),
+          Text(
+            '같은 방문에서 받은 다른 영수증이 있다면 촬영해주세요.',
+            style: HwahaeTypography.bodySmall.copyWith(
+              color: HwahaeColors.textSecondary,
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.security, color: HwahaeColors.error, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '중복 사용 시도는 기록되며, 반복 시 계정이 제한됩니다.',
-                    style: HwahaeTypography.captionMedium.copyWith(
-                      color: HwahaeColors.error,
-                    ),
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () {
+              // Reset receipt state to allow re-capture
+              ref.read(receiptVerificationProvider.notifier).reset();
+              setState(() {
+                _receiptImage = null;
+              });
+            },
+            icon: const Icon(Icons.camera_alt, size: 16),
+            label: const Text('다른 영수증 촬영'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(48, 36),
             ),
           ),
         ],
@@ -978,48 +1876,9 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
     );
   }
 
-  Widget _buildSubmitButton() {
-    final receiptState = ref.watch(receiptVerificationProvider);
-    final canSubmit = receiptState.isVerified && !_isSubmitting;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: HwahaeColors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!receiptState.isVerified && _receiptImage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  '영수증 검증을 완료해주세요',
-                  style: HwahaeTypography.captionLarge.copyWith(
-                    color: HwahaeColors.error,
-                  ),
-                ),
-              ),
-            SizedBox(
-              width: double.infinity,
-              child: HwahaePrimaryButton(
-                text: _isSubmitting ? '제출 중...' : '리뷰 제출하기',
-                onPressed: canSubmit ? _submitReview : null,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ---------------------------------------------------------------------------
+  // Actions (preserved)
+  // ---------------------------------------------------------------------------
 
   Future<void> _pickPhotos() async {
     final List<XFile> images = await _imagePicker.pickMultiImage(
@@ -1061,7 +1920,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
   String? _draftReviewId;
   bool _isSavingDraft = false;
 
-  Future<void> _saveDraft() async {
+  Future<void> _saveDraft({bool silent = false}) async {
     if (_isSavingDraft) return;
 
     setState(() {
@@ -1081,7 +1940,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
 
       if (response.success && response.review != null) {
         _draftReviewId = response.review!.id;
-        if (mounted) {
+        if (mounted && !silent) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('임시 저장되었습니다'),
@@ -1094,7 +1953,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
           );
         }
       } else {
-        if (mounted) {
+        if (mounted && !silent) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(response.message ?? '임시 저장에 실패했습니다'),
@@ -1108,7 +1967,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
         }
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !silent) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('임시 저장 중 오류: $e'),
@@ -1281,17 +2140,36 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('리뷰가 제출되었습니다! 검토 후 업체에 선공개됩니다.'),
-            backgroundColor: HwahaeColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, color: HwahaeColors.success, size: 64),
+                const SizedBox(height: 16),
+                Text('리뷰가 제출되었습니다!', style: HwahaeTypography.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text(
+                  '검토 후 업체에 선공개됩니다.\n72시간 후 자동으로 공개됩니다.',
+                  textAlign: TextAlign.center,
+                  style: HwahaeTypography.bodySmall.copyWith(color: HwahaeColors.textSecondary),
+                ),
+              ],
             ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.go('/missions');
+                },
+                child: const Text('확인'),
+              ),
+            ],
           ),
         );
-        context.go('/missions');
       }
     } catch (e) {
       if (mounted) {
