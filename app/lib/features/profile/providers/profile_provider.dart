@@ -157,6 +157,16 @@ class SettlementsNotifier extends StateNotifier<SettlementsState> {
     }
     return response.success;
   }
+
+  /// 실패한 정산 건 재시도. 성공 시 목록을 새로고침한다.
+  Future<bool> retrySettlement(String settlementId) async {
+    final response = await _repository.retrySettlement(settlementId);
+
+    if (response.success) {
+      await loadSettlements();
+    }
+    return response.success;
+  }
 }
 
 final settlementsProvider = StateNotifierProvider<SettlementsNotifier, SettlementsState>((ref) {

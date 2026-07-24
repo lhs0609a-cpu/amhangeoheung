@@ -9,6 +9,7 @@ class MissionRepository {
   Future<MissionListResponse> getAvailableMissions({
     String? category,
     String? city,
+    String? type,
     int page = 1,
     int limit = 20,
   }) async {
@@ -18,6 +19,7 @@ class MissionRepository {
         queryParameters: {
           if (category != null) 'category': category,
           if (city != null) 'city': city,
+          if (type != null) 'type': type,
           'page': page,
           'limit': limit,
         },
@@ -113,6 +115,57 @@ class MissionRepository {
     }
   }
 
+  /// 현재 로그인한 사장님의 첫 번째 업체 id 조회 (미션 생성 시 필요)
+  Future<String?> getMyBusinessId() async {
+    try {
+      final response = await _apiClient.get('/businesses/my/list');
+      final businesses = response.data['data']?['businesses'] as List?;
+      if (businesses == null || businesses.isEmpty) return null;
+      return businesses.first['id']?.toString();
+    } on DioException {
+      return null;
+    }
+  }
+
+  /// 미션 생성 (사장님). rewardType: 'cash' | 'free_experience'
+  /// - cash: reviewerFee 필요(결제 진행)
+  /// - free_experience: experienceDescription 필요(결제 없이 바로 모집)
+  Future<ApiResponse> createMission({
+    required String businessId,
+    required String missionType,
+    required String rewardType,
+    int reviewerFee = 0,
+    int productCost = 0,
+    String? experienceDescription,
+    int? experienceValue,
+    int? maxApplicants,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'businessId': businessId,
+        'missionType': missionType,
+        'rewardType': rewardType,
+        if (maxApplicants != null) 'maxApplicants': maxApplicants,
+      };
+
+      if (rewardType == 'free_experience') {
+        body['experienceDescription'] = experienceDescription;
+        if (experienceValue != null) body['experienceValue'] = experienceValue;
+      } else {
+        body['reviewerFee'] = reviewerFee;
+        body['productCost'] = productCost;
+      }
+
+      final response = await _apiClient.post('/missions', data: body);
+      return ApiResponse(
+        success: response.data['success'] ?? true,
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return ApiResponse(success: false, message: _getErrorMessage(e));
+    }
+  }
+
   // 미션 신청 취소
   Future<ApiResponse> cancelApplication(String missionId) async {
     try {
@@ -130,19 +183,25 @@ class MissionRepository {
     }
   }
 
-  // 체크인
+  // 체크인 (GPS 구간별 점진적 반경 완화)
   Future<CheckInResponse> checkIn(
     String missionId, {
     required double latitude,
     required double longitude,
+    String? verificationPhoto,
   }) async {
     try {
+      final data = <String, dynamic>{
+        'latitude': latitude,
+        'longitude': longitude,
+      };
+      if (verificationPhoto != null) {
+        data['verificationPhoto'] = verificationPhoto;
+      }
+
       final response = await _apiClient.post(
         '/missions/$missionId/check-in',
-        data: {
-          'latitude': latitude,
-          'longitude': longitude,
-        },
+        data: data,
       );
 
       if (response.data['success']) {
@@ -151,14 +210,32 @@ class MissionRepository {
           message: response.data['message'],
           businessName: response.data['data']?['businessName'],
           address: response.data['data']?['address'],
+          zone: response.data['zone'] ?? response.data['data']?['zone'],
+          distance: response.data['distance'] ?? response.data['data']?['distance'],
+          requiresPhotoVerification: response.data['requiresPhotoVerification'] ?? false,
         );
       }
 
+      // Handle non-success with zone info (e.g. red zone block, orange zone photo required)
       return CheckInResponse(
         success: false,
-        message: response.data['message'],
+        message: response.data['message'] ?? response.data['error']?['message'],
+        zone: response.data['zone'],
+        distance: response.data['distance'],
+        requiresPhotoVerification: response.data['requiresPhotoVerification'] ?? false,
       );
     } on DioException catch (e) {
+      // Parse zone info from error responses (400 status)
+      if (e.response != null && e.response!.data is Map) {
+        final data = e.response!.data;
+        return CheckInResponse(
+          success: false,
+          message: data['message'] ?? data['error']?['message'] ?? _getErrorMessage(e),
+          zone: data['zone'],
+          distance: data['distance'],
+          requiresPhotoVerification: data['requiresPhotoVerification'] ?? false,
+        );
+      }
       return CheckInResponse(
         success: false,
         message: _getErrorMessage(e),
@@ -185,6 +262,54 @@ class MissionRepository {
       );
     } on DioException catch (e) {
       return CheckOutResponse(
+        success: false,
+        message: _getErrorMessage(e),
+      );
+    }
+  }
+
+  // 히든 미션 목록 조회
+  Future<MissionListResponse> getHiddenMissions() async {
+    try {
+      final response = await _apiClient.get('/missions/hidden');
+
+      if (response.data['success']) {
+        final missions = (response.data['data']['missions'] as List)
+            .map((m) => MissionModel.fromJson(m))
+            .toList();
+        return MissionListResponse(success: true, missions: missions);
+      }
+
+      return MissionListResponse(
+        success: false,
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return MissionListResponse(
+        success: false,
+        message: _getErrorMessage(e),
+      );
+    }
+  }
+
+  // 시즌 미션 목록 조회
+  Future<MissionListResponse> getSeasonMissions(String seasonId) async {
+    try {
+      final response = await _apiClient.get('/missions/season/$seasonId');
+
+      if (response.data['success']) {
+        final missions = (response.data['data']['missions'] as List)
+            .map((m) => MissionModel.fromJson(m))
+            .toList();
+        return MissionListResponse(success: true, missions: missions);
+      }
+
+      return MissionListResponse(
+        success: false,
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return MissionListResponse(
         success: false,
         message: _getErrorMessage(e),
       );
@@ -277,12 +402,18 @@ class CheckInResponse {
   final String? message;
   final String? businessName;
   final String? address;
+  final String? zone; // 'green', 'yellow', 'orange', 'red'
+  final int? distance;
+  final bool requiresPhotoVerification;
 
   CheckInResponse({
     required this.success,
     this.message,
     this.businessName,
     this.address,
+    this.zone,
+    this.distance,
+    this.requiresPhotoVerification = false,
   });
 }
 

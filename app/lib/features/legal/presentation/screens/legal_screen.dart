@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../data/legal_content.dart';
@@ -26,7 +27,10 @@ class LegalScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: () {
-              // TODO: 공유 기능
+              Share.share(
+                '[암행어흥] ${_getTitle()}\nhttps://amhangeoheung.com/legal/${type.name}',
+                subject: _getTitle(),
+              );
             },
           ),
         ],

@@ -12,6 +12,7 @@ import 'features/onboarding/presentation/screens/user_type_selection_screen.dart
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/mission/presentation/screens/mission_list_screen.dart';
 import 'features/mission/presentation/screens/mission_detail_screen.dart';
+import 'features/mission/presentation/screens/create_mission_screen.dart';
 import 'features/mission/presentation/screens/tutorial_mission_screen.dart';
 import 'features/review/presentation/screens/review_list_screen.dart';
 import 'features/review/presentation/screens/review_detail_screen.dart';
@@ -180,6 +181,11 @@ class AppRouter {
       ),
 
       // Detail Routes (Outside Shell)
+      // 파라미터 라우트(/missions/:id)보다 먼저 정의 (프로젝트 규칙)
+      GoRoute(
+        path: '/missions/create',
+        builder: (context, state) => const CreateMissionScreen(),
+      ),
       GoRoute(
         path: '/missions/:id',
         builder: (context, state) => MissionDetailScreen(

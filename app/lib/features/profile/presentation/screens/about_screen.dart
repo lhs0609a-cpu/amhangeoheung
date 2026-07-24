@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../core/config/company_info.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
@@ -54,7 +56,7 @@ class AboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '버전 1.0.0',
+              '버전 ${CompanyInfo.appVersion}',
               style: HwahaeTypography.bodyMedium.copyWith(
                 color: HwahaeColors.textSecondary,
               ),
@@ -156,17 +158,17 @@ class AboutScreen extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    '(주) 암행어흥',
+                    CompanyInfo.companyName,
                     style: HwahaeTypography.labelMedium.copyWith(
                       color: HwahaeColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '사업자등록번호: 123-45-67890\n'
-                    '대표: 홍길동\n'
-                    '주소: 서울특별시 강남구 테헤란로 123\n'
-                    '고객센터: 1588-0000',
+                    '사업자등록번호: ${CompanyInfo.businessRegistrationNumber}\n'
+                    '대표: ${CompanyInfo.ceoName}\n'
+                    '주소: ${CompanyInfo.address}\n'
+                    '고객센터: ${CompanyInfo.customerServicePhone}',
                     style: HwahaeTypography.captionMedium.copyWith(
                       color: HwahaeColors.textTertiary,
                       height: 1.6,
@@ -287,12 +289,17 @@ class AboutScreen extends StatelessWidget {
   }
 
   Future<void> _launchStore() async {
-    // TODO: 실제 스토어 링크로 교체
-    const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.amhangeoheung.app';
-    const appStoreUrl = 'https://apps.apple.com/app/amhangeoheung';
+    // 스토어 ID는 CompanyInfo에서 관리. 출시 후 실제 ID로 교체.
+    final playStoreUrl =
+        'https://play.google.com/store/apps/details?id=${CompanyInfo.androidPackageId}';
+    final appStoreUrl = 'https://apps.apple.com/app/${CompanyInfo.iosAppId}';
 
     // 플랫폼에 따라 적절한 스토어로 이동
-    await _launchUrl(playStoreUrl);
+    if (!kIsWeb && Platform.isIOS) {
+      await _launchUrl(appStoreUrl);
+    } else {
+      await _launchUrl(playStoreUrl);
+    }
   }
 
   Future<void> _shareApp() async {

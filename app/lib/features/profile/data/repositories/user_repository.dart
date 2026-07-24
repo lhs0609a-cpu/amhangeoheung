@@ -64,10 +64,10 @@ class UserRepository {
     required String bankHolder,
   }) async {
     try {
-      final response = await _apiClient.put('/users/me/bank', data: {
-        'bankName': bankName,
-        'bankAccount': bankAccount,
-        'bankHolder': bankHolder,
+      final response = await _apiClient.put('/users/reviewer/bank-account', data: {
+        'bank': bankName,
+        'accountNumber': bankAccount,
+        'accountHolder': bankHolder,
       });
 
       return ApiResponse(
@@ -86,18 +86,22 @@ class UserRepository {
   Future<SettlementListResponse> getSettlements({int page = 1}) async {
     try {
       final response = await _apiClient.get(
-        '/users/me/settlements',
+        '/settlements/my',
         queryParameters: {'page': page},
       );
 
       if (response.data['success']) {
-        final settlements = (response.data['data']['settlements'] as List)
+        final data = response.data['data'];
+        final settlements = (data['settlements'] as List)
             .map((s) => Settlement.fromJson(s))
             .toList();
+        // 백엔드는 요약 통계를 data.stats 아래에 둔다 (구버전 호환 위해 fallback 유지)
+        final pendingAmount =
+            data['stats']?['pendingAmount'] ?? data['pendingAmount'] ?? 0;
         return SettlementListResponse(
           success: true,
           settlements: settlements,
-          pendingAmount: response.data['data']['pendingAmount'] ?? 0,
+          pendingAmount: pendingAmount,
         );
       }
 
@@ -120,6 +124,24 @@ class UserRepository {
 
       return ApiResponse(
         success: response.data['success'],
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return ApiResponse(
+        success: false,
+        message: _getErrorMessage(e),
+      );
+    }
+  }
+
+  // 정산 재시도 (실패한 정산 건 재처리 요청)
+  Future<ApiResponse> retrySettlement(String settlementId) async {
+    try {
+      final response =
+          await _apiClient.post('/settlements/$settlementId/retry');
+
+      return ApiResponse(
+        success: response.data['success'] ?? false,
         message: response.data['message'],
       );
     } on DioException catch (e) {
@@ -270,39 +292,63 @@ class Settlement {
   });
 
   factory Settlement.fromJson(Map<String, dynamic> json) {
+    // 백엔드 escrows 테이블 필드명을 앱 모델로 매핑 (구버전 키도 fallback 지원)
+    final mission = json['mission'] as Map<String, dynamic>?;
+    final payoutAccount = json['payout_account'] as String?;
     return Settlement(
-      id: json['id'] ?? '',
-      amount: json['amount'] ?? 0,
-      status: json['status'] ?? 'pending',
-      requestedAt: json['requested_at'] != null
-          ? DateTime.parse(json['requested_at'])
-          : DateTime.now(),
-      processedAt: json['processed_at'] != null
-          ? DateTime.parse(json['processed_at'])
-          : null,
+      id: json['id']?.toString() ?? '',
+      amount: json['amount'] ??
+          json['reviewer_fee'] ??
+          json['payout_amount'] ??
+          0,
+      status: _normalizeStatus(json['status']),
+      requestedAt: _parseDate(json['requested_at'] ?? json['created_at']) ??
+          DateTime.now(),
+      processedAt: _parseDate(json['processed_at'] ?? json['payout_at']),
       // 타임라인 데이터
-      missionCompletedAt: json['mission_completed_at'] != null
-          ? DateTime.parse(json['mission_completed_at'])
-          : null,
-      reviewApprovedAt: json['review_approved_at'] != null
-          ? DateTime.parse(json['review_approved_at'])
-          : null,
-      payoutStartedAt: json['payout_started_at'] != null
-          ? DateTime.parse(json['payout_started_at'])
-          : null,
-      payoutCompletedAt: json['payout_completed_at'] != null
-          ? DateTime.parse(json['payout_completed_at'])
-          : null,
+      missionCompletedAt: _parseDate(
+          json['mission_completed_at'] ?? mission?['completed_at']),
+      reviewApprovedAt: _parseDate(json['review_approved_at']),
+      payoutStartedAt: _parseDate(json['payout_started_at']),
+      payoutCompletedAt:
+          _parseDate(json['payout_completed_at'] ?? json['payout_at']),
       // 추가 정보
-      missionTitle: json['mission_title'],
-      bankName: json['bank_name'],
-      bankAccountLast4: json['bank_account_last4'],
-      retryCount: json['retry_count'],
-      errorMessage: json['error_message'],
-      estimatedPayoutDate: json['estimated_payout_date'] != null
-          ? DateTime.parse(json['estimated_payout_date'])
-          : null,
+      missionTitle: json['mission_title'] ??
+          mission?['category'] ??
+          mission?['mission_type'],
+      bankName: json['bank_name'] ?? json['payout_bank'],
+      bankAccountLast4: json['bank_account_last4'] ??
+          (payoutAccount != null && payoutAccount.length >= 4
+              ? payoutAccount.substring(payoutAccount.length - 4)
+              : null),
+      retryCount: json['retry_count'] ?? json['payout_retry_count'],
+      errorMessage: json['error_message'] ?? json['payout_error_message'],
+      estimatedPayoutDate: _parseDate(
+          json['estimated_payout_date'] ?? json['auto_release_at']),
     );
+  }
+
+  /// 백엔드 escrow 상태값을 앱 표시 상태값으로 정규화
+  static String _normalizeStatus(dynamic status) {
+    switch (status) {
+      case 'released':
+        return 'completed';
+      case 'paid':
+        return 'pending';
+      case 'releasing':
+        return 'releasing';
+      case 'hold':
+        return 'hold';
+      case 'failed':
+        return 'failed';
+      default:
+        return (status as String?) ?? 'pending';
+    }
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    return DateTime.tryParse(value.toString());
   }
 
   String get statusDisplayName {

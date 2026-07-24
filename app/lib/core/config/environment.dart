@@ -72,6 +72,25 @@ class EnvironmentConfig {
     }
   }
 
+  /// Toss Payments 클라이언트 키 (위젯 SDK용).
+  /// 운영 키는 --dart-define=TOSS_CLIENT_KEY=... 로 주입한다.
+  /// 기본값은 Toss 공식 문서의 공용 테스트 키.
+  static String get tossClientKey {
+    switch (_environment) {
+      case Environment.development:
+      case Environment.staging:
+        return const String.fromEnvironment(
+          'TOSS_CLIENT_KEY',
+          defaultValue: 'test_ck_docs_Ovk5rk1EwkEbP0W43n07xlzm',
+        );
+      case Environment.production:
+        return const String.fromEnvironment(
+          'TOSS_CLIENT_KEY',
+          defaultValue: '',
+        );
+    }
+  }
+
   /// 디버그 모드 여부
   static bool get enableDebugMode {
     return _environment != Environment.production;

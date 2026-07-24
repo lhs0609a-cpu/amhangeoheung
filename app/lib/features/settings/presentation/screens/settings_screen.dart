@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/services/fcm_service.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/providers/user_type_provider.dart';
@@ -185,11 +187,28 @@ class SettingsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              // TODO: 회원탈퇴 API 연동 후 로그인 화면으로 이동
-              const storage = FlutterSecureStorage();
-              await storage.delete(key: 'auth_token');
-              if (context.mounted) {
-                context.go('/login');
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                // 백엔드 계정 삭제. 진행 중 미션/미정산이 있으면 400 + 안내 메시지.
+                await ApiClient().delete('/users/me');
+
+                // FCM 토큰 해제 + 로컬 인증정보 삭제
+                await FcmService().removeTokenFromBackend();
+                const storage = FlutterSecureStorage();
+                await storage.delete(key: 'auth_token');
+
+                if (context.mounted) {
+                  context.go('/login');
+                }
+              } catch (e) {
+                final message = ApiClient.extractErrorMessage(e) ??
+                    '회원 탈퇴에 실패했습니다. 진행 중인 미션이나 미정산 내역이 없는지 확인해주세요.';
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                    backgroundColor: HwahaeColors.error,
+                  ),
+                );
               }
             },
             child: Text(

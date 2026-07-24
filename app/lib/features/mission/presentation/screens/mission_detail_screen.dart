@@ -495,28 +495,34 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
               color: HwahaeColors.successLight,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.payments,
+            child: Icon(
+              mission.isFreeExperience ? Icons.card_giftcard : Icons.payments,
               color: HwahaeColors.success,
             ),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '페이백 금액',
-                style: HwahaeTypography.captionLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${_formatCurrency(mission.reviewerFee)}원',
-                style: HwahaeTypography.headlineSmall.copyWith(
-                  color: HwahaeColors.success,
-                  fontWeight: FontWeight.w700,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  mission.isFreeExperience ? '무료체험 보상' : '페이백 금액',
+                  style: HwahaeTypography.captionLarge,
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  mission.isFreeExperience
+                      ? (mission.experienceDescription?.isNotEmpty == true
+                          ? mission.experienceDescription!
+                          : '무료체험 제공')
+                      : '${_formatCurrency(mission.reviewerFee)}원',
+                  style: HwahaeTypography.headlineSmall.copyWith(
+                    color: HwahaeColors.success,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -2,10 +2,70 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
+
+/// 내 리뷰 데이터 모델
+class MyReview {
+  final String id;
+  final String businessName;
+  final double rating;
+  final String content;
+  final String date;
+  final String status;
+  final int photoCount;
+  final int reward;
+
+  MyReview({
+    required this.id,
+    required this.businessName,
+    required this.rating,
+    required this.content,
+    required this.date,
+    required this.status,
+    required this.photoCount,
+    required this.reward,
+  });
+
+  factory MyReview.fromJson(Map<String, dynamic> json) {
+    return MyReview(
+      id: json['id'] ?? '',
+      businessName: json['business']?['name'] ?? json['business_name'] ?? '업체',
+      rating: (json['overall_score'] ?? json['rating'] ?? 0).toDouble(),
+      content: json['content'] ?? '',
+      date: _formatDate(json['created_at']),
+      status: json['status'] ?? 'pending',
+      photoCount: (json['photos'] as List?)?.length ?? json['photo_count'] ?? 0,
+      reward: json['reviewer_fee'] ?? json['reward'] ?? 0,
+    );
+  }
+
+  static String _formatDate(String? dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final dt = DateTime.parse(dateStr);
+      return '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+}
+
+/// 내 리뷰 목록 Provider
+final myReviewsProvider = FutureProvider<List<MyReview>>((ref) async {
+  try {
+    final response = await ApiClient.instance.dio.get('/reviews/my');
+    final data = response.data;
+    if (data['success'] == true) {
+      final list = data['data']['reviews'] as List? ?? [];
+      return list.map((json) => MyReview.fromJson(json)).toList();
+    }
+  } catch (_) {}
+  return [];
+});
 
 class MyReviewsScreen extends ConsumerStatefulWidget {
   const MyReviewsScreen({super.key});
@@ -60,50 +120,77 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen>
     );
   }
 
-  Widget _buildReviewList(String status) {
-    // 실제로는 API에서 데이터를 가져와야 함
-    final reviews = _getMockReviews(status);
+  Widget _buildReviewList(String filterStatus) {
+    final reviewsAsync = ref.watch(myReviewsProvider);
 
-    if (reviews.isEmpty) {
-      return Center(
+    return reviewsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: HwahaeColors.primary)),
+      error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.rate_review_outlined,
-              size: 64,
-              color: HwahaeColors.textTertiary,
-            ),
+            Icon(Icons.error_outline, size: 48, color: HwahaeColors.textTertiary),
             const SizedBox(height: 16),
-            Text(
-              '작성한 리뷰가 없습니다',
-              style: HwahaeTypography.titleMedium.copyWith(
-                color: HwahaeColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '미션을 완료하고 리뷰를 작성해보세요',
-              style: HwahaeTypography.bodySmall.copyWith(
-                color: HwahaeColors.textTertiary,
-              ),
+            Text('리뷰를 불러올 수 없습니다', style: HwahaeTypography.bodyMedium),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => ref.invalidate(myReviewsProvider),
+              child: const Text('다시 시도'),
             ),
           ],
         ),
-      );
-    }
+      ),
+      data: (allReviews) {
+        final reviews = filterStatus == 'all'
+            ? allReviews
+            : allReviews.where((r) => r.status == filterStatus).toList();
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: reviews.length,
-      itemBuilder: (context, index) {
-        final review = reviews[index];
-        return _buildReviewCard(review);
+        if (reviews.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.rate_review_outlined,
+                  size: 64,
+                  color: HwahaeColors.textTertiary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '작성한 리뷰가 없습니다',
+                  style: HwahaeTypography.titleMedium.copyWith(
+                    color: HwahaeColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '미션을 완료하고 리뷰를 작성해보세요',
+                  style: HwahaeTypography.bodySmall.copyWith(
+                    color: HwahaeColors.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(myReviewsProvider);
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: reviews.length,
+            itemBuilder: (context, index) {
+              return _buildReviewCard(reviews[index]);
+            },
+          ),
+        );
       },
     );
   }
 
-  Widget _buildReviewCard(_MockReview review) {
+  Widget _buildReviewCard(MyReview review) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -115,7 +202,6 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 헤더
           Row(
             children: [
               Container(
@@ -153,8 +239,6 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen>
             ],
           ),
           const SizedBox(height: 12),
-
-          // 업체명
           Text(
             review.businessName,
             style: HwahaeTypography.titleSmall.copyWith(
@@ -162,8 +246,6 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen>
             ),
           ),
           const SizedBox(height: 8),
-
-          // 평점
           Row(
             children: [
               HwahaeRatingBadge(rating: review.rating),
@@ -177,8 +259,6 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen>
             ],
           ),
           const SizedBox(height: 12),
-
-          // 리뷰 내용 미리보기
           Text(
             review.content,
             style: HwahaeTypography.bodySmall.copyWith(
@@ -188,8 +268,6 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen>
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 12),
-
-          // 하단 정보
           Row(
             children: [
               Icon(Icons.photo_outlined, size: 16, color: HwahaeColors.textTertiary),
@@ -258,44 +336,6 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen>
     }
   }
 
-  List<_MockReview> _getMockReviews(String status) {
-    final allReviews = [
-      _MockReview(
-        id: '1',
-        businessName: '맛있는 식당',
-        rating: 4.5,
-        content: '음식이 정말 맛있었어요. 특히 된장찌개가 일품이었습니다. 다음에 또 방문하고 싶네요.',
-        date: '2024.01.15',
-        status: 'approved',
-        photoCount: 5,
-        reward: 30000,
-      ),
-      _MockReview(
-        id: '2',
-        businessName: '힙한 카페',
-        rating: 4.0,
-        content: '분위기가 좋고 커피도 맛있었습니다. 다만 가격이 조금 비싼 편이에요.',
-        date: '2024.01.12',
-        status: 'pending',
-        photoCount: 3,
-        reward: 25000,
-      ),
-      _MockReview(
-        id: '3',
-        businessName: '뷰티샵 A',
-        rating: 4.8,
-        content: '시술이 깔끔하고 직원분들이 친절해요. 만족스러웠습니다.',
-        date: '2024.01.10',
-        status: 'approved',
-        photoCount: 4,
-        reward: 35000,
-      ),
-    ];
-
-    if (status == 'all') return allReviews;
-    return allReviews.where((r) => r.status == status).toList();
-  }
-
   String _formatCurrency(int amount) {
     return amount.toString().replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -303,7 +343,7 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen>
         );
   }
 
-  Future<void> _shareReview(_MockReview review) async {
+  Future<void> _shareReview(MyReview review) async {
     final stars = '★' * review.rating.floor() +
         (review.rating % 1 >= 0.5 ? '☆' : '');
 
@@ -325,26 +365,4 @@ https://amhangeoheung.com/reviews/${review.id}
       subject: '${review.businessName} 리뷰 공유',
     );
   }
-}
-
-class _MockReview {
-  final String id;
-  final String businessName;
-  final double rating;
-  final String content;
-  final String date;
-  final String status;
-  final int photoCount;
-  final int reward;
-
-  _MockReview({
-    required this.id,
-    required this.businessName,
-    required this.rating,
-    required this.content,
-    required this.date,
-    required this.status,
-    required this.photoCount,
-    required this.reward,
-  });
 }

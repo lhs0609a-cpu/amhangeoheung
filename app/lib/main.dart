@@ -38,8 +38,13 @@ Future<void> main() async {
 }
 
 void _initializeEnvironment() {
-  // 컴파일 타임 환경 변수로 환경 설정
-  const envString = String.fromEnvironment('ENV', defaultValue: 'development');
+  // 컴파일 타임 환경 변수로 환경 설정.
+  // ENV 미지정 시: release 빌드는 production(https), 그 외는 development.
+  // → 실수로 release가 localhost를 가리키는 사고를 방지한다.
+  const envFlag = String.fromEnvironment('ENV', defaultValue: '');
+  final envString = envFlag.isNotEmpty
+      ? envFlag
+      : (kReleaseMode ? 'production' : 'development');
 
   switch (envString) {
     case 'production':

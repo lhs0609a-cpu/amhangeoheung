@@ -5,6 +5,18 @@ import '../models/review_model.dart';
 class ReviewRepository {
   final ApiClient _apiClient = ApiClient();
 
+  /// 선공개 리뷰 목록 조회 (업체용) — GET /reviews/preview
+  /// 응답: { success, data: { reviews: [...], previewInfo: {...} } }
+  Future<List<Map<String, dynamic>>> getPreviewReviews() async {
+    final response = await _apiClient.get('/reviews/preview');
+    final data = response.data is Map ? response.data['data'] : null;
+    final reviews = (data is Map ? data['reviews'] : null) as List?;
+    return (reviews ?? [])
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
   // 공개된 리뷰 목록 조회
   Future<ReviewListResponse> getReviews({
     String? category,
@@ -12,13 +24,27 @@ class ReviewRepository {
     int limit = 20,
   }) async {
     try {
-      final response = await _apiClient.get(
-        '/reviews',
-        queryParameters: {
-          if (category != null) 'category': category,
+      // 카테고리가 지정된 경우 카테고리 전용 엔드포인트 사용
+      final String path;
+      final Map<String, dynamic> queryParameters;
+
+      if (category != null && category.isNotEmpty) {
+        path = '/reviews/category/$category';
+        queryParameters = {
           'page': page,
           'limit': limit,
-        },
+        };
+      } else {
+        path = '/reviews';
+        queryParameters = {
+          'page': page,
+          'limit': limit,
+        };
+      }
+
+      final response = await _apiClient.get(
+        path,
+        queryParameters: queryParameters,
       );
 
       if (response.data['success']) {
@@ -251,7 +277,7 @@ class ReviewRepository {
     required List<Map<String, String>> photos,
   }) async {
     try {
-      final response = await _apiClient.post('/reviews/$reviewId/photos', data: {
+      final response = await _apiClient.post('/reviews/$reviewId/evidence/photos', data: {
         'photos': photos,
       });
 
@@ -274,7 +300,7 @@ class ReviewRepository {
     Map<String, dynamic>? ocrData,
   }) async {
     try {
-      final response = await _apiClient.post('/reviews/$reviewId/receipt', data: {
+      final response = await _apiClient.post('/reviews/$reviewId/evidence/receipt', data: {
         'imageUrl': imageUrl,
         'ocrData': ocrData,
       });
@@ -295,6 +321,104 @@ class ReviewRepository {
   Future<ApiResponse> markHelpful(String reviewId) async {
     try {
       final response = await _apiClient.post('/reviews/$reviewId/helpful');
+
+      return ApiResponse(
+        success: response.data['success'],
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return ApiResponse(
+        success: false,
+        message: _getErrorMessage(e),
+      );
+    }
+  }
+
+  // 이의 제기 (업체용)
+  Future<ApiResponse> disputeReview(
+    String reviewId, {
+    required String reason,
+    List<Map<String, String>>? evidences,
+  }) async {
+    try {
+      final response = await _apiClient.post('/reviews/$reviewId/dispute', data: {
+        'reason': reason,
+        if (evidences != null) 'evidences': evidences,
+      });
+
+      return ApiResponse(
+        success: response.data['success'],
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return ApiResponse(
+        success: false,
+        message: _getErrorMessage(e),
+      );
+    }
+  }
+
+  // 이의 제기에 증거 추가 (업체용)
+  Future<ApiResponse> uploadDisputeEvidence(
+    String reviewId, {
+    required String fileUrl,
+    String fileType = 'image',
+    String? description,
+  }) async {
+    try {
+      final response = await _apiClient.post('/reviews/$reviewId/dispute/evidence', data: {
+        'fileUrl': fileUrl,
+        'fileType': fileType,
+        if (description != null) 'description': description,
+      });
+
+      return ApiResponse(
+        success: response.data['success'],
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return ApiResponse(
+        success: false,
+        message: _getErrorMessage(e),
+      );
+    }
+  }
+
+  // 이의 제기 상태 조회 (업체용)
+  Future<DisputeStatusResponse> getDisputeStatus(String reviewId) async {
+    try {
+      final response = await _apiClient.get('/reviews/$reviewId/dispute-status');
+
+      if (response.data['success']) {
+        return DisputeStatusResponse(
+          success: true,
+          data: response.data['data'],
+        );
+      }
+
+      return DisputeStatusResponse(
+        success: false,
+        message: response.data['message'],
+      );
+    } on DioException catch (e) {
+      return DisputeStatusResponse(
+        success: false,
+        message: _getErrorMessage(e),
+      );
+    }
+  }
+
+  // 업체 답변 (선공개 + 공개 리뷰 모두)
+  Future<ApiResponse> submitBusinessResponse(
+    String reviewId, {
+    required String content,
+    String? improvementPromise,
+  }) async {
+    try {
+      final response = await _apiClient.post('/reviews/$reviewId/business-response', data: {
+        'content': content,
+        if (improvementPromise != null) 'improvementPromise': improvementPromise,
+      });
 
       return ApiResponse(
         success: response.data['success'],
@@ -415,5 +539,17 @@ class ReviewCreateResponse {
     required this.success,
     this.message,
     this.review,
+  });
+}
+
+class DisputeStatusResponse {
+  final bool success;
+  final String? message;
+  final Map<String, dynamic>? data;
+
+  DisputeStatusResponse({
+    required this.success,
+    this.message,
+    this.data,
   });
 }

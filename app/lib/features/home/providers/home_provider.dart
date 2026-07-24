@@ -3,12 +3,16 @@ import '../../mission/data/models/mission_model.dart';
 import '../../mission/data/repositories/mission_repository.dart';
 import '../../review/data/models/review_model.dart';
 import '../../review/data/repositories/review_repository.dart';
+import '../../ranking/data/models/ranking_model.dart';
+import '../../ranking/data/repositories/ranking_repository.dart';
 
 // Home Data State
 class HomeDataState {
   final bool isLoading;
   final List<ReviewModel> recentReviews;
   final List<MissionModel> availableMissions;
+  final List<RegionalRankingModel> topBusinesses;
+  final List<ReviewerRankingModel> topReviewers;
   final String? error;
   final String selectedCategory;
 
@@ -16,6 +20,8 @@ class HomeDataState {
     this.isLoading = false,
     this.recentReviews = const [],
     this.availableMissions = const [],
+    this.topBusinesses = const [],
+    this.topReviewers = const [],
     this.error,
     this.selectedCategory = '전체',
   });
@@ -24,6 +30,8 @@ class HomeDataState {
     bool? isLoading,
     List<ReviewModel>? recentReviews,
     List<MissionModel>? availableMissions,
+    List<RegionalRankingModel>? topBusinesses,
+    List<ReviewerRankingModel>? topReviewers,
     String? error,
     String? selectedCategory,
   }) {
@@ -31,6 +39,8 @@ class HomeDataState {
       isLoading: isLoading ?? this.isLoading,
       recentReviews: recentReviews ?? this.recentReviews,
       availableMissions: availableMissions ?? this.availableMissions,
+      topBusinesses: topBusinesses ?? this.topBusinesses,
+      topReviewers: topReviewers ?? this.topReviewers,
       error: error,
       selectedCategory: selectedCategory ?? this.selectedCategory,
     );
@@ -61,8 +71,9 @@ class HomeDataState {
 class HomeDataNotifier extends StateNotifier<HomeDataState> {
   final ReviewRepository _reviewRepository;
   final MissionRepository _missionRepository;
+  final RankingRepository _rankingRepository;
 
-  HomeDataNotifier(this._reviewRepository, this._missionRepository)
+  HomeDataNotifier(this._reviewRepository, this._missionRepository, this._rankingRepository)
       : super(const HomeDataState());
 
   Future<void> loadHomeData({String? category}) async {
@@ -76,15 +87,21 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
           limit: 10,
           category: category != '전체' ? category : null,
         ),
+        _rankingRepository.getRegionalRanking().catchError((_) => <RegionalRankingModel>[]),
+        _rankingRepository.getReviewerRanking(limit: 5).catchError((_) => <ReviewerRankingModel>[]),
       ]);
 
       final reviewResponse = results[0] as ReviewListResponse;
       final missionResponse = results[1] as MissionListResponse;
+      final topBusinesses = results[2] as List<RegionalRankingModel>;
+      final topReviewers = results[3] as List<ReviewerRankingModel>;
 
       state = state.copyWith(
         isLoading: false,
         recentReviews: reviewResponse.success ? reviewResponse.reviews : [],
         availableMissions: missionResponse.success ? missionResponse.missions : [],
+        topBusinesses: topBusinesses.take(5).toList(),
+        topReviewers: topReviewers.take(5).toList(),
       );
     } catch (e) {
       state = state.copyWith(
@@ -116,10 +133,15 @@ final missionRepositoryProvider = Provider<MissionRepository>((ref) {
   return MissionRepository();
 });
 
+final rankingRepositoryProvider = Provider<RankingRepository>((ref) {
+  return RankingRepository();
+});
+
 final homeDataProvider = StateNotifierProvider<HomeDataNotifier, HomeDataState>((ref) {
   final reviewRepository = ref.watch(reviewRepositoryProvider);
   final missionRepository = ref.watch(missionRepositoryProvider);
-  return HomeDataNotifier(reviewRepository, missionRepository);
+  final rankingRepository = ref.watch(rankingRepositoryProvider);
+  return HomeDataNotifier(reviewRepository, missionRepository, rankingRepository);
 });
 
 // 선택된 카테고리 프로바이더 (UI 상태 관리용)

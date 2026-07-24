@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 
@@ -96,79 +97,80 @@ class CompetitorComparison {
   });
 }
 
-/// 신뢰도 분석 데이터 Provider
+/// 신뢰도 분석 데이터 Provider (API 연동)
 final trustAnalysisProvider =
     FutureProvider.family<TrustAnalysisData, String>((ref, businessId) async {
-  await Future.delayed(const Duration(milliseconds: 800));
+  try {
+    final response = await ApiClient.instance.dio.get('/businesses/$businessId/report');
+    final data = response.data;
 
+    if (data['success'] == true) {
+      final report = data['data'];
+      final business = report['business'] ?? {};
+      final scores = report['categoryScores'] as Map<String, dynamic>? ?? {};
+      final trends = report['monthlyTrend'] as List? ?? [];
+      final dist = report['ratingDistribution'] as List? ?? [];
+      final pros = report['strengths'] as List? ?? [];
+      final cons = report['weaknesses'] as List? ?? [];
+      final comp = report['competitorComparison'] as Map<String, dynamic>? ?? {};
+
+      return TrustAnalysisData(
+        businessName: business['name'] ?? '업체',
+        badgeLevel: business['badge_level'] ?? 'none',
+        overallScore: (report['trustScore'] ?? report['overall_score'] ?? 0).toDouble(),
+        totalReviews: report['totalReviews'] ?? 0,
+        verifiedReviews: report['verifiedReviews'] ?? 0,
+        categoryScores: scores.map((k, v) => MapEntry(k, (v as num).toDouble())),
+        monthlyTrend: trends.map((t) => TrustTrend(
+          month: t['month'] ?? '',
+          score: (t['score'] ?? 0).toDouble(),
+        )).toList(),
+        ratingDistribution: dist.map((d) => ReviewDistribution(
+          rating: d['rating'] ?? 0,
+          count: d['count'] ?? 0,
+          percentage: (d['percentage'] ?? 0).toDouble(),
+        )).toList(),
+        strengths: pros.map((s) => StrengthItem(
+          title: s['title'] ?? '',
+          description: s['description'] ?? '',
+          score: (s['score'] ?? 0).toDouble(),
+          icon: Icons.check_circle_outline,
+        )).toList(),
+        weaknesses: cons.map((w) => WeaknessItem(
+          title: w['title'] ?? '',
+          description: w['description'] ?? '',
+          suggestion: w['suggestion'] ?? '',
+          score: (w['score'] ?? 0).toDouble(),
+        )).toList(),
+        competitorComparison: CompetitorComparison(
+          myScore: (comp['myScore'] ?? 0).toDouble(),
+          categoryAverage: (comp['categoryAverage'] ?? 0).toDouble(),
+          topPerformer: (comp['topPerformer'] ?? 0).toDouble(),
+          rankInCategory: comp['rankInCategory'] ?? 0,
+          totalInCategory: comp['totalInCategory'] ?? 0,
+        ),
+      );
+    }
+  } catch (_) {}
+
+  // API 실패 시 빈 데이터
   return TrustAnalysisData(
-    businessName: '맛있는 식당',
-    badgeLevel: 'gold',
-    overallScore: 92.5,
-    totalReviews: 156,
-    verifiedReviews: 148,
-    categoryScores: {
-      '서비스': 4.8,
-      '청결도': 4.6,
-      '가격': 4.2,
-      '품질': 4.7,
-      '분위기': 4.5,
-    },
-    monthlyTrend: [
-      TrustTrend(month: '9월', score: 85.2),
-      TrustTrend(month: '10월', score: 87.8),
-      TrustTrend(month: '11월', score: 89.5),
-      TrustTrend(month: '12월', score: 91.2),
-      TrustTrend(month: '1월', score: 90.8),
-      TrustTrend(month: '2월', score: 92.5),
-    ],
-    ratingDistribution: [
-      ReviewDistribution(rating: 5, count: 98, percentage: 62.8),
-      ReviewDistribution(rating: 4, count: 42, percentage: 26.9),
-      ReviewDistribution(rating: 3, count: 12, percentage: 7.7),
-      ReviewDistribution(rating: 2, count: 3, percentage: 1.9),
-      ReviewDistribution(rating: 1, count: 1, percentage: 0.6),
-    ],
-    strengths: [
-      StrengthItem(
-        title: '친절한 서비스',
-        description: '직원들의 응대가 매우 친절하다는 평가가 많습니다',
-        score: 4.8,
-        icon: Icons.sentiment_very_satisfied,
-      ),
-      StrengthItem(
-        title: '음식 품질',
-        description: '신선한 재료와 맛에 대한 긍정적 평가',
-        score: 4.7,
-        icon: Icons.restaurant,
-      ),
-      StrengthItem(
-        title: '청결한 환경',
-        description: '매장 청결도에 대한 높은 만족도',
-        score: 4.6,
-        icon: Icons.cleaning_services,
-      ),
-    ],
-    weaknesses: [
-      WeaknessItem(
-        title: '대기 시간',
-        description: '피크 시간대 대기가 길다는 의견',
-        suggestion: '예약 시스템 도입 또는 좌석 확장 고려',
-        score: 3.2,
-      ),
-      WeaknessItem(
-        title: '주차 공간',
-        description: '주차 공간이 부족하다는 피드백',
-        suggestion: '인근 주차장 안내 또는 발렛 서비스 검토',
-        score: 3.5,
-      ),
-    ],
+    businessName: '',
+    badgeLevel: 'none',
+    overallScore: 0,
+    totalReviews: 0,
+    verifiedReviews: 0,
+    categoryScores: {},
+    monthlyTrend: [],
+    ratingDistribution: [],
+    strengths: [],
+    weaknesses: [],
     competitorComparison: CompetitorComparison(
-      myScore: 92.5,
-      categoryAverage: 78.3,
-      topPerformer: 96.8,
-      rankInCategory: 12,
-      totalInCategory: 245,
+      myScore: 0,
+      categoryAverage: 0,
+      topPerformer: 0,
+      rankInCategory: 0,
+      totalInCategory: 0,
     ),
   );
 });

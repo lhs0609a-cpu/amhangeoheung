@@ -530,11 +530,13 @@ class _HiddenMissionsSection extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${_formatCurrency(mission.reviewerFee)}원',
+                            mission.rewardDisplayText,
                             style: HwahaeTypography.captionMedium.copyWith(
                               color: HwahaeColors.primary,
                               fontWeight: FontWeight.w600,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -719,7 +721,7 @@ class _MissionCard extends StatelessWidget {
     }
 
     return Semantics(
-      label: '${mission.business?.name ?? mission.category ?? '미션'}, ${statusText}, 페이백 ${_formatCurrency(mission.reviewerFee)}원',
+      label: '${mission.business?.name ?? mission.category ?? '미션'}, ${statusText}, ${mission.rewardDisplayText}',
       button: true,
       child: GestureDetector(
         onTap: () => context.push('/missions/${mission.id}'),
@@ -841,14 +843,14 @@ class _MissionCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(
-                      Icons.payment,
+                    Icon(
+                      mission.isFreeExperience ? Icons.card_giftcard : Icons.payment,
                       size: 16,
                       color: HwahaeColors.textSecondary,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '페이백 ${_formatCurrency(mission.reviewerFee)}원',
+                      mission.rewardDisplayText,
                       style: HwahaeTypography.labelMedium.copyWith(
                         fontWeight: FontWeight.w600,
                         color: HwahaeColors.primary,

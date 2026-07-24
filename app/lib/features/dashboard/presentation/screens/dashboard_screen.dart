@@ -266,11 +266,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     _buildTrustScoreCard(stats),
                     const SizedBox(height: 16),
 
-                    // 선공개 리뷰 긴급 카드 (대응 필요 리뷰)
-                    if (stats.pendingReviews > 0)
-                      _buildUrgentReviewCard(stats),
-                    if (stats.pendingReviews > 0)
+                    // 첫 미션이 없는 신규 업체: 무료 첫 미션 CTA (가입→첫 가치 경험 깔때기)
+                    if (stats.totalMissions == 0) ...[
+                      _buildFirstFreeMissionCard(),
                       const SizedBox(height: 16),
+                    ],
+
+                    // 선공개 리뷰: 대기건 있으면 긴급 카드, 없으면 안심 설명 카드
+                    if (stats.pendingReviews > 0) ...[
+                      _buildUrgentReviewCard(stats),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      _buildPreviewProtectionCard(),
+                      const SizedBox(height: 16),
+                    ],
 
                     // 핵심 KPI 3개 가로 스크롤
                     _buildKpiHorizontalScroll(stats),
@@ -379,6 +388,124 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
             const Icon(Icons.chevron_right_rounded, color: HwahaeColors.warning),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 신규 업체용: 첫 미션 무료 시작 CTA
+  /// 가입 직후 가치를 경험할 수 있도록 가장 위 노출. 무료체험(free_experience) 보상으로 등록.
+  Widget _buildFirstFreeMissionCard() {
+    return InkWell(
+      onTap: () => context.push('/missions/create'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFEDE9FE), Color(0xFFDDD6FE)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: HwahaeColors.primary.withOpacity(0.25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: HwahaeColors.primary.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.card_giftcard_rounded,
+                color: HwahaeColors.primary,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '첫 미션 무료로 시작하기',
+                    style: HwahaeTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: HwahaeColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '현금 부담 없이 무료체험으로 진짜 후기를 받아보세요',
+                    style: HwahaeTypography.captionLarge.copyWith(
+                      color: HwahaeColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: HwahaeColors.primary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 선공개 보호 안심 카드 (대기 리뷰 0건일 때)
+  /// "악평이 바로 공개되지 않는다" = 사장님 가장 큰 공포 해소 메시지를 첫날부터 노출.
+  Widget _buildPreviewProtectionCard() {
+    return InkWell(
+      onTap: () => context.push('/preview-reviews'),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: HwahaeColors.infoLight,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: HwahaeColors.info.withOpacity(0.25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: HwahaeColors.info.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.shield_outlined,
+                color: HwahaeColors.info,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '솔직 리뷰도 공개 전 먼저 확인',
+                    style: HwahaeTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: HwahaeColors.info,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '제출된 리뷰는 72시간 동안 사장님만 봅니다.\n답변·개선약속·이의제기 후 공개됩니다',
+                    style: HwahaeTypography.captionLarge.copyWith(
+                      color: HwahaeColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: HwahaeColors.info),
           ],
         ),
       ),
@@ -1085,7 +1212,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 icon: Icons.add_circle_outline,
                 label: '미션 등록',
                 color: HwahaeColors.primary,
-                onTap: () => context.push('/missions'),
+                onTap: () => context.push('/missions/create'),
               ),
             ),
             const SizedBox(width: 12),

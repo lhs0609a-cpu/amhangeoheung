@@ -259,10 +259,11 @@ class _UserTypeSelectionScreenState
 
     if (!mounted) return;
 
-    // 유형에 따라 적절한 홈으로 이동
+    // 유형에 따라 적절한 진입점으로 이동.
+    // 업체는 가치(무료체험·선공개 보호) 슬라이드를 먼저 거친다.
     switch (_selectedType!) {
       case UserType.business:
-        context.go('/dashboard');
+        context.go('/business-onboarding');
         break;
       case UserType.reviewer:
       case UserType.consumer:

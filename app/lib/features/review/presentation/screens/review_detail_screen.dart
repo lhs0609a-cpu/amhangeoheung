@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
+import '../../data/repositories/review_repository.dart';
+import '../../data/models/review_model.dart';
 
 /// 리뷰 상세 데이터 모델
 class ReviewDetailData {
@@ -13,6 +15,7 @@ class ReviewDetailData {
   final String reviewerSpecialty;
   final int reviewerReviewCount;
   final bool isVerified;
+  final String businessId;
   final String businessName;
   final String businessCategory;
   final String businessAddress;
@@ -25,9 +28,14 @@ class ReviewDetailData {
   final List<String> photos;
   final String? businessResponse;
   final DateTime? businessResponseAt;
+  final String? improvementPromise;
   final int helpfulCount;
   final bool isHelpful;
   final DateTime createdAt;
+  // Anonymization fields (for business view)
+  final bool isAnonymized;
+  final String? displayVisitDate;   // "2월 초순" style fuzzy date
+  final String? displayTimeSlot;    // "오후" style time slot
 
   ReviewDetailData({
     required this.id,
@@ -36,6 +44,7 @@ class ReviewDetailData {
     required this.reviewerSpecialty,
     required this.reviewerReviewCount,
     required this.isVerified,
+    required this.businessId,
     required this.businessName,
     required this.businessCategory,
     required this.businessAddress,
@@ -48,55 +57,72 @@ class ReviewDetailData {
     required this.photos,
     this.businessResponse,
     this.businessResponseAt,
+    this.improvementPromise,
     required this.helpfulCount,
     required this.isHelpful,
     required this.createdAt,
+    this.isAnonymized = false,
+    this.displayVisitDate,
+    this.displayTimeSlot,
   });
+
+  factory ReviewDetailData.fromReviewModel(ReviewModel model) {
+    final reviewer = model.reviewer;
+    final business = model.business;
+    return ReviewDetailData(
+      id: model.id,
+      reviewerName: reviewer?.nickname ?? '리뷰어',
+      reviewerGrade: reviewer?.reviewerGrade ?? 'rookie',
+      reviewerSpecialty: '',
+      reviewerReviewCount: 0,
+      isVerified: model.status == 'published' || model.status == 'preview',
+      businessId: model.businessId,
+      businessName: business?.name ?? '업체',
+      businessCategory: business?.category ?? '',
+      businessAddress: business?.addressCity ?? '',
+      businessBadge: business?.badgeLevel,
+      totalScore: model.totalScore,
+      detailScores: model.scores ?? {},
+      content: model.detailedReview ?? model.summary ?? '',
+      pros: model.pros,
+      cons: model.cons,
+      photos: model.photos.map((p) => p.url).toList(),
+      businessResponse: model.businessResponse,
+      businessResponseAt: model.respondedAt,
+      improvementPromise: model.improvementPromise,
+      helpfulCount: model.helpfulCount,
+      isHelpful: false,
+      createdAt: model.createdAt,
+      isAnonymized: reviewer?.nickname?.startsWith('암행어흥') ?? false,
+      displayVisitDate: null,
+      displayTimeSlot: null,
+    );
+  }
 }
 
-/// 리뷰 상세 데이터 Provider
+final _reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
+  return ReviewRepository();
+});
+
+/// Raw ReviewModel provider (for accessing topics, tips, alternatives)
+final reviewModelProvider =
+    FutureProvider.family<ReviewModel?, String>((ref, reviewId) async {
+  final repository = ref.read(_reviewRepositoryProvider);
+  final response = await repository.getReviewDetail(reviewId);
+  return response.review;
+});
+
+/// 리뷰 상세 데이터 Provider — 실제 API 연동
 final reviewDetailProvider =
     FutureProvider.family<ReviewDetailData, String>((ref, reviewId) async {
-  await Future.delayed(const Duration(milliseconds: 600));
+  final repository = ref.read(_reviewRepositoryProvider);
+  final response = await repository.getReviewDetail(reviewId);
 
-  return ReviewDetailData(
-    id: reviewId,
-    reviewerName: '맛집탐험가',
-    reviewerGrade: 'master',
-    reviewerSpecialty: '음식점 전문',
-    reviewerReviewCount: 128,
-    isVerified: true,
-    businessName: '맛있는 한식당',
-    businessCategory: '한식',
-    businessAddress: '강남구 역삼동',
-    businessBadge: 'gold',
-    totalScore: 4.2,
-    detailScores: {
-      '대기 시간': 3,
-      '음식 맛': 5,
-      '청결도': 4,
-      '직원 응대': 4,
-      '가성비': 5,
-    },
-    content: '강남역 근처에서 점심을 먹기 위해 방문했습니다. '
-        '점심시간이라 대기가 조금 있었지만 (약 15분), '
-        '맛있는 음식으로 충분히 보상받았습니다.\n\n'
-        '주문한 김치찌개는 적당히 매콤하고 깊은 맛이 있었어요. '
-        '특히 김치가 잘 익어서 시원한 맛이 일품이었습니다. '
-        '반찬도 신선하고 양도 충분했습니다.\n\n'
-        '직원분들도 바쁜 와중에도 친절하게 응대해주셨어요. '
-        '가격 대비 만족스러운 식사였습니다.',
-    pros: ['김치찌개 맛이 일품', '신선한 반찬', '친절한 직원'],
-    cons: ['점심시간 대기가 길어요 (약 15분)', '테이블 간격이 좁아서 조금 불편했습니다'],
-    photos: ['photo1.jpg', 'photo2.jpg', 'photo3.jpg', 'photo4.jpg', 'photo5.jpg'],
-    businessResponse: '소중한 리뷰 감사합니다! '
-        '말씀해주신 대기 시간 문제는 다음 달부터 예약 시스템을 도입하여 개선하겠습니다. '
-        '다음 방문 시에는 더 나은 서비스로 보답하겠습니다.',
-    businessResponseAt: DateTime.now().subtract(const Duration(days: 2)),
-    helpfulCount: 24,
-    isHelpful: false,
-    createdAt: DateTime.now().subtract(const Duration(days: 5)),
-  );
+  if (!response.success || response.review == null) {
+    throw Exception(response.message ?? '리뷰를 불러오는데 실패했습니다');
+  }
+
+  return ReviewDetailData.fromReviewModel(response.review!);
 });
 
 class ReviewDetailScreen extends ConsumerStatefulWidget {
@@ -111,10 +137,14 @@ class ReviewDetailScreen extends ConsumerStatefulWidget {
 class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
   bool _isHelpful = false;
   int _helpfulCount = 0;
+  ReviewModel? _reviewModel;
 
   @override
   Widget build(BuildContext context) {
     final reviewAsync = ref.watch(reviewDetailProvider(widget.reviewId));
+    // Also watch the raw model for topics/tips/alternatives
+    final modelAsync = ref.watch(reviewModelProvider(widget.reviewId));
+    modelAsync.whenData((model) => _reviewModel = model);
 
     return Scaffold(
       backgroundColor: HwahaeColors.background,
@@ -132,6 +162,9 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => ref.invalidate(reviewDetailProvider(widget.reviewId)),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                ),
                 child: const Text('다시 시도'),
               ),
             ],
@@ -159,9 +192,13 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
           backgroundColor: HwahaeColors.surface,
           title: Text('리뷰 상세', style: HwahaeTypography.titleMedium),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.share_outlined),
-              onPressed: () => _shareReview(review),
+            Semantics(
+              label: '리뷰 공유',
+              child: IconButton(
+                icon: const Icon(Icons.share_outlined),
+                onPressed: () => _shareReview(review),
+                tooltip: '공유',
+              ),
             ),
           ],
         ),
@@ -186,11 +223,26 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
               // 리뷰 내용
               _buildReviewContent(review),
 
+              // 토픽 태그
+              if (_reviewModel != null && _reviewModel!.topics.isNotEmpty)
+                _buildTopicsSection(_reviewModel!),
+
+              // 꿀팁
+              if (_reviewModel != null && _reviewModel!.contentTips != null && _reviewModel!.contentTips!.isNotEmpty)
+                _buildTipsSection(_reviewModel!),
+
               // 사진
               if (review.photos.isNotEmpty) _buildPhotos(review),
 
               // 업체 답변
               if (review.businessResponse != null) _buildBusinessResponse(review),
+
+              // 대안 업체 (낮은 평점 시)
+              if (_reviewModel != null && _reviewModel!.alternatives.isNotEmpty)
+                _buildAlternativesSection(_reviewModel!),
+
+              // 유용성 투표
+              _buildHelpfulSection(review),
 
               const SizedBox(height: 100),
             ],
@@ -201,6 +253,90 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
   }
 
   Widget _buildReviewerInfo(ReviewDetailData review) {
+    // Anonymized view for business owners
+    if (review.isAnonymized) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        color: HwahaeColors.surface,
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: HwahaeColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Center(
+                child: Icon(Icons.person, color: HwahaeColors.textTertiary, size: 28),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    review.reviewerName, // "암행어흥 #XXXX" from backend
+                    style: HwahaeTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (review.displayVisitDate != null) ...[
+                        Icon(Icons.calendar_today, size: 12, color: HwahaeColors.textTertiary),
+                        const SizedBox(width: 4),
+                        Text(
+                          review.displayVisitDate!,
+                          style: HwahaeTypography.bodySmall.copyWith(
+                            color: HwahaeColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                      if (review.displayVisitDate != null && review.displayTimeSlot != null)
+                        Text(' • ', style: HwahaeTypography.bodySmall.copyWith(color: HwahaeColors.textTertiary)),
+                      if (review.displayTimeSlot != null)
+                        Text(
+                          _getTimeSlotLabel(review.displayTimeSlot!),
+                          style: HwahaeTypography.bodySmall.copyWith(
+                            color: HwahaeColors.textSecondary,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (review.isVerified)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: HwahaeColors.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.verified, size: 16, color: HwahaeColors.success),
+                    const SizedBox(width: 4),
+                    Text(
+                      '인증됨',
+                      style: HwahaeTypography.labelSmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: HwahaeColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    // Normal view for reviewers / public
     final gradeColor = _getGradeColor(review.reviewerGrade);
 
     return Container(
@@ -294,6 +430,17 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
     );
   }
 
+  String _getTimeSlotLabel(String slot) {
+    switch (slot) {
+      case 'morning': return '오전';
+      case 'lunch': return '점심';
+      case 'afternoon': return '오후';
+      case 'evening': return '저녁';
+      case 'night': return '밤';
+      default: return slot;
+    }
+  }
+
   Widget _buildBusinessInfo(ReviewDetailData review) {
     final badgeColor = _getBadgeColor(review.businessBadge);
 
@@ -306,7 +453,9 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
         border: Border.all(color: HwahaeColors.border),
       ),
       child: InkWell(
-        onTap: () => context.push('/business/${review.id}'),
+        onTap: review.businessId.isEmpty
+            ? null
+            : () => context.push('/trust/${review.businessId}'),
         borderRadius: BorderRadius.circular(12),
         child: Row(
           children: [
@@ -317,7 +466,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
                 color: HwahaeColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.restaurant, color: HwahaeColors.textSecondary),
+              child: Icon(_getCategoryIcon(review.businessCategory), color: HwahaeColors.textSecondary),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -591,14 +740,52 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
             ),
             itemCount: review.photos.length,
             itemBuilder: (context, index) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: HwahaeColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.image,
-                  color: HwahaeColors.textTertiary,
+              return Semantics(
+                label: '리뷰 사진 ${index + 1}/${review.photos.length}',
+                image: true,
+                child: GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => Dialog(
+                        backgroundColor: Colors.black,
+                        insetPadding: EdgeInsets.zero,
+                        child: Stack(
+                          children: [
+                            Center(
+                              child: Container(
+                                color: HwahaeColors.surfaceVariant,
+                                child: const Icon(
+                                  Icons.image,
+                                  size: 120,
+                                  color: HwahaeColors.textTertiary,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 40,
+                              right: 16,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                    decoration: BoxDecoration(
+                      color: HwahaeColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.image,
+                      color: HwahaeColors.textTertiary,
+                    ),
+                  ),
                 ),
               );
             },
@@ -625,7 +812,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
               const Icon(Icons.store, size: 18, color: HwahaeColors.primary),
               const SizedBox(width: 8),
               Text(
-                '업체 답변',
+                '업체 측 답변',
                 style: HwahaeTypography.labelMedium.copyWith(
                   fontWeight: FontWeight.bold,
                   color: HwahaeColors.primary,
@@ -648,26 +835,254 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
               height: 1.6,
             ),
           ),
+          // 개선 약속
+          if (review.improvementPromise != null && review.improvementPromise!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: HwahaeColors.success.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: HwahaeColors.success.withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.handshake, size: 16, color: HwahaeColors.success),
+                      const SizedBox(width: 6),
+                      Text(
+                        '개선 약속',
+                        style: HwahaeTypography.labelSmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: HwahaeColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    review.improvementPromise!,
+                    style: HwahaeTypography.bodySmall.copyWith(
+                      height: 1.5,
+                      color: HwahaeColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHelpfulSection(ReviewDetailData review) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: HwahaeColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: HwahaeColors.border),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '이 리뷰가 도움이 되었나요?',
+            style: HwahaeTypography.bodySmall.copyWith(
+              color: HwahaeColors.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _toggleHelpful,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _isHelpful
+                      ? HwahaeColors.primary.withOpacity(0.1)
+                      : HwahaeColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _isHelpful ? HwahaeColors.primary : HwahaeColors.border,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _isHelpful ? Icons.thumb_up : Icons.thumb_up_outlined,
+                      size: 18,
+                      color: _isHelpful ? HwahaeColors.primary : HwahaeColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '도움됨 $_helpfulCount',
+                      style: HwahaeTypography.labelSmall.copyWith(
+                        color: _isHelpful ? HwahaeColors.primary : HwahaeColors.textSecondary,
+                        fontWeight: _isHelpful ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   void _shareReview(ReviewDetailData review) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '리뷰 공유하기',
+              style: HwahaeTypography.titleMedium.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // 증거 배지
+            if (review.isVerified)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: HwahaeColors.success.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: HwahaeColors.success.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified, size: 16, color: HwahaeColors.success),
+                    const SizedBox(width: 6),
+                    Text(
+                      'GPS 인증',
+                      style: HwahaeTypography.labelSmall.copyWith(
+                        color: HwahaeColors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.receipt_long, size: 16, color: HwahaeColors.success),
+                    const SizedBox(width: 6),
+                    Text(
+                      '영수증 인증',
+                      style: HwahaeTypography.labelSmall.copyWith(
+                        color: HwahaeColors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.timer, size: 16, color: HwahaeColors.success),
+                    const SizedBox(width: 6),
+                    Text(
+                      '체류시간 인증',
+                      style: HwahaeTypography.labelSmall.copyWith(
+                        color: HwahaeColors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 20),
+            // 공유 옵션
+            ListTile(
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: HwahaeColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.share, color: HwahaeColors.textPrimary),
+              ),
+              title: const Text('공유하기'),
+              subtitle: const Text('다른 앱으로 리뷰를 공유합니다'),
+              onTap: () {
+                Navigator.pop(context);
+                _doShareReview(review);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _doShareReview(ReviewDetailData review) {
+    final contentPreview = review.content.length > 100
+        ? '${review.content.substring(0, 100)}...'
+        : review.content;
     Share.share(
       '${review.businessName} 리뷰\n\n'
       '평점: ${review.totalScore.toStringAsFixed(1)}/5.0\n\n'
-      '${review.content.substring(0, review.content.length > 100 ? 100 : review.content.length)}...\n\n'
+      '$contentPreview\n\n'
       '암행어흥에서 더 많은 리뷰를 확인하세요!',
     );
   }
 
   void _toggleHelpful() {
+    final wasHelpful = _isHelpful;
     setState(() {
       _isHelpful = !_isHelpful;
       _helpfulCount += _isHelpful ? 1 : -1;
     });
-    // API 호출 - 실제로는 서버에 요청
+    // 실제 API 호출
+    final repository = ref.read(_reviewRepositoryProvider);
+    repository.markHelpful(widget.reviewId).then((response) {
+      if (!response.success && mounted) {
+        // 실패 시 롤백
+        setState(() {
+          _isHelpful = wasHelpful;
+          _helpfulCount += wasHelpful ? 1 : -1;
+        });
+      }
+    });
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case '음식점':
+      case '식당':
+      case '레스토랑':
+        return Icons.restaurant;
+      case '카페':
+      case '커피':
+        return Icons.local_cafe;
+      case '뷰티':
+      case '미용':
+      case '헤어':
+        return Icons.spa;
+      case '숙박':
+      case '호텔':
+        return Icons.hotel;
+      case '병원':
+      case '의료':
+        return Icons.local_hospital;
+      case '쇼핑':
+      case '마트':
+        return Icons.shopping_bag;
+      default:
+        return Icons.store;
+    }
   }
 
   Color _getGradeColor(String grade) {
@@ -738,5 +1153,173 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
       return '${diff.inDays}일 전';
     }
     return '${date.month}월 ${date.day}일';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Topics section
+  // ---------------------------------------------------------------------------
+
+  Widget _buildTopicsSection(ReviewModel model) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(16),
+      color: HwahaeColors.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('리뷰 토픽', style: HwahaeTypography.titleSmall),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: model.topics.map((topic) {
+              final isPositive = topic.isPositive;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isPositive
+                      ? HwahaeColors.success.withOpacity(0.1)
+                      : HwahaeColors.error.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isPositive ? HwahaeColors.success : HwahaeColors.error,
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  topic.topicLabel,
+                  style: HwahaeTypography.bodySmall.copyWith(
+                    color: isPositive ? HwahaeColors.success : HwahaeColors.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tips section
+  // ---------------------------------------------------------------------------
+
+  Widget _buildTipsSection(ReviewModel model) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(16),
+      color: HwahaeColors.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.lightbulb, color: HwahaeColors.warning, size: 20),
+              const SizedBox(width: 8),
+              Text('꿀팁/노하우', style: HwahaeTypography.titleSmall),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: HwahaeColors.warningLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              model.contentTips!,
+              style: HwahaeTypography.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Alternatives section (shown when review score < 3.0)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildAlternativesSection(ReviewModel model) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(16),
+      color: HwahaeColors.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.thumb_up_alt, color: HwahaeColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text('더 나은 대안', style: HwahaeTypography.titleSmall),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '같은 카테고리에서 높은 평가를 받은 업체들이에요',
+            style: HwahaeTypography.captionLarge.copyWith(color: HwahaeColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          ...model.alternatives.map((alt) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: HwahaeColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: HwahaeColors.border),
+                ),
+                child: InkWell(
+                  onTap: () => context.push('/trust/${alt.id}'),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: HwahaeColors.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.store, color: HwahaeColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              alt.name ?? '업체',
+                              style: HwahaeTypography.labelLarge.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              '${alt.addressCity ?? ''} • 리뷰 ${alt.totalReviews}개',
+                              style: HwahaeTypography.captionLarge.copyWith(color: HwahaeColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.star_rounded, color: HwahaeColors.warning, size: 18),
+                          const SizedBox(width: 4),
+                          Text(
+                            alt.trustWeightedRating > 0
+                                ? alt.trustWeightedRating.toStringAsFixed(1)
+                                : alt.averageRating.toStringAsFixed(1),
+                            style: HwahaeTypography.labelLarge.copyWith(
+                              color: HwahaeColors.warning,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+        ],
+      ),
+    );
   }
 }

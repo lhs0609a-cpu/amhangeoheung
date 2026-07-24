@@ -12,22 +12,26 @@ class AvailableMissionsState {
   final bool isLoading;
   final List<MissionModel> missions;
   final String? error;
+  final String? typeFilter;
 
   const AvailableMissionsState({
     this.isLoading = false,
     this.missions = const [],
     this.error,
+    this.typeFilter,
   });
 
   AvailableMissionsState copyWith({
     bool? isLoading,
     List<MissionModel>? missions,
     String? error,
+    String? typeFilter,
   }) {
     return AvailableMissionsState(
       isLoading: isLoading ?? this.isLoading,
       missions: missions ?? this.missions,
       error: error,
+      typeFilter: typeFilter,
     );
   }
 }
@@ -39,18 +43,27 @@ class AvailableMissionsNotifier extends StateNotifier<AvailableMissionsState> {
   AvailableMissionsNotifier(this._repository)
       : super(const AvailableMissionsState());
 
-  Future<void> loadMissions({String? category, String? city}) async {
-    state = state.copyWith(isLoading: true, error: null);
+  Future<void> loadMissions({String? category, String? city, String? type}) async {
+    state = state.copyWith(isLoading: true, error: null, typeFilter: type);
 
     final response = await _repository.getAvailableMissions(
       category: category,
       city: city,
+      type: type,
     );
 
     if (response.success) {
-      state = state.copyWith(isLoading: false, missions: response.missions);
+      state = AvailableMissionsState(
+        isLoading: false,
+        missions: response.missions,
+        typeFilter: type,
+      );
     } else {
-      state = state.copyWith(isLoading: false, error: response.message);
+      state = AvailableMissionsState(
+        isLoading: false,
+        error: response.message,
+        typeFilter: type,
+      );
     }
   }
 
@@ -140,6 +153,20 @@ final myMissionsProvider =
   return MyMissionsNotifier(repository);
 });
 
+// Hidden Missions Provider
+final hiddenMissionsProvider =
+    FutureProvider<MissionListResponse>((ref) async {
+  final repository = ref.watch(missionRepositoryProvider);
+  return repository.getHiddenMissions();
+});
+
+// Season Missions Provider
+final seasonMissionsProvider =
+    FutureProvider.family<MissionListResponse, String>((ref, seasonId) async {
+  final repository = ref.watch(missionRepositoryProvider);
+  return repository.getSeasonMissions(seasonId);
+});
+
 // Mission Detail Provider
 final missionDetailProvider =
     FutureProvider.family<MissionDetailResponse, String>((ref, missionId) async {
@@ -157,12 +184,14 @@ class MissionActionNotifier extends StateNotifier<AsyncValue<void>> {
     String missionId, {
     required double latitude,
     required double longitude,
+    String? verificationPhoto,
   }) async {
     state = const AsyncValue.loading();
     final response = await _repository.checkIn(
       missionId,
       latitude: latitude,
       longitude: longitude,
+      verificationPhoto: verificationPhoto,
     );
     state = const AsyncValue.data(null);
     return response;

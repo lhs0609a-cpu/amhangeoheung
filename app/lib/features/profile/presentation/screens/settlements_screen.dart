@@ -574,14 +574,15 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
     if (confirmed == true) {
       // 정산 재시도 API 호출
       try {
-        // API 호출 시뮬레이션 - 실제로는 ApiClient를 통해 호출
-        await Future.delayed(const Duration(milliseconds: 500));
-        await ref.read(settlementsProvider.notifier).loadSettlements();
+        final success = await ref
+            .read(settlementsProvider.notifier)
+            .retrySettlement(settlement.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('정산 재시도를 요청했습니다'),
-            backgroundColor: HwahaeColors.primary,
+            content: Text(success ? '정산 재시도를 요청했습니다' : '정산 재시도에 실패했습니다'),
+            backgroundColor:
+                success ? HwahaeColors.primary : HwahaeColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

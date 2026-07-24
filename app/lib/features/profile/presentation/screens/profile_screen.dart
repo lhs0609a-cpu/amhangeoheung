@@ -6,6 +6,7 @@ import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
+import '../../../../shared/widgets/grade_progress_widget.dart';
 import '../../providers/profile_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -37,9 +38,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         backgroundColor: HwahaeColors.surface,
         title: Text('마이페이지', style: HwahaeTypography.titleMedium),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/settings'),
+          Semantics(
+            label: '설정',
+            child: IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => context.push('/settings'),
+              tooltip: '설정',
+            ),
           ),
         ],
       ),
@@ -61,10 +66,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         // 프로필 카드
                         _buildProfileCard(profileState),
+                        const SizedBox(height: 12),
+
+                        // 등급 진행바
+                        if (profileState.user?.reviewerInfo?.grade != null &&
+                            profileState.user!.reviewerInfo!.grade != 'master')
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: GradeProgressWidget(
+                              currentGrade: profileState.user!.reviewerInfo!.grade!,
+                              completedMissions: profileState.stats?.completedMissions ?? 0,
+                              trustScore: profileState.stats?.trustScore ?? 0.0,
+                              compact: false,
+                              onTap: () => context.push('/ranking?tab=reviewer'),
+                            ),
+                          ),
                         const SizedBox(height: 16),
 
                         // 정산 정보
                         _buildSettlementCard(settlementsState),
+                        const SizedBox(height: 12),
+
+                        // 수익 대시보드 (총 수익, 등급 보너스 등)
+                        _buildEarningsSummaryCard(profileState),
+                        const SizedBox(height: 16),
+
+                        // 리뷰어 인증 + 은밀성
+                        _buildReviewerStatusCard(profileState),
                         const SizedBox(height: 24),
 
                         // 메뉴 리스트
@@ -111,6 +139,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               icon: Icons.notifications,
                               title: '알림 설정',
                               onTap: () => context.push('/notifications-settings'),
+                            ),
+                          ],
+                        ),
+                        _buildMenuSection(
+                          title: '소셜',
+                          items: [
+                            _MenuItem(
+                              icon: Icons.person_add_rounded,
+                              title: '친구 초대',
+                              subtitle: '친구 초대하고 보상 받기',
+                              onTap: () => context.push('/invite'),
+                            ),
+                            _MenuItem(
+                              icon: Icons.card_giftcard_rounded,
+                              title: '포트폴리오',
+                              onTap: () => context.push('/portfolio/${profileState.user?.id ?? ''}'),
                             ),
                           ],
                         ),
@@ -289,9 +333,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.edit_outlined, color: HwahaeColors.textSecondary),
-                onPressed: () => context.push('/edit-profile'),
+              Semantics(
+                label: '프로필 수정',
+                child: IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: HwahaeColors.textSecondary),
+                  onPressed: () => context.push('/edit-profile'),
+                  tooltip: '프로필 수정',
+                ),
               ),
             ],
           ),
@@ -359,6 +407,99 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildReviewerStatusCard(profileState) {
+    if (profileState.user?.userType != 'reviewer') return const SizedBox.shrink();
+
+    return HwahaeCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.verified_user, color: HwahaeColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text('리뷰어 현황',
+                    style: HwahaeTypography.titleSmall.copyWith(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Semantics(
+                    label: '교육 인증 현황',
+                    button: true,
+                    child: InkWell(
+                      onTap: () => context.push('/certification'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: HwahaeColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.school, color: HwahaeColors.primary),
+                            const SizedBox(height: 4),
+                            Text('인증', style: HwahaeTypography.labelSmall),
+                            Text(
+                              profileState.user?.isCertified == true ? '완료' : '미완료',
+                              style: HwahaeTypography.bodySmall.copyWith(
+                                color: profileState.user?.isCertified == true ? Colors.green : Colors.orange,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Semantics(
+                    label: '은밀성 상세보기',
+                    button: true,
+                    child: InkWell(
+                      onTap: () => context.push('/stealth-stats'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.visibility_off, color: Colors.purple),
+                            const SizedBox(height: 4),
+                            Text('은밀성', style: HwahaeTypography.labelSmall),
+                            Text(
+                              '상세보기',
+                              style: HwahaeTypography.bodySmall.copyWith(
+                                color: Colors.purple,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -645,6 +786,153 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildEarningsSummaryCard(ProfileState profileState) {
+    final totalEarnings = profileState.stats?.totalEarnings ?? 0;
+    final grade = profileState.user?.reviewerInfo?.grade ?? 'rookie';
+    final gradeLabel = _gradeLabel(grade);
+    final payMultiplier = _gradePayMultiplier(grade);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: HwahaeCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.monetization_on, color: HwahaeColors.warning, size: 20),
+                const SizedBox(width: 8),
+                Text('수익 현황', style: HwahaeTypography.titleSmall),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 총 수익
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('총 수익', style: HwahaeTypography.bodyMedium.copyWith(
+                  color: HwahaeColors.textSecondary,
+                )),
+                Text(
+                  '${_formatCurrency(totalEarnings)}원',
+                  style: HwahaeTypography.headlineSmall.copyWith(
+                    color: HwahaeColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+
+            // 등급 & 배율
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('현재 등급', style: HwahaeTypography.bodyMedium.copyWith(
+                  color: HwahaeColors.textSecondary,
+                )),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _gradeColor(grade).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        gradeLabel,
+                        style: HwahaeTypography.labelMedium.copyWith(
+                          color: _gradeColor(grade),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'x$payMultiplier 보수',
+                      style: HwahaeTypography.bodySmall.copyWith(
+                        color: HwahaeColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // 등급 혜택
+            if (grade == 'senior' || grade == 'master') ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: HwahaeColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(HwahaeTheme.radiusSM),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('등급 혜택', style: HwahaeTypography.labelMedium.copyWith(
+                      color: HwahaeColors.primary,
+                      fontWeight: FontWeight.bold,
+                    )),
+                    const SizedBox(height: 8),
+                    _buildBenefitRow(Icons.lock_open, '히든 미션 접근'),
+                    const SizedBox(height: 4),
+                    _buildBenefitRow(Icons.flash_on, '우선 매칭'),
+                    if (grade == 'master') ...[
+                      const SizedBox(height: 4),
+                      _buildBenefitRow(Icons.star, '마스터 전용 보너스'),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBenefitRow(IconData icon, String label) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: HwahaeColors.primary),
+        const SizedBox(width: 6),
+        Text(label, style: HwahaeTypography.bodySmall.copyWith(
+          color: HwahaeColors.textPrimary,
+        )),
+      ],
+    );
+  }
+
+  String _gradeLabel(String grade) {
+    switch (grade) {
+      case 'master': return '마스터';
+      case 'senior': return '시니어';
+      case 'regular': return '정규';
+      default: return '루키';
+    }
+  }
+
+  String _gradePayMultiplier(String grade) {
+    switch (grade) {
+      case 'master': return '1.3';
+      case 'senior': return '1.2';
+      case 'regular': return '1.1';
+      default: return '1.0';
+    }
+  }
+
+  Color _gradeColor(String grade) {
+    switch (grade) {
+      case 'master': return const Color(0xFFFF6B35);
+      case 'senior': return HwahaeColors.primary;
+      case 'regular': return HwahaeColors.info;
+      default: return HwahaeColors.textSecondary;
+    }
   }
 
   String _formatCurrency(int amount) {

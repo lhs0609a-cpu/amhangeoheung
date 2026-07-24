@@ -507,31 +507,55 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildSignUpLink() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
       children: [
-        Text(
-          '계정이 없으신가요?',
-          style: HwahaeTypography.bodySmall.copyWith(
-            color: HwahaeColors.textSecondary,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '계정이 없으신가요?',
+              style: HwahaeTypography.bodySmall.copyWith(
+                color: HwahaeColors.textSecondary,
+              ),
+            ),
+            TextButton(
+              onPressed: (_isLoading || _isSocialLoading)
+                  ? null
+                  : () => context.push('/register'),
+              style: TextButton.styleFrom(
+                foregroundColor: HwahaeColors.primary,
+                padding: const EdgeInsets.only(left: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                '회원가입',
+                style: HwahaeTypography.labelLarge.copyWith(
+                  color: HwahaeColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
-        TextButton(
+        const SizedBox(height: 8),
+        // 사장님 무료 진단 진입(가입 전)
+        TextButton.icon(
           onPressed: (_isLoading || _isSocialLoading)
               ? null
-              : () => context.push('/register'),
+              : () => context.push('/try-free'),
+          icon: const Icon(Icons.storefront_outlined, size: 16),
+          label: Text(
+            '사장님이신가요? 내 가게 무료 신뢰도 진단',
+            style: HwahaeTypography.labelMedium.copyWith(
+              color: HwahaeColors.textSecondary,
+            ),
+          ),
           style: TextButton.styleFrom(
-            foregroundColor: HwahaeColors.primary,
-            padding: const EdgeInsets.only(left: 4),
+            foregroundColor: HwahaeColors.textSecondary,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(
-            '회원가입',
-            style: HwahaeTypography.labelLarge.copyWith(
-              color: HwahaeColors.primary,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ),
       ],

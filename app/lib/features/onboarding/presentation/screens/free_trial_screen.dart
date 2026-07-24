@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,8 +30,6 @@ class _FreeTrialScreenState extends ConsumerState<FreeTrialScreen> {
     super.dispose();
   }
 
-  String? _errorMessage;
-
   Future<void> _searchBusiness() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
@@ -38,55 +37,80 @@ class _FreeTrialScreenState extends ConsumerState<FreeTrialScreen> {
     setState(() {
       _isSearching = true;
       _hasSearched = true;
-      _result = null;
-      _errorMessage = null;
     });
 
     try {
-      final apiClient = ApiClient();
-      final response = await apiClient.get(
-        '/trust-preview',
-        queryParameters: {'query': query},
-      );
+      final api = ApiClient();
+      final response = await api.get('/businesses/search', queryParameters: {'q': query});
+      final businesses = response.data['data']?['businesses'] as List?;
 
       if (!mounted) return;
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final data = response.data['data'];
-        if (data['found'] == true) {
-          setState(() {
-            _isSearching = false;
-            _result = _FreeTrialResult(
-              businessName: data['businessName'] ?? query,
-              trustScore: data['trustScore'] ?? 0,
-              reviewCount: data['reviewCount'] ?? 0,
-              avgRating: (data['avgRating'] ?? 0).toDouble(),
-              categoryRank: data['categoryRank'] ?? 0,
-              totalInCategory: data['totalInCategory'] ?? 0,
-              strengths: List<String>.from(data['strengths'] ?? []),
-              improvements: List<String>.from(data['improvements'] ?? []),
-            );
-          });
-        } else {
-          setState(() {
-            _isSearching = false;
-            _result = null;
-          });
-        }
-      } else {
+      if (businesses != null && businesses.isNotEmpty) {
+        final biz = businesses.first;
+        final bizId = biz['id'];
+
+        // 업체 상세 + 리뷰 통계 조회
+        final detailRes = await api.get('/businesses/$bizId');
+        final detail = detailRes.data['data']?['business'] ?? biz;
+
+        final reviewCount = detail['review_count'] ?? 0;
+        final avgRating = (detail['average_rating'] ?? 0).toDouble();
+        final trustScore = _calculateTrustScore(reviewCount, avgRating);
+
+        if (!mounted) return;
         setState(() {
           _isSearching = false;
-          _errorMessage = response.data['message'] ?? '분석에 실패했습니다';
+          _result = _FreeTrialResult(
+            businessName: detail['name'] ?? query,
+            trustScore: trustScore,
+            reviewCount: reviewCount,
+            avgRating: avgRating,
+            categoryRank: detail['category_rank'] ?? 0,
+            totalInCategory: detail['total_in_category'] ?? 0,
+            strengths: _generateStrengths(reviewCount, avgRating, trustScore),
+            improvements: _generateImprovements(reviewCount, avgRating, trustScore),
+          );
+        });
+      } else {
+        if (!mounted) return;
+        setState(() {
+          _isSearching = false;
+          _result = null;
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isSearching = false;
-          _errorMessage = '네트워크 오류가 발생했습니다. 다시 시도해주세요.';
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _result = null;
+      });
     }
+  }
+
+  int _calculateTrustScore(int reviewCount, double avgRating) {
+    // 리뷰 수와 평점을 기반으로 신뢰도 점수 산출
+    final reviewScore = min(40, (reviewCount / 5).round());
+    final ratingScore = (avgRating * 12).round();
+    return min(100, max(0, reviewScore + ratingScore));
+  }
+
+  List<String> _generateStrengths(int reviewCount, double avgRating, int trustScore) {
+    final strengths = <String>[];
+    if (avgRating >= 4.0) strengths.add('평균 평점이 ${avgRating.toStringAsFixed(1)}점으로 우수합니다');
+    if (reviewCount >= 10) strengths.add('리뷰가 ${reviewCount}개로 충분한 데이터가 축적되어 있습니다');
+    if (trustScore >= 70) strengths.add('신뢰도 점수가 상위 그룹에 속합니다');
+    if (strengths.isEmpty) strengths.add('서비스를 이용하면 더 정확한 분석이 가능합니다');
+    return strengths;
+  }
+
+  List<String> _generateImprovements(int reviewCount, double avgRating, int trustScore) {
+    final improvements = <String>[];
+    if (reviewCount < 10) improvements.add('리뷰 수가 부족합니다. 미스터리 쇼핑으로 신뢰도 높은 리뷰를 확보하세요');
+    if (avgRating < 4.0) improvements.add('평점 개선이 필요합니다. 고객 피드백을 반영하여 서비스를 개선해보세요');
+    if (trustScore < 70) improvements.add('사진/영수증 인증 리뷰 비율을 높이면 신뢰도가 올라갑니다');
+    if (improvements.isEmpty) improvements.add('정기적인 미스터리 쇼핑으로 지속적인 서비스 품질 관리를 추천합니다');
+    return improvements;
   }
 
   @override
@@ -129,8 +153,6 @@ class _FreeTrialScreenState extends ConsumerState<FreeTrialScreen> {
               // 결과 또는 안내
               if (_isSearching)
                 _buildLoadingState()
-              else if (_errorMessage != null)
-                _buildErrorState()
               else if (_result != null)
                 _buildResultCard(_result!)
               else if (_hasSearched)
@@ -584,6 +606,23 @@ class _FreeTrialScreenState extends ConsumerState<FreeTrialScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => context.go('/register'),
+              icon: const Icon(Icons.lock_open),
+              label: const Text('가입하고 상세 분석 보기'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: HwahaeColors.primary,
+                side: const BorderSide(color: HwahaeColors.primary),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -638,44 +677,6 @@ class _FreeTrialScreenState extends ConsumerState<FreeTrialScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: HwahaeColors.surface,
-        borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-        border: Border.all(color: HwahaeColors.error.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.error_outline,
-            size: 64,
-            color: HwahaeColors.error,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '오류가 발생했습니다',
-            style: HwahaeTypography.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _errorMessage ?? '다시 시도해주세요',
-            textAlign: TextAlign.center,
-            style: HwahaeTypography.bodySmall.copyWith(
-              color: HwahaeColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: _searchBusiness,
-            child: const Text('다시 시도'),
-          ),
-        ],
-      ),
     );
   }
 

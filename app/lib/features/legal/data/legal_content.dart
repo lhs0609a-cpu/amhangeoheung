@@ -1,9 +1,11 @@
 /// 암행어흥 법적 문서 콘텐츠
 /// 상용화 전 법률 전문가 검토 필수
 
+import '../../../core/config/company_info.dart';
+
 class LegalContent {
   static const String companyName = '암행어흥';
-  static const String lastUpdated = '2026년 2월 6일';
+  static const String lastUpdated = '2026년 2월 8일';
 
   /// 이용약관
   static const String termsOfService = '''
@@ -272,9 +274,9 @@ $companyName(이하 "회사")은 정보주체의 자유와 권리 보호를 위�
 회사는 개인정보 처리에 관한 업무를 총괄해서 책임지고, 개인정보 처리와 관련한 정보주체의 불만처리 및 피해구제 등을 위하여 아래와 같이 개인정보 보호책임자를 지정하고 있습니다.
 
 ▶ 개인정보 보호책임자
-- 성명: 대표자
-- 직책: 대표
-- 연락처: support@amhangeoheung.com
+- 성명: ${CompanyInfo.ceoName}
+- 직책: 대표이사
+- 연락처: ${CompanyInfo.privacyEmail}, 고객센터 문의
 
 제11조 (권익침해 구제방법)
 
@@ -361,9 +363,9 @@ $companyName(이하 "회사")은 정보주체의 자유와 권리 보호를 위�
 회사는 위치정보를 적절히 관리·보호하고 개인위치정보주체의 불만을 원활히 처리할 수 있도록 실질적인 책임을 질 수 있는 지위에 있는 자를 위치정보관리책임자로 지정합니다.
 
 ▶ 위치정보관리책임자
-- 성명: 대표자
-- 직책: 대표
-- 연락처: support@amhangeoheung.com
+- 성명: ${CompanyInfo.ceoName}
+- 직책: 대표이사
+- 연락처: ${CompanyInfo.privacyEmail}, 고객센터 문의
 
 제10조 (손해배상)
 회사가 위치정보의 보호 및 이용 등에 관한 법률 제15조 내지 제26조의 규정을 위반한 행위로 개인위치정보주체에게 손해가 발생한 경우 개인위치정보주체는 회사에 대하여 손해배상 청구를 할 수 있습니다. 이 경우 회사는 고의, 과실이 없음을 입증하지 아니하면 책임을 면할 수 없습니다.

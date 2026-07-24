@@ -17,6 +17,16 @@ class ReviewModel {
   final Map<String, int>? scores;
   final DateTime? publishedAt;
   final DateTime createdAt;
+  // 업체 답변 (공개 리뷰에서도 노출)
+  final String? businessResponse;
+  final String? improvementPromise;
+  final DateTime? respondedAt;
+  // 토픽, 꿀팁, 신뢰도 가중치
+  final List<ReviewTopic> topics;
+  final String? contentTips;
+  final double trustWeight;
+  // 대안 업체 (낮은 평점 리뷰에서)
+  final List<AlternativeBusiness> alternatives;
 
   ReviewModel({
     required this.id,
@@ -37,6 +47,13 @@ class ReviewModel {
     this.scores,
     this.publishedAt,
     required this.createdAt,
+    this.businessResponse,
+    this.improvementPromise,
+    this.respondedAt,
+    this.topics = const [],
+    this.contentTips,
+    this.trustWeight = 1.0,
+    this.alternatives = const [],
   });
 
   factory ReviewModel.fromJson(Map<String, dynamic> json) {
@@ -88,6 +105,21 @@ class ReviewModel {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
+      businessResponse: json['businessResponse'] ?? json['business_response'],
+      improvementPromise: json['improvementPromise'] ?? json['improvement_promise'],
+      respondedAt: json['respondedAt'] != null
+          ? DateTime.parse(json['respondedAt'])
+          : json['responded_at'] != null
+              ? DateTime.parse(json['responded_at'])
+              : null,
+      topics: json['topics'] != null
+          ? (json['topics'] as List).map((t) => ReviewTopic.fromJson(t)).toList()
+          : [],
+      contentTips: json['contentTips'] ?? json['content_tips'],
+      trustWeight: (json['trustWeight'] ?? json['trust_weight'] ?? 1.0).toDouble(),
+      alternatives: json['alternatives'] != null
+          ? (json['alternatives'] as List).map((a) => AlternativeBusiness.fromJson(a)).toList()
+          : [],
     );
   }
 
@@ -196,6 +228,64 @@ class ReviewPhoto {
     return ReviewPhoto(
       url: json['url'] ?? json['photo_url'] ?? '',
       caption: json['caption'],
+    );
+  }
+}
+
+class ReviewTopic {
+  final String topicKey;
+  final String topicLabel;
+  final String topicType;
+
+  ReviewTopic({
+    required this.topicKey,
+    required this.topicLabel,
+    required this.topicType,
+  });
+
+  factory ReviewTopic.fromJson(Map<String, dynamic> json) {
+    return ReviewTopic(
+      topicKey: json['topic_key'] ?? json['topicKey'] ?? '',
+      topicLabel: json['topic_label'] ?? json['topicLabel'] ?? '',
+      topicType: json['topic_type'] ?? json['topicType'] ?? 'positive',
+    );
+  }
+
+  bool get isPositive => topicType == 'positive';
+  bool get isNegative => topicType == 'negative';
+}
+
+class AlternativeBusiness {
+  final String id;
+  final String? name;
+  final String? category;
+  final String? addressCity;
+  final String? badgeLevel;
+  final double trustWeightedRating;
+  final double averageRating;
+  final int totalReviews;
+
+  AlternativeBusiness({
+    required this.id,
+    this.name,
+    this.category,
+    this.addressCity,
+    this.badgeLevel,
+    this.trustWeightedRating = 0,
+    this.averageRating = 0,
+    this.totalReviews = 0,
+  });
+
+  factory AlternativeBusiness.fromJson(Map<String, dynamic> json) {
+    return AlternativeBusiness(
+      id: json['id'] ?? '',
+      name: json['name'],
+      category: json['category'],
+      addressCity: json['address_city'] ?? json['addressCity'],
+      badgeLevel: json['badge_level'] ?? json['badgeLevel'],
+      trustWeightedRating: (json['trust_weighted_rating'] ?? json['trustWeightedRating'] ?? 0).toDouble(),
+      averageRating: (json['average_rating'] ?? json['averageRating'] ?? 0).toDouble(),
+      totalReviews: json['total_reviews'] ?? json['totalReviews'] ?? 0,
     );
   }
 }

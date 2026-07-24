@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/hwahae_colors.dart';
+import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/network/api_client.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -48,7 +49,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.error,
+        backgroundColor: HwahaeColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -56,12 +59,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: HwahaeColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back, color: HwahaeColors.textPrimary),
           onPressed: () => context.pop(),
         ),
       ),
@@ -88,26 +91,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: HwahaeColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(
                 Icons.lock_reset,
                 size: 40,
-                color: AppColors.primary,
+                color: HwahaeColors.primary,
               ),
             ),
           ),
           const SizedBox(height: 24),
 
           // 제목
-          const Center(
+          Center(
             child: Text(
               '비밀번호 찾기',
-              style: TextStyle(
-                fontSize: 24,
+              style: HwahaeTypography.headlineSmall.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: HwahaeColors.textPrimary,
               ),
             ),
           ),
@@ -118,9 +120,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: Text(
               '가입하신 이메일 주소를 입력해주세요.\n비밀번호 재설정 링크를 보내드립니다.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
+              style: HwahaeTypography.bodySmall.copyWith(
+                color: HwahaeColors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -128,11 +129,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           const SizedBox(height: 40),
 
           // 이메일 입력
-          const Text(
+          Text(
             '이메일',
-            style: TextStyle(
+            style: HwahaeTypography.labelLarge.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: HwahaeColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -147,7 +148,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               if (value == null || value.isEmpty) {
                 return '이메일을 입력해주세요';
               }
-              if (!value.contains('@')) {
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                 return '올바른 이메일 형식이 아닙니다';
               }
               return null;
@@ -156,18 +157,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           const SizedBox(height: 32),
 
           // 전송 버튼
-          ElevatedButton(
-            onPressed: _isLoading ? null : _sendResetEmail,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Text('재설정 링크 보내기'),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _sendResetEmail,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: HwahaeColors.primary,
+                foregroundColor: HwahaeColors.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text('재설정 링크 보내기', style: HwahaeTypography.labelLarge.copyWith(
+                      color: HwahaeColors.onPrimary,
+                      fontWeight: FontWeight.w600,
+                    )),
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -175,7 +190,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Center(
             child: TextButton(
               onPressed: () => context.pop(),
-              child: const Text('로그인으로 돌아가기'),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(48, 48),
+              ),
+              child: Text(
+                '로그인으로 돌아가기',
+                style: HwahaeTypography.labelMedium.copyWith(
+                  color: HwahaeColors.textSecondary,
+                ),
+              ),
             ),
           ),
         ],
@@ -194,24 +217,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: AppColors.success.withOpacity(0.1),
+            color: HwahaeColors.success.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.mark_email_read,
             size: 50,
-            color: AppColors.success,
+            color: HwahaeColors.success,
           ),
         ),
         const SizedBox(height: 32),
 
         // 제목
-        const Text(
+        Text(
           '이메일을 확인해주세요',
-          style: TextStyle(
-            fontSize: 24,
+          style: HwahaeTypography.headlineSmall.copyWith(
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: HwahaeColors.textPrimary,
           ),
         ),
         const SizedBox(height: 16),
@@ -222,9 +244,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: Text(
             '${_emailController.text}로\n비밀번호 재설정 링크를 보냈습니다.\n\n이메일이 오지 않았다면 스팸함을 확인해주세요.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
+            style: HwahaeTypography.bodySmall.copyWith(
+              color: HwahaeColors.textSecondary,
               height: 1.6,
             ),
           ),
@@ -232,20 +253,49 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 40),
 
         // 다시 보내기 버튼
-        OutlinedButton(
-          onPressed: _isLoading
-              ? null
-              : () {
-                  setState(() => _isEmailSent = false);
-                },
-          child: const Text('다른 이메일로 보내기'),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: OutlinedButton(
+            onPressed: _isLoading
+                ? null
+                : () {
+                    setState(() => _isEmailSent = false);
+                  },
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: HwahaeColors.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              '다른 이메일로 보내기',
+              style: HwahaeTypography.labelLarge.copyWith(
+                color: HwahaeColors.textSecondary,
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 16),
 
         // 로그인으로 돌아가기
-        ElevatedButton(
-          onPressed: () => context.go('/login'),
-          child: const Text('로그인으로 돌아가기'),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: () => context.go('/login'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: HwahaeColors.primary,
+              foregroundColor: HwahaeColors.onPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text('로그인으로 돌아가기', style: HwahaeTypography.labelLarge.copyWith(
+              color: HwahaeColors.onPrimary,
+              fontWeight: FontWeight.w600,
+            )),
+          ),
         ),
       ],
     );

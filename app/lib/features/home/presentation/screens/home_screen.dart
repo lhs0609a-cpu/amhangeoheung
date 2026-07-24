@@ -919,7 +919,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: Icons.campaign_rounded,
             label: '미션 등록',
             gradient: HwahaeColors.gradientPrimary,
-            onTap: () => context.push('/missions'),
+            onTap: () => context.push('/missions/create'),
           ),
           _QuickActionData(
             icon: Icons.payment_rounded,
