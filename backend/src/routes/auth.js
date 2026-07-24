@@ -7,6 +7,7 @@ const {
   registerLimiter,
   forgotPasswordLimiter,
   checkDuplicateLimiter,
+  emailVerificationLimiter,
 } = require('../middleware/rateLimiter');
 const {
   registerValidation,
@@ -42,6 +43,12 @@ router.get('/check-email', checkDuplicateLimiter, authController.checkEmail);
 
 // 휴대폰 번호 중복 확인
 router.get('/check-phone', checkDuplicateLimiter, authController.checkPhone);
+
+// 이메일 인증 코드 검증
+router.post('/verify-email', authController.verifyEmail);
+
+// 이메일 인증 코드 재전송
+router.post('/resend-verification', emailVerificationLimiter, authController.resendEmailVerification);
 
 // 본인 인증 (PASS 등)
 router.post('/verify-identity', authenticate, authController.verifyIdentity);

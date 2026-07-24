@@ -52,6 +52,19 @@ const checkDuplicateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// 이메일 인증 코드 발송: 1시간 내 5회
+const emailVerificationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: {
+    success: false,
+    message: '인증 코드 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+    code: 'RATE_LIMIT_EMAIL_VERIFICATION',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // 일반 API: 1분 내 60회
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -70,5 +83,6 @@ module.exports = {
   registerLimiter,
   forgotPasswordLimiter,
   checkDuplicateLimiter,
+  emailVerificationLimiter,
   generalLimiter,
 };

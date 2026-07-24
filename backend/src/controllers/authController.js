@@ -4,7 +4,8 @@ const crypto = require('crypto');
 const axios = require('axios');
 const { validationResult } = require('express-validator');
 const supabase = require('../config/supabase');
-const { sendPasswordResetEmail, sendWelcomeEmail } = require('../utils/emailService');
+const { sendPasswordResetEmail, sendWelcomeEmail, sendVerificationCodeEmail } = require('../utils/emailService');
+const { verifyIdentity: verifyIdentityWithProvider } = require('../utils/identityVerificationService');
 
 // JWT 토큰 생성
 const generateToken = (userId) => {
@@ -83,6 +84,11 @@ exports.register = async (req, res, next) => {
     // 환영 이메일 발송 (실패해도 가입은 완료)
     sendWelcomeEmail(user.email, user.name).catch(err => {
       console.error('Welcome email failed:', err.message);
+    });
+
+    // 이메일 인증 코드 발송 (실패해도 가입은 완료 — 앱에서 재전송 가능)
+    issueEmailVerification(user.email).catch(err => {
+      console.error('Email verification code failed:', err.message);
     });
 
     res.status(201).json({
@@ -506,34 +512,96 @@ exports.checkPhone = async (req, res, next) => {
 };
 
 // 본인 인증
+//
+// 보안: 클라이언트가 보낸 CI/DI 를 절대 신뢰하지 않는다.
+// 클라이언트는 인증기관이 발급한 receiptId(예: 아임포트 imp_uid)만 전달하고,
+// 서버가 그 식별자로 인증기관 API 를 직접 호출해 CI/DI 를 조회한 뒤 저장한다.
 exports.verifyIdentity = async (req, res, next) => {
   try {
-    const { ci, di, verificationMethod } = req.body;
+    const { receiptId } = req.body;
 
-    // CI 중복 확인
+    if (!receiptId || typeof receiptId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: '본인인증 식별자(receiptId)가 필요합니다.'
+      });
+    }
+
+    // 인증기관에서 서버측 조회
+    const result = await verifyIdentityWithProvider({ receiptId });
+
+    if (result.notConfigured) {
+      // 연동 미설정 → 인증 거부 (fail-closed)
+      return res.status(503).json({
+        success: false,
+        message: result.errorMessage
+      });
+    }
+
+    if (!result.verified || !result.ci) {
+      // 타임아웃/5xx 는 503(재시도 가능), 그 외 검증 실패는 400
+      const status = result.pending ? 503 : 400;
+      return res.status(status).json({
+        success: false,
+        message: result.errorMessage || '본인 인증에 실패했습니다.'
+      });
+    }
+
+    // 인증된 이름/전화번호가 가입 정보와 일치하는지 확인
+    const { data: currentUser, error: currentUserError } = await supabase
+      .from('users')
+      .select('id, name, phone')
+      .eq('id', req.user.id)
+      .single();
+
+    if (currentUserError || !currentUser) {
+      return res.status(404).json({
+        success: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    if (result.name && currentUser.name && result.name !== currentUser.name) {
+      return res.status(400).json({
+        success: false,
+        message: '본인인증 결과의 실명이 가입 정보와 일치하지 않습니다.'
+      });
+    }
+
+    const normalizedUserPhone = currentUser.phone
+      ? String(currentUser.phone).replace(/[^0-9]/g, '')
+      : null;
+    if (result.phone && normalizedUserPhone && result.phone !== normalizedUserPhone) {
+      return res.status(400).json({
+        success: false,
+        message: '본인인증 결과의 휴대폰 번호가 가입 정보와 일치하지 않습니다.'
+      });
+    }
+
+    // CI 중복 확인 (한 사람이 여러 계정을 인증하는 것을 차단)
     const { data: existingCI, error: existingCIError } = await supabase
       .from('users')
       .select('id')
-      .eq('ci', ci)
+      .eq('ci', result.ci)
       .neq('id', req.user.id)
-      .single();
+      .maybeSingle();
 
     if (existingCI && !existingCIError) {
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
         message: '이미 다른 계정으로 인증된 정보입니다.'
       });
     }
 
-    // 인증 정보 저장
+    // 인증 정보 저장 (CI/DI 는 서버가 조회한 값만 저장)
     const { error } = await supabase
       .from('users')
       .update({
         is_verified: true,
-        ci,
-        di,
+        ci: result.ci,
+        di: result.di,
         verified_at: new Date().toISOString(),
-        verification_method: verificationMethod
+        verification_method: result.provider
       })
       .eq('id', req.user.id);
 
@@ -544,6 +612,133 @@ exports.verifyIdentity = async (req, res, next) => {
     res.json({
       success: true,
       message: '본인 인증이 완료되었습니다.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 6자리 인증 코드 생성 (암호학적 난수)
+const generateEmailCode = () => {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+};
+
+const EMAIL_CODE_TTL_MS = 30 * 60 * 1000; // 30분
+const EMAIL_CODE_MAX_ATTEMPTS = 5;
+
+// 이메일 인증 코드 발급 및 발송
+const issueEmailVerification = async (email) => {
+  const code = generateEmailCode();
+  const expiresAt = new Date(Date.now() + EMAIL_CODE_TTL_MS).toISOString();
+
+  // 기존 미인증 코드 정리 후 신규 발급
+  await supabase
+    .from('email_verifications')
+    .delete()
+    .eq('email', email)
+    .eq('verified', false);
+
+  const { error } = await supabase.from('email_verifications').insert({
+    email,
+    code,
+    expires_at: expiresAt,
+    verified: false,
+    attempts: 0,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  await sendVerificationCodeEmail(email, code);
+};
+
+// 이메일 인증 코드 발송 (회원가입 후 / 재전송)
+exports.resendEmailVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: '이메일이 필요합니다.' });
+    }
+
+    await issueEmailVerification(email);
+
+    // 코드 존재 여부를 노출하지 않도록 항상 동일 응답
+    res.json({
+      success: true,
+      message: '인증 코드가 전송되었습니다.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 이메일 인증 코드 검증
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({
+        success: false,
+        message: '이메일과 인증 코드가 필요합니다.',
+      });
+    }
+
+    const { data: record, error } = await supabase
+      .from('email_verifications')
+      .select('*')
+      .eq('email', email)
+      .eq('verified', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !record) {
+      return res.status(400).json({
+        success: false,
+        message: '유효한 인증 요청이 없습니다. 코드를 재전송해주세요.',
+      });
+    }
+
+    if (new Date(record.expires_at).getTime() < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: '인증 코드가 만료되었습니다. 재전송해주세요.',
+      });
+    }
+
+    if (record.attempts >= EMAIL_CODE_MAX_ATTEMPTS) {
+      return res.status(429).json({
+        success: false,
+        message: '시도 횟수를 초과했습니다. 코드를 재전송해주세요.',
+      });
+    }
+
+    if (record.code !== code) {
+      await supabase
+        .from('email_verifications')
+        .update({ attempts: record.attempts + 1 })
+        .eq('id', record.id);
+      return res.status(400).json({
+        success: false,
+        message: '인증 코드가 올바르지 않습니다.',
+      });
+    }
+
+    // 인증 성공: 레코드 및 사용자 플래그 갱신
+    await supabase
+      .from('email_verifications')
+      .update({ verified: true })
+      .eq('id', record.id);
+
+    await supabase
+      .from('users')
+      .update({ email_verified: true })
+      .eq('email', email);
+
+    res.json({
+      success: true,
+      message: '이메일 인증이 완료되었습니다.',
     });
   } catch (error) {
     next(error);

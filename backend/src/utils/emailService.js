@@ -166,8 +166,54 @@ const sendWelcomeEmail = async (email, name) => {
   });
 };
 
+/**
+ * 이메일 인증 코드 (6자리)
+ */
+const sendVerificationCodeEmail = async (email, code) => {
+  const html = `
+    <div style="max-width:600px;margin:0 auto;font-family:'Pretendard',sans-serif;background:#fafafc;padding:40px 20px;">
+      <div style="background:#fff;border-radius:16px;padding:40px;border:1px solid #eee;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <h1 style="color:#6C5CE7;font-size:24px;margin:0;">암행어흥</h1>
+          <p style="color:#6B6B80;font-size:14px;margin-top:8px;">이메일 인증</p>
+        </div>
+
+        <p style="color:#1A1A2E;font-size:16px;line-height:1.6;text-align:center;">
+          아래 인증 코드를 앱에 입력해주세요.
+        </p>
+
+        <div style="text-align:center;margin:28px 0;">
+          <span style="display:inline-block;background:#F1EEFF;color:#6C5CE7;
+                       padding:16px 32px;border-radius:12px;font-size:32px;
+                       font-weight:700;letter-spacing:8px;">
+            ${code}
+          </span>
+        </div>
+
+        <p style="color:#A0A0B0;font-size:13px;line-height:1.5;text-align:center;">
+          이 코드는 30분 동안 유효합니다.<br>
+          본인이 요청하지 않은 경우 이 이메일을 무시해주세요.
+        </p>
+
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+
+        <p style="color:#A0A0B0;font-size:12px;text-align:center;">
+          문의: support@amhangeoheung.com
+        </p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: '[암행어흥] 이메일 인증 코드',
+    html,
+  });
+};
+
 module.exports = {
   sendEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,
+  sendVerificationCodeEmail,
 };
