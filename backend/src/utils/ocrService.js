@@ -5,10 +5,22 @@ const GOOGLE_VISION_API_KEY = process.env.GOOGLE_VISION_API_KEY;
 /**
  * Google Vision API로 영수증 OCR 분석
  */
+/**
+ * OCR 연동이 설정되어 있는지 여부
+ */
+function isOcrConfigured() {
+  return Boolean(
+    GOOGLE_VISION_API_KEY &&
+      GOOGLE_VISION_API_KEY !== 'your_google_vision_api_key_here'
+  );
+}
+
 async function analyzeReceipt(imageBase64) {
-  if (!GOOGLE_VISION_API_KEY || GOOGLE_VISION_API_KEY === 'your_google_vision_api_key_here') {
+  if (!isOcrConfigured()) {
     console.warn('[OCR] Google Vision API key not configured, skipping OCR');
-    return { success: false, error: 'OCR service not configured' };
+    // notConfigured 는 "런타임 실패"와 구별된다. 두 경우 모두 자동 승인 금지지만,
+    // 미설정은 수동 검토 큐로 보내야 함을 호출부가 판단할 수 있도록 플래그를 남긴다.
+    return { success: false, notConfigured: true, error: 'OCR service not configured' };
   }
 
   try {
@@ -138,4 +150,4 @@ function parseReceiptText(text) {
   return { storeName, amount, date, confidence };
 }
 
-module.exports = { analyzeReceipt };
+module.exports = { analyzeReceipt, isOcrConfigured };

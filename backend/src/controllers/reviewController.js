@@ -472,8 +472,16 @@ exports.uploadReceipt = async (req, res, next) => {
       }
     }
 
-    // OCR 분석 실행
+    // OCR 분석 실행 및 검증 상태 결정
+    //
+    // 정책(fail-closed): OCR 이 성공적으로 실행되고 신뢰도가 임계값 이상일 때만
+    // 자동 승인한다. OCR 미설정 / 런타임 실패 / 낮은 신뢰도는 절대 자동 승인하지
+    // 않고 'manual_review_required' 로 표시해 사람이 검토하도록 한다.
+    const OCR_AUTO_VERIFY_THRESHOLD = 0.6;
     let ocrData = null;
+    let reviewStatus = 'manual_review_required'; // 기본값: 안전측
+    let receiptVerified = false;
+
     if (imageBase64) {
       try {
         const { analyzeReceipt } = require('../utils/ocrService');
@@ -486,10 +494,25 @@ exports.uploadReceipt = async (req, res, next) => {
             rawText: ocrResult.rawText,
             confidence: ocrResult.confidence,
           };
+          if (ocrResult.confidence >= OCR_AUTO_VERIFY_THRESHOLD) {
+            reviewStatus = 'auto_verified';
+            receiptVerified = true;
+          } else {
+            // OCR 은 됐지만 신뢰도가 낮음 → 수동 검토
+            reviewStatus = 'manual_review_required';
+          }
+        } else if (ocrResult.notConfigured) {
+          // OCR 연동 미설정 → 수동 검토 큐 (자동 승인 절대 금지)
+          console.warn('[OCR] not configured — routing receipt to manual review');
+          reviewStatus = 'manual_review_required';
+        } else {
+          // OCR 런타임 실패 → 수동 검토 큐
+          reviewStatus = 'manual_review_required';
         }
       } catch (ocrError) {
-        // OCR 실패해도 이미지는 저장 (수동 검토 가능)
+        // OCR 실패해도 이미지는 저장하고 수동 검토로 보낸다
         console.error('[OCR] Receipt analysis failed:', ocrError);
+        reviewStatus = 'manual_review_required';
       }
     }
 
@@ -498,7 +521,8 @@ exports.uploadReceipt = async (req, res, next) => {
       .update({
         receipt_image_url: receiptImageUrl,
         receipt_ocr_data: ocrData,
-        receipt_verified: ocrData ? ocrData.confidence >= 0.6 : false,
+        receipt_verified: receiptVerified,
+        receipt_review_status: reviewStatus,
         receipt_uploaded_at: new Date().toISOString(),
       })
       .eq('id', req.params.id);
@@ -507,9 +531,12 @@ exports.uploadReceipt = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: '영수증이 업로드되었습니다.',
+      message: reviewStatus === 'auto_verified'
+        ? '영수증이 업로드되어 자동 검증되었습니다.'
+        : '영수증이 업로드되었습니다. 검토 후 승인됩니다.',
       data: {
         imageUrl: receiptImageUrl,
+        reviewStatus,
         ocr: ocrData ? {
           storeName: ocrData.storeName,
           amount: ocrData.totalAmount,
@@ -517,6 +544,86 @@ exports.uploadReceipt = async (req, res, next) => {
           confidence: ocrData.confidence,
         } : null,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// [관리자] 수동 검토 대기 영수증 큐 조회
+exports.getReceiptReviewQueue = async (req, res, next) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, error, count } = await supabase
+      .from('reviews')
+      .select(
+        'id, mission_id, business_id, reviewer_id, receipt_image_url, receipt_ocr_data, receipt_uploaded_at, receipt_review_status',
+        { count: 'exact' }
+      )
+      .eq('receipt_review_status', 'manual_review_required')
+      .order('receipt_uploaded_at', { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      data: {
+        reviews: data || [],
+        pagination: { page, limit, total: count || 0 },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// [관리자] 영수증 수동 검토 결정 (승인/반려)
+exports.decideReceiptReview = async (req, res, next) => {
+  try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(req.params.id)) {
+      return res.status(400).json({ success: false, message: '잘못된 리뷰 ID입니다.' });
+    }
+
+    const { decision, reason } = req.body;
+    if (!['approve', 'reject'].includes(decision)) {
+      return res.status(400).json({
+        success: false,
+        message: 'decision 은 approve 또는 reject 여야 합니다.',
+      });
+    }
+
+    const isApprove = decision === 'approve';
+    const { data, error } = await supabase
+      .from('reviews')
+      .update({
+        receipt_review_status: isApprove ? 'approved' : 'rejected',
+        receipt_verified: isApprove,
+        receipt_review_reason: reason || null,
+        receipt_reviewed_by: req.user.id,
+        receipt_reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', req.params.id)
+      .eq('receipt_review_status', 'manual_review_required')
+      .select('id, receipt_review_status');
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '검토 대기 중인 영수증을 찾을 수 없습니다.',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: isApprove ? '영수증을 승인했습니다.' : '영수증을 반려했습니다.',
+      data: { reviewId: data[0].id, status: data[0].receipt_review_status },
     });
   } catch (error) {
     next(error);

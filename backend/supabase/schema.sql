@@ -1155,3 +1155,24 @@ ALTER TABLE missions ADD COLUMN IF NOT EXISTS experience_value INT;
 CREATE INDEX IF NOT EXISTS idx_missions_free_experience
   ON missions(business_id, created_at)
   WHERE reward_type = 'free_experience';
+
+-- ============================================
+-- 영수증 검토 상태 및 OCR 데이터 (migration 008)
+-- --------------------------------------------
+-- fail-closed: OCR 성공 + 신뢰도 임계값 이상일 때만 auto_verified.
+-- 미설정/실패/저신뢰도는 manual_review_required 로 사람이 검토.
+-- ============================================
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS receipt_ocr_data JSONB;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS receipt_uploaded_at TIMESTAMPTZ;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS receipt_review_status VARCHAR(30) DEFAULT 'pending';
+ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_receipt_review_status_check;
+ALTER TABLE reviews ADD CONSTRAINT reviews_receipt_review_status_check
+  CHECK (receipt_review_status IN (
+    'pending', 'auto_verified', 'manual_review_required', 'approved', 'rejected'
+  ));
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS receipt_review_reason TEXT;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS receipt_reviewed_by UUID REFERENCES users(id);
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS receipt_reviewed_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_reviews_receipt_review_status
+  ON reviews(receipt_review_status)
+  WHERE receipt_review_status = 'manual_review_required';

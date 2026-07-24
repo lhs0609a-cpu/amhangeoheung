@@ -32,7 +32,10 @@ async function processAutoPublish() {
     `)
     .in('status', ['submitted', 'preview'])
     .lte('submitted_at', cutoffTime.toISOString())
-    .eq('is_disputed', false);
+    .eq('is_disputed', false)
+    // fail-closed: 사람이 검토해야 하는 영수증(manual_review_required)은 자동 게시 제외.
+    // 영수증이 필요없어 status 가 null 인 리뷰는 정상 게시되도록 null 은 허용한다.
+    .or('receipt_review_status.is.null,receipt_review_status.neq.manual_review_required');
 
   if (error) {
     console.error('[REVIEW_PUBLISH] Query error:', error.message);

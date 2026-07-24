@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const reviewController = require('../controllers/reviewController');
 const reviewTopicController = require('../controllers/reviewTopicController');
-const { authenticate, requireUserType, optionalAuth } = require('../middleware/auth');
+const { authenticate, requireUserType, optionalAuth, requireAdmin } = require('../middleware/auth');
 const {
   createReviewValidation,
   reportReviewValidation,
@@ -35,6 +35,9 @@ router.get('/trending', optionalAuth, reviewController.getTrendingReviews);
 // 최근 리뷰
 router.get('/recent', optionalAuth, reviewController.getRecentReviews);
 
+// === 관리자용: 영수증 수동 검토 큐 ===
+router.get('/admin/receipt-queue', authenticate, requireAdmin, reviewController.getReceiptReviewQueue);
+
 // === 리뷰어용 ===
 // 리뷰 작성
 router.post('/', authenticate, requireUserType('reviewer'), fingerprintMiddleware, createReviewValidation, reviewController.createReview);
@@ -58,6 +61,8 @@ router.post('/:id/submit', authenticate, requireUserType('reviewer'), fingerprin
 // 증거 자료 업로드
 router.post('/:id/evidence/photos', authenticate, requireUserType('reviewer'), validateReviewPhotos, reviewController.uploadPhotos);
 router.post('/:id/evidence/receipt', authenticate, requireUserType('reviewer'), validateReceiptUpload, reviewController.uploadReceipt);
+// 관리자: 영수증 수동 검토 결정 (승인/반려)
+router.post('/:id/receipt-review', authenticate, requireAdmin, reviewController.decideReceiptReview);
 router.post('/:id/evidence/video', authenticate, requireUserType('reviewer'), validateVideoUpload, reviewController.uploadVideo);
 
 // 영수증 사용 등록 (재사용 방지 기록) - :id 는 미션 ID
