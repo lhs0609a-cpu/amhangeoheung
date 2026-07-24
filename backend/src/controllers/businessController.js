@@ -10,6 +10,26 @@ const PLAN_DETAILS = {
   pro: { ...PLAN_DETAILS_RAW.pro, name: 'Pro' },
 };
 
+// 업체 소유자가 직접 수정할 수 있는 안전한 컬럼 화이트리스트.
+// subscription_plan / badge_level / average_rating / status / is_business_verified /
+// monthly_inspections 등 서버가 통제해야 하는 컬럼은 제외하여 대량 할당(mass-assignment)을 막는다.
+const BUSINESS_EDITABLE_FIELDS = [
+  'business_type', 'name', 'description', 'logo', 'images',
+  'business_number', 'representative_name', 'business_address',
+  'category', 'sub_category', 'address_full', 'address_city',
+  'address_district', 'address_detail', 'zip_code', 'latitude', 'longitude', 'phone',
+  'platforms', 'store_urls', 'product_categories',
+  'monthly_revenue', // 자진 신고 월 매출 (ROI 계산 근거)
+];
+
+function pickBusinessEditableFields(body) {
+  const out = {};
+  for (const key of BUSINESS_EDITABLE_FIELDS) {
+    if (body[key] !== undefined) out[key] = body[key];
+  }
+  return out;
+}
+
 // ROI 계산 상수
 const ROI_CONSTANTS = {
   RATING_IMPACT_PER_POINT: 0.12, // 평점 1점당 매출 영향 12%
@@ -23,7 +43,7 @@ exports.createBusiness = async (req, res, next) => {
   try {
     const businessData = {
       owner_id: req.user.id,
-      ...req.body
+      ...pickBusinessEditableFields(req.body)
     };
 
     const { data: business, error } = await supabase
@@ -154,9 +174,17 @@ exports.updateBusiness = async (req, res, next) => {
       });
     }
 
+    const updateData = pickBusinessEditableFields(req.body);
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '수정할 수 있는 항목이 없습니다.'
+      });
+    }
+
     const { data: business, error } = await supabase
       .from('businesses')
-      .update(req.body)
+      .update(updateData)
       .eq('id', req.params.id)
       .select()
       .single();
@@ -728,10 +756,20 @@ function calculateCategoryStats(competitors, business) {
   };
 }
 
+// 업체가 매출을 입력하지 않았을 때 사용하는 기본 가정치.
+// 이 값으로 계산된 ROI 는 반드시 revenueBasis='assumed' 로 표시해 추정임을 밝힌다.
+const DEFAULT_ASSUMED_MONTHLY_REVENUE = 10000000; // 1천만원 가정
+
 // P1: ROI 계산
 function calculateROI(business, categoryStats) {
-  // 가상의 월 매출 (실제로는 연동 필요)
-  const estimatedMonthlyRevenue = 10000000; // 1천만원 가정
+  // 업체가 직접 입력한 월 매출을 우선 사용하고, 없으면 명시적 가정치를 쓴다.
+  // 조작된 수치를 실측처럼 보여주지 않도록 산출 근거(revenueBasis)를 함께 반환한다.
+  const hasReported =
+    typeof business.monthly_revenue === 'number' && business.monthly_revenue > 0;
+  const estimatedMonthlyRevenue = hasReported
+    ? business.monthly_revenue
+    : DEFAULT_ASSUMED_MONTHLY_REVENUE;
+  const revenueBasis = hasReported ? 'reported' : 'assumed';
 
   // 평점 향상에 따른 매출 영향
   const ratingImpact = (categoryStats.ratingDiff || 0) * ROI_CONSTANTS.RATING_IMPACT_PER_POINT;
@@ -758,6 +796,10 @@ function calculateROI(business, categoryStats) {
 
   return {
     estimatedMonthlyValue: estimatedValue,
+    // 매출 산출 근거: 'reported'(업체 입력) | 'assumed'(기본 가정치)
+    revenueBasis,
+    isEstimate: revenueBasis === 'assumed',
+    baseMonthlyRevenue: estimatedMonthlyRevenue,
     breakdown: {
       ratingImpact: {
         factor: '평점 경쟁력',

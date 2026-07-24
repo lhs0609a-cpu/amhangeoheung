@@ -121,6 +121,9 @@ CREATE TABLE businesses (
   total_reviews INT DEFAULT 0,
   average_rating DECIMAL(3,2) DEFAULT 0,
 
+  -- 자진 신고 월 매출 (ROI 계산 근거; 미입력 시 추정치 사용)
+  monthly_revenue INT,
+
   -- 상태
   status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'suspended', 'closed')),
 
