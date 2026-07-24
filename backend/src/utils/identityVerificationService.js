@@ -17,7 +17,9 @@
  * - NICE_VERIFY_TOKEN        : 위 엔드포인트 인증 토큰
  */
 
-const axios = require('axios');
+// axios 는 네트워크 호출 시점에만 필요하므로 지연 로드한다.
+// (설정 여부 판단 등 순수 로직은 의존성 없이 테스트 가능)
+const getAxios = () => require('axios');
 
 const IDENTITY_PROVIDER = (process.env.IDENTITY_PROVIDER || '').toLowerCase();
 
@@ -90,7 +92,7 @@ async function verifyWithPortOne(receiptId) {
   const base = 'https://api.iamport.kr';
   let token;
   try {
-    const { data: tokenRes } = await axios.post(
+    const { data: tokenRes } = await getAxios().post(
       `${base}/users/getToken`,
       { imp_key: PORTONE_API_KEY, imp_secret: PORTONE_API_SECRET },
       { timeout: 10000 }
@@ -105,7 +107,7 @@ async function verifyWithPortOne(receiptId) {
   }
 
   try {
-    const { data } = await axios.get(
+    const { data } = await getAxios().get(
       `${base}/certifications/${encodeURIComponent(receiptId)}`,
       { headers: { Authorization: token }, timeout: 10000 }
     );
@@ -135,7 +137,7 @@ async function verifyWithPortOne(receiptId) {
  */
 async function verifyWithNice(receiptId) {
   try {
-    const { data } = await axios.post(
+    const { data } = await getAxios().post(
       NICE_VERIFY_URL,
       { receiptId },
       {
@@ -183,4 +185,6 @@ async function verifyIdentity({ receiptId }) {
 module.exports = {
   isIdentityVerificationConfigured,
   verifyIdentity,
+  // 테스트용 순수 함수 노출
+  normalize,
 };

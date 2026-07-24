@@ -12,7 +12,9 @@
  * - PAYOUT_API_KEY       : 결제사 API 시크릿/토큰
  */
 
-const axios = require('axios');
+// axios 는 네트워크 호출 시점에만 필요하므로 지연 로드한다.
+// (설정 여부 판단 등 순수 로직은 의존성 없이 테스트 가능)
+const getAxios = () => require('axios');
 
 const PAYOUT_PROVIDER = process.env.PAYOUT_PROVIDER || '';
 const PAYOUT_API_BASE_URL = process.env.PAYOUT_API_BASE_URL || '';
@@ -36,7 +38,7 @@ function notConfiguredResult() {
 }
 
 function buildClient() {
-  return axios.create({
+  return getAxios().create({
     baseURL: PAYOUT_API_BASE_URL,
     timeout: 15000,
     headers: {

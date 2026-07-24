@@ -150,4 +150,4 @@ function parseReceiptText(text) {
   return { storeName, amount, date, confidence };
 }
 
-module.exports = { analyzeReceipt, isOcrConfigured };
+module.exports = { analyzeReceipt, isOcrConfigured, parseReceiptText };
