@@ -5,6 +5,14 @@ import 'dart:async';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
+import '../../../review/data/repositories/review_repository.dart';
+import '../../../../core/network/api_client.dart';
+
+/// 선공개 리뷰 목록 (업체용) — 실제 API GET /reviews/preview
+final previewReviewsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  return ReviewRepository().getPreviewReviews();
+});
 
 /// 선공개 리뷰 화면 (업체용)
 /// 72시간 선공개 프로세스 시각화
@@ -49,9 +57,8 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          // 리뷰 목록 새로고침 - 실제로는 API 호출
-          await Future.delayed(const Duration(milliseconds: 500));
-          if (mounted) setState(() {});
+          ref.invalidate(previewReviewsProvider);
+          await ref.read(previewReviewsProvider.future);
         },
         color: HwahaeColors.primary,
         child: CustomScrollView(
@@ -60,37 +67,95 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
             SliverToBoxAdapter(
               child: _buildProcessBanner(),
             ),
-            // 선공개 리뷰 목록
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // 예시 데이터 - 실제로는 API에서 가져옴
-                  _buildPreviewReviewCard(
-                    reviewId: '1',
-                    reviewerName: '맛집탐험가',
-                    reviewerGrade: 'senior',
-                    totalScore: 4.2,
-                    summary: '전체적으로 만족스러운 경험이었습니다. 다만 몇 가지 개선할 점이 있어요.',
-                    submittedAt: DateTime.now().subtract(const Duration(hours: 24)),
-                    hasResponse: false,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildPreviewReviewCard(
-                    reviewId: '2',
-                    reviewerName: '정직한리뷰어',
-                    reviewerGrade: 'regular',
-                    totalScore: 3.8,
-                    summary: '가격 대비 괜찮았지만, 서비스 속도가 아쉬웠습니다.',
-                    submittedAt: DateTime.now().subtract(const Duration(hours: 60)),
-                    hasResponse: true,
-                  ),
-                ]),
-              ),
-            ),
+            // 선공개 리뷰 목록 (실제 API)
+            _buildReviewSlivers(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildReviewSlivers() {
+    final asyncReviews = ref.watch(previewReviewsProvider);
+
+    return asyncReviews.when(
+      loading: () => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 64),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (err, _) => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, size: 40, color: HwahaeColors.textTertiary),
+              const SizedBox(height: 12),
+              Text(
+                '선공개 리뷰를 불러오지 못했습니다.',
+                style: HwahaeTypography.bodyMedium.copyWith(color: HwahaeColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () => ref.invalidate(previewReviewsProvider),
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (reviews) {
+        if (reviews.isEmpty) {
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
+              child: Column(
+                children: [
+                  Icon(Icons.rate_review_outlined, size: 48, color: HwahaeColors.textTertiary),
+                  const SizedBox(height: 12),
+                  Text(
+                    '아직 선공개 리뷰가 없습니다.',
+                    style: HwahaeTypography.bodyMedium.copyWith(color: HwahaeColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final review = reviews[index];
+                final reviewer = (review['reviewer'] as Map?) ?? {};
+                final preview = (review['preview'] as Map?) ?? {};
+                final submittedRaw =
+                    preview['submittedAt'] ?? review['submitted_at'] ?? review['created_at'];
+                final submittedAt = submittedRaw != null
+                    ? (DateTime.tryParse(submittedRaw.toString()) ?? DateTime.now())
+                    : DateTime.now();
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildPreviewReviewCard(
+                    reviewId: (review['id'] ?? '').toString(),
+                    reviewerName: (reviewer['nickname'] ?? '익명').toString(),
+                    reviewerGrade: (reviewer['reviewer_grade'] ?? 'rookie').toString(),
+                    totalScore: ((review['total_score'] ?? 0) as num).toDouble(),
+                    summary: (review['summary'] ?? review['detailed_review'] ?? '').toString(),
+                    submittedAt: submittedAt,
+                    hasResponse: review['business_response'] != null,
+                  ),
+                );
+              },
+              childCount: reviews.length,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -730,6 +795,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
   }
 
   void _showDisputeDialog(String reviewId) {
+    final disputeController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -761,9 +827,11 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
             ),
             const SizedBox(height: 16),
             TextField(
+              controller: disputeController,
               maxLines: 4,
+              maxLength: 1000,
               decoration: InputDecoration(
-                hintText: '이의 제기 사유를 작성해주세요...',
+                hintText: '이의 제기 사유를 작성해주세요 (10자 이상)...',
                 hintStyle: HwahaeTypography.bodyMedium.copyWith(
                   color: HwahaeColors.textTertiary,
                 ),
@@ -791,25 +859,48 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
           ),
           TextButton(
             onPressed: () async {
+              final reason = disputeController.text.trim();
+              if (reason.length < 10) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('이의 사유를 10자 이상 작성해주세요'),
+                    backgroundColor: HwahaeColors.warning,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                );
+                return;
+              }
               Navigator.pop(context);
-              // 이의 제기 API 호출
+              bool success = false;
+              String errorMsg = '이의 제기 등록에 실패했습니다';
               try {
-                // API 호출 시뮬레이션 - 실제로는 ApiClient를 통해 호출
-                await Future.delayed(const Duration(milliseconds: 500));
+                final res = await ApiClient().post(
+                  '/reviews/$reviewId/dispute',
+                  data: {'reason': reason},
+                );
+                success = res.data?['success'] == true;
+                if (!success) {
+                  errorMsg = res.data?['message'] ?? errorMsg;
+                }
               } catch (e) {
-                // 에러 처리
+                errorMsg = ApiClient.extractErrorMessage(e) ?? errorMsg;
               }
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text('이의 제기가 접수되었습니다.'),
-                  backgroundColor: HwahaeColors.primary,
+                  content: Text(success ? '이의 제기가 접수되었습니다.' : errorMsg),
+                  backgroundColor:
+                      success ? HwahaeColors.primary : HwahaeColors.error,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               );
+              if (success && mounted) setState(() {});
             },
             child: Text(
               '제출',
@@ -1051,10 +1142,11 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              if (responseController.text.trim().isEmpty) {
+              final content = responseController.text.trim();
+              if (content.length < 10) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('답변 내용을 입력해주세요'),
+                    content: const Text('답변을 10자 이상 작성해주세요'),
                     backgroundColor: HwahaeColors.warning,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
@@ -1065,34 +1157,33 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                 return;
               }
               Navigator.pop(context);
-              // 답변 API 호출
+              bool success = false;
+              String errorMsg = '답변 등록에 실패했습니다';
               try {
-                await Future.delayed(const Duration(milliseconds: 500));
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('답변이 등록되었습니다'),
-                    backgroundColor: HwahaeColors.success,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                final res = await ApiClient().post(
+                  '/reviews/$reviewId/business-response',
+                  data: {'content': content},
                 );
-                setState(() {});
+                success = res.data?['success'] == true;
+                if (!success) {
+                  errorMsg = res.data?['message'] ?? errorMsg;
+                }
               } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('답변 등록에 실패했습니다'),
-                    backgroundColor: HwahaeColors.error,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
+                errorMsg = ApiClient.extractErrorMessage(e) ?? errorMsg;
               }
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(success ? '답변이 등록되었습니다' : errorMsg),
+                  backgroundColor:
+                      success ? HwahaeColors.success : HwahaeColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              );
+              if (success && mounted) setState(() {});
             },
             child: Text(
               '등록',
