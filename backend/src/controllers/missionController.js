@@ -7,12 +7,76 @@ const {
   createPaymentErrorResponse,
   createStayTimeErrorResponse
 } = require('../utils/errorMessages');
+const { processReferralReward } = require('./referralController');
+const NOTIFICATION_TYPES = require('../config/notificationTypes');
+const { checkCollusionRisk } = require('./collusionController');
+const { generateBlindedAddress } = require('../utils/anonymizer');
+const { COLLUSION_REPEAT_BLOCK_MONTHS, GPS_ZONES, REWARD_TYPES, PLAN_DETAILS } = require('../config/constants');
+
+/**
+ * 이번 달(월초~현재) 업체가 등록한 무료체험 미션 수를 센다.
+ */
+async function countFreeExperienceThisMonth(businessId) {
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const { count } = await supabase
+    .from('missions')
+    .select('id', { count: 'exact', head: true })
+    .eq('business_id', businessId)
+    .eq('reward_type', 'free_experience')
+    .gte('created_at', monthStart.toISOString());
+
+  return count || 0;
+}
 
 const PLATFORM_FEE_RATE = 0.1; // 10% 수수료
 
-// P1-4: GPS 체크인 설정 (50m → 100m 확대)
-const GPS_ALLOWED_DISTANCE = 100; // 100m (건물 오차 감안)
-const GPS_WARNING_DISTANCE = 150; // 150m (경고 표시)
+// GPS 구간별 체크인: 점진적 반경 완화
+// GREEN (0-100m): 즉시 체크인
+// YELLOW (100-200m): 체크인 허용 + 경고
+// ORANGE (200-500m): 사진 인증 필요
+// RED (500m+): 체크인 차단
+
+/**
+ * 거리에 따른 GPS 존 판별
+ */
+function getGpsZone(distance) {
+  if (distance <= GPS_ZONES.GREEN.max) {
+    return {
+      zone: 'green',
+      label: GPS_ZONES.GREEN.label,
+      requiresPhotoVerification: false,
+      allowed: true,
+      message: '정상 범위 내 위치입니다.',
+    };
+  } else if (distance <= GPS_ZONES.YELLOW.max) {
+    return {
+      zone: 'yellow',
+      label: GPS_ZONES.YELLOW.label,
+      requiresPhotoVerification: false,
+      allowed: true,
+      message: 'GPS 오차가 있습니다. 체크인은 완료됐지만 위치를 확인해주세요.',
+    };
+  } else if (distance <= GPS_ZONES.ORANGE.max) {
+    return {
+      zone: 'orange',
+      label: GPS_ZONES.ORANGE.label,
+      requiresPhotoVerification: true,
+      allowed: true,
+      message: '업체에서 먼 위치입니다. 업체 간판 사진을 촬영해 인증해주세요.',
+    };
+  } else {
+    return {
+      zone: 'red',
+      label: GPS_ZONES.RED.label,
+      requiresPhotoVerification: false,
+      allowed: false,
+      message: `업체와 너무 멀리 있습니다 (${Math.round(distance)}m). 업체 근처로 이동해주세요.`,
+    };
+  }
+}
 
 // 수동 인증 가이드
 const MANUAL_VERIFICATION_GUIDE = {
@@ -32,23 +96,122 @@ const MANUAL_VERIFICATION_GUIDE = {
 // 미션 생성
 exports.createMission = async (req, res, next) => {
   try {
-    const { businessId, missionType, ...missionData } = req.body;
+    // 보상 관련 필드는 스프레드에서 분리(컬럼명 불일치 방지) 후 명시적으로 처리
+    const {
+      businessId,
+      missionType,
+      rewardType,
+      reward_type,
+      experienceDescription,
+      experience_description,
+      experienceValue,
+      experience_value,
+      ...missionData
+    } = req.body;
 
-    // 업체 소유권 확인
-    const { data: business } = await supabase
+    const resolvedRewardType =
+      (reward_type || rewardType) === REWARD_TYPES.FREE_EXPERIENCE
+        ? REWARD_TYPES.FREE_EXPERIENCE
+        : REWARD_TYPES.CASH;
+    const expDescription = experience_description || experienceDescription || null;
+    const expValue = experience_value ?? experienceValue ?? null;
+
+    // 4개 유형 검증
+    const validTypes = ['visit', 'delivery', 'online', 'phone'];
+    if (!validTypes.includes(missionType)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_MISSION_TYPE',
+          message: `유효하지 않은 미션 유형입니다. 허용: ${validTypes.join(', ')}`,
+        },
+      });
+    }
+
+    // 업체 소유권 + 구독 플랜 확인
+    const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id')
+      .select('id, address_full, subscription_plan')
       .eq('id', businessId)
       .eq('owner_id', req.user.id)
       .single();
 
-    if (!business) {
+    if (businessError || !business) {
       return res.status(404).json(
         createErrorResponse('MISSION_NOT_FOUND')
       );
     }
 
-    // 수수료 계산
+    // 블라인드 주소 생성
+    const blindedAddress = generateBlindedAddress(business?.address_full || missionData.address || '');
+
+    // ── 무료체험 미션: 결제/에스크로 없이 바로 모집 시작 ──
+    if (resolvedRewardType === REWARD_TYPES.FREE_EXPERIENCE) {
+      if (!expDescription) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'EXPERIENCE_DESCRIPTION_REQUIRED',
+            message: '무료체험 미션은 제공 내용을 입력해야 합니다.',
+          },
+        });
+      }
+
+      // 구독 플랜별 월 무료체험 한도 체크 (-1 = 무제한)
+      const plan = business.subscription_plan || 'none';
+      const limit = PLAN_DETAILS[plan]?.monthlyFreeExperience ?? 0;
+      if (limit !== -1) {
+        const used = await countFreeExperienceThisMonth(businessId);
+        if (used >= limit) {
+          return res.status(403).json({
+            success: false,
+            error: {
+              code: 'FREE_EXPERIENCE_LIMIT_EXCEEDED',
+              message: `현재 플랜(${plan})의 이번 달 무료체험 미션 한도(${limit}건)를 모두 사용했습니다.`,
+              used,
+              limit,
+            },
+          });
+        }
+      }
+
+      const { data: mission, error: feError } = await supabase
+        .from('missions')
+        .insert({
+          business_id: businessId,
+          mission_type: missionType,
+          ...missionData,
+          reward_type: REWARD_TYPES.FREE_EXPERIENCE,
+          experience_description: expDescription,
+          experience_value: expValue,
+          product_cost: 0,
+          reviewer_fee: 0,
+          platform_fee: 0,
+          total_amount: 0,
+          payment_status: 'paid', // 결제 불필요 → 모집 가능 상태로 간주
+          status: 'recruiting',
+          blinded_address: blindedAddress || null,
+          gps_required: missionType === 'visit' ? (missionData.gps_required || false) : false,
+          verification_method: missionType,
+        })
+        .select()
+        .single();
+
+      if (feError) throw feError;
+
+      res.status(201).json({
+        success: true,
+        message: '무료체험 미션이 등록되었습니다. 바로 모집이 시작됩니다.',
+        data: { mission },
+      });
+
+      notifyNearbyCompetitors(mission).catch(err => {
+        console.error('[MISSION_CREATE] Failed to notify competitors:', err);
+      });
+      return;
+    }
+
+    // ── 현금 미션 (기존 흐름: 결제 필요) ──
     const productCost = missionData.product_cost || 0;
     const reviewerFee = missionData.reviewer_fee || 0;
     const platformFee = Math.round((productCost + reviewerFee) * PLATFORM_FEE_RATE);
@@ -60,12 +223,16 @@ exports.createMission = async (req, res, next) => {
         business_id: businessId,
         mission_type: missionType,
         ...missionData,
+        reward_type: REWARD_TYPES.CASH,
         product_cost: productCost,
         reviewer_fee: reviewerFee,
         platform_fee: platformFee,
         total_amount: totalAmount,
         payment_status: 'pending',
-        status: 'pending_payment'
+        status: 'pending_payment',
+        blinded_address: blindedAddress || null,
+        gps_required: missionType === 'visit' ? (missionData.gps_required || false) : false,
+        verification_method: missionType,
       })
       .select()
       .single();
@@ -76,6 +243,11 @@ exports.createMission = async (req, res, next) => {
       success: true,
       message: '미션이 생성되었습니다. 결제를 진행해주세요.',
       data: { mission }
+    });
+
+    // 비동기로 주변 경쟁업체에 알림 (non-blocking)
+    notifyNearbyCompetitors(mission).catch(err => {
+      console.error('[MISSION_CREATE] Failed to notify competitors:', err);
     });
   } catch (error) {
     next(error);
@@ -101,7 +273,7 @@ exports.payMission = async (req, res, next) => {
 
   try {
     // Step 0: 미션 조회 및 검증
-    const { data: mission } = await supabase
+    const { data: mission, error: missionFetchError } = await supabase
       .from('missions')
       .select(`
         *,
@@ -110,10 +282,21 @@ exports.payMission = async (req, res, next) => {
       .eq('id', req.params.id)
       .single();
 
-    if (!mission || mission.business.owner_id !== req.user.id) {
+    if (missionFetchError || !mission || mission.business.owner_id !== req.user.id) {
       return res.status(404).json(
         createErrorResponse('MISSION_NOT_FOUND')
       );
+    }
+
+    // 무료체험 미션은 결제가 필요 없다.
+    if (mission.reward_type === REWARD_TYPES.FREE_EXPERIENCE) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'NO_PAYMENT_REQUIRED',
+          message: '무료체험 미션은 결제가 필요하지 않습니다.',
+        },
+      });
     }
 
     if (mission.status !== 'pending_payment') {
@@ -152,6 +335,17 @@ exports.payMission = async (req, res, next) => {
       return res.status(400).json(
         createPaymentErrorResponse(`결제 상태 오류: ${paymentResult.status}`, false)
       );
+    }
+
+    // S4: 결제 금액 검증
+    if (paymentResult.totalAmount !== mission.total_amount) {
+      logStep('AMOUNT_MISMATCH', false, { expected: mission.total_amount, actual: paymentResult.totalAmount });
+      // Cancel the mismatched payment
+      await cancelPayment(paymentKey, '결제 금액 불일치');
+      return res.status(400).json({
+        success: false,
+        message: '결제 금액이 일치하지 않습니다.'
+      });
     }
 
     logStep('PAYMENT_CONFIRM', true, { status: paymentResult.status });
@@ -316,7 +510,7 @@ exports.payMission = async (req, res, next) => {
 // 미션 취소
 exports.cancelMission = async (req, res, next) => {
   try {
-    const { data: mission } = await supabase
+    const { data: mission, error: missionFetchError } = await supabase
       .from('missions')
       .select(`
         *,
@@ -325,7 +519,7 @@ exports.cancelMission = async (req, res, next) => {
       .eq('id', req.params.id)
       .single();
 
-    if (!mission || mission.business.owner_id !== req.user.id) {
+    if (missionFetchError || !mission || mission.business.owner_id !== req.user.id) {
       return res.status(404).json(
         createErrorResponse('MISSION_NOT_FOUND')
       );
@@ -343,10 +537,10 @@ exports.cancelMission = async (req, res, next) => {
       });
     }
 
-    // 에스크로 환불 처리
-    if (mission.payment_status === 'paid') {
+    // 에스크로 환불 처리 (무료체험 미션은 결제/에스크로가 없으므로 스킵)
+    if (mission.payment_status === 'paid' && mission.reward_type !== REWARD_TYPES.FREE_EXPERIENCE) {
       // 토스페이먼츠 환불 요청
-      const { data: escrow } = await supabase
+      const { data: escrow, error: escrowError } = await supabase
         .from('escrows')
         .select('payment_key')
         .eq('mission_id', mission.id)
@@ -398,7 +592,7 @@ exports.cancelMission = async (req, res, next) => {
 // 참여 가능한 미션 목록 (리뷰어용) - P1-5: 블라인드 위치 정보 개선
 exports.getAvailableMissions = async (req, res, next) => {
   try {
-    const { category, city, page = 1, limit = 20, latitude, longitude } = req.query;
+    const { category, city, type, page = 1, limit = 20, latitude, longitude } = req.query;
     const offset = (page - 1) * limit;
     const userLat = latitude ? parseFloat(latitude) : null;
     const userLon = longitude ? parseFloat(longitude) : null;
@@ -420,6 +614,10 @@ exports.getAvailableMissions = async (req, res, next) => {
       `)
       .eq('status', 'recruiting')
       .gt('recruitment_deadline', new Date().toISOString());
+
+    if (type) {
+      query = query.eq('mission_type', type);
+    }
 
     if (appliedMissionIds.length > 0) {
       query = query.not('id', 'in', `(${appliedMissionIds.join(',')})`);
@@ -531,27 +729,80 @@ exports.getAvailableMissions = async (req, res, next) => {
 // 미션 신청
 exports.applyMission = async (req, res, next) => {
   try {
-    const { data: mission } = await supabase
+    // 인증 여부 확인
+    const { data: currentUser, error: currentUserError } = await supabase
+      .from('users')
+      .select('is_certified')
+      .eq('id', req.user.id)
+      .single();
+
+    if (!currentUser?.is_certified) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'CERTIFICATION_REQUIRED',
+          message: '교육 인증을 완료해야 미션에 지원할 수 있습니다.',
+          guidance: ['교육 인증 프로그램(3일 과정)을 먼저 완료해주세요.'],
+          action: 'go_to_certification',
+        },
+      });
+    }
+
+    const { data: mission, error: missionFetchError } = await supabase
       .from('missions')
-      .select('id, status, max_applicants, recruitment_deadline, category')
+      .select('id, status, max_applicants, recruitment_deadline, category, business_id')
       .eq('id', req.params.id)
       .single();
 
-    if (!mission || mission.status !== 'recruiting') {
+    if (missionFetchError || !mission || mission.status !== 'recruiting') {
       return res.status(404).json(
         createErrorResponse('MISSION_NOT_FOUND')
       );
     }
 
+    // 6개월 내 동일 업체 미션 완료 이력 → 지원 차단
+    const blockDate = new Date();
+    blockDate.setMonth(blockDate.getMonth() - (COLLUSION_REPEAT_BLOCK_MONTHS || 6));
+
+    const { data: prevHistory } = await supabase
+      .from('reviewer_business_history')
+      .select('id')
+      .eq('reviewer_id', req.user.id)
+      .eq('business_id', mission.business_id)
+      .gt('assigned_at', blockDate.toISOString())
+      .limit(1);
+
+    if (prevHistory && prevHistory.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'COLLUSION_RISK_BLOCKED',
+          message: '이 업체에는 배정될 수 없습니다.',
+          guidance: [`동일 업체에 ${COLLUSION_REPEAT_BLOCK_MONTHS || 6}개월 내 재방문이 제한됩니다.`],
+          action: 'browse_other_missions',
+        },
+      });
+    }
+
+    // L1: Pre-check collusion risk
+    const riskResult = await checkCollusionRisk(req.user.id, mission.business_id).catch(() => null);
+    if (riskResult?.riskLevel === 'blocked') {
+      return res.status(403).json({
+        success: false,
+        message: '이 미션에 지원할 수 없습니다.',
+        code: 'COLLUSION_RISK'
+      });
+    }
+
     // 이미 신청했는지 확인
-    const { data: existingApplication } = await supabase
+    const { data: existingApplication, error: existingApplicationError } = await supabase
       .from('mission_applicants')
       .select('id')
       .eq('mission_id', req.params.id)
       .eq('reviewer_id', req.user.id)
       .single();
 
-    if (existingApplication) {
+    if (existingApplication && !existingApplicationError) {
       return res.status(400).json(
         createErrorResponse('MISSION_ALREADY_APPLIED')
       );
@@ -570,7 +821,7 @@ exports.applyMission = async (req, res, next) => {
     }
 
     // 리뷰어 정보 조회 (매칭 점수 계산용)
-    const { data: reviewer } = await supabase
+    const { data: reviewer, error: reviewerError } = await supabase
       .from('users')
       .select('trust_score, specialties, completed_missions, last_active_at')
       .eq('id', req.user.id)
@@ -633,26 +884,26 @@ exports.bulkApplyMissions = async (req, res, next) => {
     for (const missionId of missionIds) {
       try {
         // 미션 확인
-        const { data: mission } = await supabase
+        const { data: mission, error: missionFetchErr } = await supabase
           .from('missions')
           .select('id, status, max_applicants, category')
           .eq('id', missionId)
           .single();
 
-        if (!mission || mission.status !== 'recruiting') {
+        if (missionFetchErr || !mission || mission.status !== 'recruiting') {
           results.push({ missionId, success: false, reason: '모집이 마감됨' });
           continue;
         }
 
         // 이미 신청했는지 확인
-        const { data: existing } = await supabase
+        const { data: existing, error: existingErr } = await supabase
           .from('mission_applicants')
           .select('id')
           .eq('mission_id', missionId)
           .eq('reviewer_id', req.user.id)
           .single();
 
-        if (existing) {
+        if (existing && !existingErr) {
           results.push({ missionId, success: false, reason: '이미 신청함' });
           continue;
         }
@@ -669,7 +920,7 @@ exports.bulkApplyMissions = async (req, res, next) => {
         }
 
         // 리뷰어 정보
-        const { data: reviewer } = await supabase
+        const { data: reviewer, error: reviewerErr } = await supabase
           .from('users')
           .select('trust_score, specialties, completed_missions')
           .eq('id', req.user.id)
@@ -752,6 +1003,29 @@ function calculateSelectionRate(myScore, totalApplicants) {
 
 // P1: 가중치 기반 리뷰어 배정
 async function assignWeightedReviewer(missionId) {
+  // S6: Prevent race condition: check if already assigned
+  const { data: currentMission, error: currentMissionError } = await supabase
+    .from('missions')
+    .select('assigned_reviewer_id')
+    .eq('id', missionId)
+    .single();
+
+  if (currentMissionError || !currentMission) {
+    console.log(`[ASSIGN] Mission ${missionId} not found, skipping`);
+    return;
+  }
+
+  if (currentMission.assigned_reviewer_id) {
+    console.log(`[ASSIGN] Mission ${missionId} already assigned, skipping`);
+    return;
+  }
+
+  const { data: missionData, error: missionDataError } = await supabase
+    .from('missions')
+    .select('business_id')
+    .eq('id', missionId)
+    .single();
+
   const { data: applicants } = await supabase
     .from('mission_applicants')
     .select('reviewer_id, match_score')
@@ -760,14 +1034,40 @@ async function assignWeightedReviewer(missionId) {
 
   if (!applicants || applicants.length === 0) return;
 
+  // 인증된 리뷰어만 필터 + 담합 위험 체크
+  const filteredApplicants = [];
+  for (const applicant of applicants) {
+    // 인증 확인
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('is_certified')
+      .eq('id', applicant.reviewer_id)
+      .single();
+
+    if (userError || !user?.is_certified) continue;
+
+    // 담합 위험 체크
+    if (missionData?.business_id) {
+      const risk = await checkCollusionRisk(applicant.reviewer_id, missionData.business_id);
+      if (risk.riskLevel === 'blocked') continue;
+      if (risk.riskLevel === 'warning') {
+        applicant.match_score = Math.round((applicant.match_score || 0) * 0.5);
+      }
+    }
+
+    filteredApplicants.push(applicant);
+  }
+
+  if (filteredApplicants.length === 0) return;
+
   // 매칭 점수 기반 가중치 랜덤 선택
-  const totalScore = applicants.reduce((sum, a) => sum + (a.match_score || 1), 0);
+  const totalScore = filteredApplicants.reduce((sum, a) => sum + (a.match_score || 1), 0);
   let random = Math.random() * totalScore;
 
   let selectedReviewerId = null;
   let selectionReason = '';
 
-  for (const applicant of applicants) {
+  for (const applicant of filteredApplicants) {
     random -= (applicant.match_score || 1);
     if (random <= 0) {
       selectedReviewerId = applicant.reviewer_id;
@@ -782,19 +1082,32 @@ async function assignWeightedReviewer(missionId) {
   }
 
   if (!selectedReviewerId) {
-    selectedReviewerId = applicants[0].reviewer_id;
+    selectedReviewerId = filteredApplicants[0].reviewer_id;
     selectionReason = '랜덤 선정';
   }
 
-  // 미션에 리뷰어 배정
+  // 미션에 리뷰어 배정 + 전체 주소 공개 시점 기록
   await supabase
     .from('missions')
     .update({
       assigned_reviewer_id: selectedReviewerId,
       status: 'assigned',
-      assigned_at: new Date().toISOString()
+      assigned_at: new Date().toISOString(),
+      full_address_revealed_at: new Date().toISOString(),
     })
     .eq('id', missionId);
+
+  // 리뷰어-사업자 배정 이력 기록 (담합 방지용)
+  if (missionData?.business_id) {
+    await supabase
+      .from('reviewer_business_history')
+      .insert({
+        reviewer_id: selectedReviewerId,
+        business_id: missionData.business_id,
+        mission_id: missionId,
+      })
+      .catch(err => console.error('[RB_HISTORY] Insert error:', err.message));
+  }
 
   // 선택된 신청자 상태 업데이트
   await supabase
@@ -828,13 +1141,13 @@ async function assignWeightedReviewer(missionId) {
 // 미션 신청 취소
 exports.cancelApplication = async (req, res, next) => {
   try {
-    const { data: mission } = await supabase
+    const { data: mission, error: missionFetchError } = await supabase
       .from('missions')
       .select('id, assigned_reviewer_id')
       .eq('id', req.params.id)
       .single();
 
-    if (!mission) {
+    if (missionFetchError || !mission) {
       return res.status(404).json(
         createErrorResponse('MISSION_NOT_FOUND')
       );
@@ -959,9 +1272,12 @@ exports.getMissionForReviewer = async (req, res, next) => {
       // 배정되지 않은 경우 상세 정보 숨김
       if (mission.business) {
         delete mission.business.name;
+        delete mission.business.address_full;
         delete mission.business.address_detail;
         delete mission.business.latitude;
         delete mission.business.longitude;
+        // 블라인드 주소만 제공
+        mission.business.blindedAddress = mission.blinded_address || generateBlindedAddress(mission.business?.address_full || '');
       }
     }
 
@@ -1073,12 +1389,12 @@ exports.getMission = async (req, res, next) => {
   }
 };
 
-// P0: 체크인 (GPS 검증 + 수동 인증 옵션)
+// P0: 체크인 (GPS 구간별 점진적 반경 완화)
 exports.checkIn = async (req, res, next) => {
   try {
-    const { latitude, longitude, manualVerification, verificationPhoto } = req.body;
+    const { latitude, longitude, verificationPhoto } = req.body;
 
-    const { data: mission } = await supabase
+    const { data: mission, error: missionFetchError } = await supabase
       .from('missions')
       .select(`
         *,
@@ -1087,17 +1403,83 @@ exports.checkIn = async (req, res, next) => {
       .eq('id', req.params.id)
       .single();
 
-    if (!mission || mission.assigned_reviewer_id !== req.user.id) {
+    if (missionFetchError || !mission || mission.assigned_reviewer_id !== req.user.id) {
       return res.status(404).json(
         createErrorResponse('MISSION_NOT_FOUND')
       );
     }
 
+    // GPS가 필요하지 않은 미션은 바로 체크인 처리
+    if (!mission.gps_required && mission.mission_type !== 'visit') {
+      const { error } = await supabase
+        .from('missions')
+        .update({
+          check_in_time: new Date().toISOString(),
+          status: 'in_progress',
+          gps_zone: 'none',
+        })
+        .eq('id', req.params.id);
+
+      if (error) throw error;
+
+      return res.json({
+        success: true,
+        zone: 'none',
+        distance: 0,
+        requiresPhotoVerification: false,
+        message: '체크인이 완료되었습니다.',
+        data: {
+          verificationMethod: 'none',
+          distance: 0,
+          zone: 'none',
+          zoneLabel: 'GPS 불필요',
+        }
+      });
+    }
+
+    // 방문 미션이지만 GPS가 선택적인 경우
+    if (mission.mission_type === 'visit' && !mission.gps_required) {
+      // GPS 정보가 없으면 바로 체크인
+      if (!latitude || !longitude) {
+        const { error } = await supabase
+          .from('missions')
+          .update({
+            check_in_time: new Date().toISOString(),
+            status: 'in_progress',
+            gps_zone: 'none',
+          })
+          .eq('id', req.params.id);
+
+        if (error) throw error;
+
+        return res.json({
+          success: true,
+          zone: 'none',
+          distance: 0,
+          requiresPhotoVerification: false,
+          message: '체크인이 완료되었습니다. (GPS 미사용)',
+          data: {
+            businessName: mission.business.name,
+            address: mission.business.address_full,
+            verificationMethod: 'none',
+            distance: 0,
+            zone: 'none',
+            zoneLabel: 'GPS 선택',
+          }
+        });
+      }
+    }
+
     // GPS 검증
+    // L3: GPS coordinates are accepted as-is from the device.
+    // Freshness is ensured by the check-in timestamp being set server-side (new Date()).
+    // Replay attacks are mitigated by mission status checks (must be 'assigned' to check in).
+    // Additional mock location detection is handled client-side.
     const businessLat = mission.business.latitude;
     const businessLon = mission.business.longitude;
     let verificationMethod = 'gps';
     let distance = 0;
+    let gpsZoneInfo = getGpsZone(0); // default green
 
     if (businessLat && businessLon && latitude && longitude) {
       distance = calculateDistance(
@@ -1107,34 +1489,54 @@ exports.checkIn = async (req, res, next) => {
         businessLon
       );
 
-      if (distance > GPS_ALLOWED_DISTANCE) {
-        // 수동 인증 요청이 아닌 경우 에러 반환
-        if (!manualVerification) {
-          return res.status(400).json(
-            createGpsErrorResponse(distance, GPS_ALLOWED_DISTANCE)
-          );
-        }
+      gpsZoneInfo = getGpsZone(distance);
 
-        // 수동 인증 - 사진 필수
-        if (!verificationPhoto) {
-          return res.status(400).json({
-            success: false,
-            error: {
-              code: 'PHOTO_REQUIRED',
-              message: '수동 인증을 위해 업체 앞 사진이 필요합니다.',
-              guidance: ['업체 간판이 보이는 사진을 촬영해주세요.'],
-              action: 'take_photo'
-            }
-          });
-        }
+      // RED zone: 체크인 차단
+      if (!gpsZoneInfo.allowed) {
+        return res.status(400).json({
+          success: false,
+          zone: gpsZoneInfo.zone,
+          distance: Math.round(distance),
+          requiresPhotoVerification: false,
+          message: gpsZoneInfo.message,
+          error: {
+            code: 'GPS_OUT_OF_RANGE',
+            message: gpsZoneInfo.message,
+            guidance: ['업체 근처로 이동한 후 다시 시도해주세요.'],
+            action: 'navigate_closer'
+          }
+        });
+      }
 
+      // ORANGE zone: 사진 인증 필수
+      if (gpsZoneInfo.requiresPhotoVerification && !verificationPhoto) {
+        return res.status(400).json({
+          success: false,
+          zone: gpsZoneInfo.zone,
+          distance: Math.round(distance),
+          requiresPhotoVerification: true,
+          message: gpsZoneInfo.message,
+          error: {
+            code: 'PHOTO_REQUIRED',
+            message: gpsZoneInfo.message,
+            guidance: [
+              '업체 간판이 보이도록 사진을 촬영해주세요.',
+              '사진이 선명하게 나오도록 해주세요.'
+            ],
+            action: 'take_photo'
+          }
+        });
+      }
+
+      // ORANGE zone with photo: 수동 인증
+      if (gpsZoneInfo.zone === 'orange') {
         verificationMethod = 'manual';
       }
     }
 
-    // 수동 인증인 경우 사진 저장
-    let verificationPhotoUrl = null;
-    if (verificationMethod === 'manual' && verificationPhoto) {
+    // 사진 인증이 제출된 경우 (orange zone) 사진 저장
+    let checkinPhotoUrl = null;
+    if (verificationPhoto) {
       const fileName = `verifications/${req.params.id}/${Date.now()}.jpg`;
       const buffer = Buffer.from(verificationPhoto, 'base64');
 
@@ -1149,7 +1551,7 @@ exports.checkIn = async (req, res, next) => {
         const { data: urlData } = supabase.storage
           .from('verification-photos')
           .getPublicUrl(fileName);
-        verificationPhotoUrl = urlData.publicUrl;
+        checkinPhotoUrl = urlData.publicUrl;
       }
     }
 
@@ -1161,7 +1563,9 @@ exports.checkIn = async (req, res, next) => {
         check_in_time: new Date().toISOString(),
         check_in_distance: Math.round(distance),
         check_in_method: verificationMethod,
-        check_in_photo: verificationPhotoUrl,
+        check_in_photo: checkinPhotoUrl,
+        gps_zone: gpsZoneInfo.zone,
+        checkin_photo_url: checkinPhotoUrl,
         status: 'in_progress'
       })
       .eq('id', req.params.id);
@@ -1170,12 +1574,19 @@ exports.checkIn = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: '체크인이 완료되었습니다.',
+      zone: gpsZoneInfo.zone,
+      distance: Math.round(distance),
+      requiresPhotoVerification: gpsZoneInfo.requiresPhotoVerification,
+      message: gpsZoneInfo.zone === 'green'
+        ? '체크인이 완료되었습니다.'
+        : gpsZoneInfo.message,
       data: {
         businessName: mission.business.name,
         address: mission.business.address_full,
         verificationMethod,
-        distance: Math.round(distance)
+        distance: Math.round(distance),
+        zone: gpsZoneInfo.zone,
+        zoneLabel: gpsZoneInfo.label,
       }
     });
   } catch (error) {
@@ -1203,7 +1614,7 @@ exports.requestManualCheckIn = async (req, res, next) => {
       });
     }
 
-    const { data: mission } = await supabase
+    const { data: mission, error: missionFetchError } = await supabase
       .from('missions')
       .select(`
         *,
@@ -1212,7 +1623,7 @@ exports.requestManualCheckIn = async (req, res, next) => {
       .eq('id', req.params.id)
       .single();
 
-    if (!mission || mission.assigned_reviewer_id !== req.user.id) {
+    if (missionFetchError || !mission || mission.assigned_reviewer_id !== req.user.id) {
       return res.status(404).json(
         createErrorResponse('MISSION_NOT_FOUND')
       );
@@ -1267,13 +1678,13 @@ exports.requestManualCheckIn = async (req, res, next) => {
 // 체크아웃
 exports.checkOut = async (req, res, next) => {
   try {
-    const { data: mission } = await supabase
+    const { data: mission, error: missionFetchError } = await supabase
       .from('missions')
       .select('*')
       .eq('id', req.params.id)
       .single();
 
-    if (!mission || mission.assigned_reviewer_id !== req.user.id) {
+    if (missionFetchError || !mission || mission.assigned_reviewer_id !== req.user.id) {
       return res.status(404).json(
         createErrorResponse('MISSION_NOT_FOUND')
       );
@@ -1296,11 +1707,13 @@ exports.checkOut = async (req, res, next) => {
     const stayMinutes = Math.round((checkOutTime - checkInTime) / 60000);
     const requiredMinutes = mission.min_stay_minutes || 30;
 
-    if (stayMinutes < requiredMinutes) {
+    // L2: Only enforce stay time check for visit missions
+    if (mission.mission_type === 'visit' && stayMinutes < requiredMinutes) {
       return res.status(400).json(
         createStayTimeErrorResponse(stayMinutes, requiredMinutes)
       );
     }
+    // For non-visit missions (delivery, online, phone), skip stay time check
 
     const { error } = await supabase
       .from('missions')
@@ -1344,3 +1757,130 @@ exports.getMissionStats = async (req, res, next) => {
     next(error);
   }
 };
+
+// === Feature 3: 히든/시즌 미션 ===
+
+// 히든 미션 조회 (등급 기반 필터)
+exports.getHiddenMissions = async (req, res, next) => {
+  try {
+    const userGrade = req.user.reviewer_grade || 'rookie';
+    const gradeOrder = ['rookie', 'regular', 'senior', 'master'];
+    const userGradeIdx = gradeOrder.indexOf(userGrade);
+
+    const { data: missions, error } = await supabase
+      .from('missions')
+      .select(`
+        id, mission_type, category, region, reviewer_fee, bonus_rate,
+        min_reviewer_grade, recruitment_deadline, max_applicants,
+        visibility, created_at,
+        business:businesses(id, name, category, address_city, badge_level)
+      `)
+      .eq('visibility', 'hidden')
+      .eq('status', 'recruiting')
+      .gt('recruitment_deadline', new Date().toISOString())
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // 등급 필터링 + 잠김 상태 표시
+    const filtered = (missions || []).map(m => {
+      const minIdx = gradeOrder.indexOf(m.min_reviewer_grade || 'rookie');
+      const isLocked = userGradeIdx < minIdx;
+      return { ...m, isLocked, requiredGrade: m.min_reviewer_grade };
+    });
+
+    res.json({ success: true, data: filtered });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 시즌 미션 조회
+exports.getSeasonMissions = async (req, res, next) => {
+  try {
+    const { seasonId } = req.params;
+
+    const { data: missions, error } = await supabase
+      .from('missions')
+      .select(`
+        id, mission_type, category, region, reviewer_fee, bonus_rate,
+        recruitment_deadline, max_applicants, visibility, season_id, created_at,
+        business:businesses(id, name, category, address_city, badge_level)
+      `)
+      .eq('season_id', seasonId)
+      .eq('visibility', 'season')
+      .in('status', ['recruiting', 'assigned', 'in_progress'])
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json({ success: true, data: missions || [] });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 주변 경쟁업체 알림 (내부 함수)
+async function notifyNearbyCompetitors(mission) {
+  try {
+    // 미션의 업체 정보 조회
+    const { data: sourceBusiness, error: sourceBusinessError } = await supabase
+      .from('businesses')
+      .select('id, category, latitude, longitude, competition_alert_radius')
+      .eq('id', mission.business_id)
+      .single();
+
+    if (sourceBusinessError || !sourceBusiness || !sourceBusiness.latitude || !sourceBusiness.longitude) {
+      return; // 위치 정보 없으면 스킵
+    }
+
+    const radius = sourceBusiness.competition_alert_radius || 1000; // 기본 1km
+
+    // 같은 카테고리의 주변 업체 조회 (경쟁 알림 활성화된 업체만)
+    const { data: nearbyBusinesses } = await supabase
+      .from('businesses')
+      .select('id, owner_id, name, latitude, longitude, competition_alerts_enabled, subscription_status')
+      .eq('category', sourceBusiness.category)
+      .eq('competition_alerts_enabled', true)
+      .in('subscription_status', ['active', 'trial'])
+      .neq('id', sourceBusiness.id)
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null);
+
+    if (!nearbyBusinesses || nearbyBusinesses.length === 0) {
+      return;
+    }
+
+    // 거리 계산 및 반경 내 업체 필터링
+    const { createNotification } = require('../utils/notificationService');
+
+    for (const business of nearbyBusinesses) {
+      const distance = calculateDistance(
+        sourceBusiness.latitude,
+        sourceBusiness.longitude,
+        business.latitude,
+        business.longitude
+      );
+
+      if (distance <= radius) {
+        // 경쟁 알림 발송
+        await createNotification(
+          business.owner_id,
+          NOTIFICATION_TYPES.COMPETITION_ALERT,
+          '주변 경쟁업체 미션 알림',
+          `${Math.round(distance)}m 거리에서 새로운 미션이 생성되었습니다.`,
+          {
+            missionId: mission.id,
+            distance: Math.round(distance),
+            category: sourceBusiness.category
+          }
+        );
+      }
+    }
+
+    console.log(`[COMPETITION_ALERT] Notified nearby competitors for mission ${mission.id}`);
+  } catch (error) {
+    console.error('[COMPETITION_ALERT] Error:', error);
+    // 에러 발생해도 무시 (non-blocking)
+  }
+}

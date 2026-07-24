@@ -2,6 +2,13 @@ const express = require('express');
 const router = express.Router();
 const missionController = require('../controllers/missionController');
 const { authenticate, requireUserType, requireVerification, requireReviewerGrade } = require('../middleware/auth');
+const {
+  createMissionValidation,
+  checkInValidation,
+  checkOutValidation,
+  uuidParam,
+} = require('../middleware/validators');
+const { fingerprintMiddleware } = require('../middleware/fingerprint');
 
 // === 파라미터 없는 라우트 먼저 ===
 // 전체 미션 목록
@@ -19,7 +26,7 @@ router.get('/my', authenticate, requireUserType('reviewer'), missionController.g
 
 // === 업체용 ===
 // 미션 생성 (미스터리 쇼핑 요청)
-router.post('/', authenticate, requireUserType('business'), missionController.createMission);
+router.post('/', authenticate, requireUserType('business'), createMissionValidation, missionController.createMission);
 
 // === 파라미터 있는 라우트 ===
 // 미션 상세 (업체용)
@@ -29,7 +36,7 @@ router.get('/:id/business-view', authenticate, requireUserType('business'), miss
 router.get('/:id/reviewer-view', authenticate, requireUserType('reviewer'), missionController.getMissionForReviewer);
 
 // 미션 상세
-router.get('/:id', authenticate, missionController.getMission);
+router.get('/:id', authenticate, uuidParam, missionController.getMission);
 
 // 미션 결제
 router.post('/:id/pay', authenticate, requireUserType('business'), missionController.payMission);
@@ -38,15 +45,15 @@ router.post('/:id/pay', authenticate, requireUserType('business'), missionContro
 router.post('/:id/cancel', authenticate, requireUserType('business'), missionController.cancelMission);
 
 // 미션 신청
-router.post('/:id/apply', authenticate, requireUserType('reviewer'), requireVerification, missionController.applyMission);
+router.post('/:id/apply', authenticate, requireUserType('reviewer'), requireVerification, fingerprintMiddleware, missionController.applyMission);
 
 // 미션 신청 취소
 router.post('/:id/cancel-application', authenticate, requireUserType('reviewer'), missionController.cancelApplication);
 
 // 체크인 (오프라인 미션)
-router.post('/:id/check-in', authenticate, requireUserType('reviewer'), missionController.checkIn);
+router.post('/:id/check-in', authenticate, requireUserType('reviewer'), checkInValidation, missionController.checkIn);
 
 // 체크아웃 (오프라인 미션)
-router.post('/:id/check-out', authenticate, requireUserType('reviewer'), missionController.checkOut);
+router.post('/:id/check-out', authenticate, requireUserType('reviewer'), checkOutValidation, missionController.checkOut);
 
 module.exports = router;

@@ -1,12 +1,12 @@
 /**
  * 정산 라우트
- * P0-3: 정산 계좌 오류 처리
  */
 
 const express = require('express');
 const router = express.Router();
 const settlementController = require('../controllers/settlementController');
-const { authenticate, requireUserType, requireVerification } = require('../middleware/auth');
+const { authenticate, requireUserType, requireAdmin, requireVerification } = require('../middleware/auth');
+const { verifyBankAccountValidation } = require('../middleware/validators');
 
 // 내 정산 내역 조회 (리뷰어)
 router.get(
@@ -38,13 +38,15 @@ router.post(
   authenticate,
   requireUserType('reviewer'),
   requireVerification,
+  verifyBankAccountValidation,
   settlementController.verifyBankAccount
 );
 
-// 정산 처리 (관리자/스케줄러용 - 나중에 관리자 권한 체크 추가)
+// 정산 처리 (관리자 전용)
 router.post(
   '/:escrowId/process',
   authenticate,
+  requireAdmin,
   settlementController.processSettlement
 );
 

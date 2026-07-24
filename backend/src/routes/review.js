@@ -1,58 +1,31 @@
 const express = require('express');
 const router = express.Router();
 const reviewController = require('../controllers/reviewController');
+const reviewTopicController = require('../controllers/reviewTopicController');
 const { authenticate, requireUserType, optionalAuth } = require('../middleware/auth');
+const {
+  createReviewValidation,
+  reportReviewValidation,
+  businessResponseValidation,
+  disputeReviewValidation,
+  uuidParam,
+} = require('../middleware/validators');
+const { validateReviewPhotos, validateReceiptUpload, validateVideoUpload } = require('../middleware/uploadValidator');
+const { fingerprintMiddleware } = require('../middleware/fingerprint');
 
-// === 리뷰어용 ===
-// 리뷰 작성/수정
-router.post('/', authenticate, requireUserType('reviewer'), reviewController.createReview);
-router.put('/:id', authenticate, requireUserType('reviewer'), reviewController.updateReview);
-
-// 리뷰 제출
-router.post('/:id/submit', authenticate, requireUserType('reviewer'), reviewController.submitReview);
-
-// 증거 자료 업로드
-router.post('/:id/evidence/photos', authenticate, requireUserType('reviewer'), reviewController.uploadPhotos);
-router.post('/:id/evidence/receipt', authenticate, requireUserType('reviewer'), reviewController.uploadReceipt);
-router.post('/:id/evidence/video', authenticate, requireUserType('reviewer'), reviewController.uploadVideo);
-
-// 7일 후 추가 리뷰 (이커머스)
-router.post('/:id/follow-up', authenticate, requireUserType('reviewer'), reviewController.submitFollowUpReview);
-
+// === 파라미터 없는 라우트 먼저 ===
 // 내 리뷰 목록
 router.get('/my', authenticate, requireUserType('reviewer'), reviewController.getMyReviews);
 
-// === 소비자용 ===
-// 리뷰 목록 (공개)
-router.get('/', optionalAuth, reviewController.getReviews);
-
-// 리뷰 상세 (공개)
-router.get('/:id', optionalAuth, reviewController.getReview);
-
-// 리뷰 유용성 투표
-router.post('/:id/helpful', authenticate, reviewController.markHelpful);
-router.post('/:id/not-helpful', authenticate, reviewController.markNotHelpful);
-
-// 리뷰 신고
-router.post('/:id/report', authenticate, reviewController.reportReview);
+// 선공개 리뷰 목록 (내 업체에 대한 선공개 리뷰 전체)
+router.get('/preview', authenticate, requireUserType('business'), reviewController.getPreviewReviews);
 
 // 리뷰 요청 (이 업체 검증해주세요)
 router.post('/request', authenticate, reviewController.requestReview);
 
-// === 업체용 ===
-// 선공개 리뷰 목록 (내 업체에 대한 선공개 리뷰 전체)
-router.get('/preview', authenticate, requireUserType('business'), reviewController.getPreviewReviews);
+// 카테고리별 리뷰 토픽 정의
+router.get('/topics/:category', optionalAuth, reviewTopicController.getTopicsByCategory);
 
-// 선공개 리뷰 상세 조회
-router.get('/preview/:id', authenticate, requireUserType('business'), reviewController.getPreviewReview);
-
-// 리뷰에 반박/개선 약속 작성
-router.post('/:id/business-response', authenticate, requireUserType('business'), reviewController.submitBusinessResponse);
-
-// 리뷰 이의 제기
-router.post('/:id/dispute', authenticate, requireUserType('business'), reviewController.disputeReview);
-
-// === 검색/필터 ===
 // 카테고리별 리뷰
 router.get('/category/:category', optionalAuth, reviewController.getReviewsByCategory);
 
@@ -61,5 +34,50 @@ router.get('/trending', optionalAuth, reviewController.getTrendingReviews);
 
 // 최근 리뷰
 router.get('/recent', optionalAuth, reviewController.getRecentReviews);
+
+// === 리뷰어용 ===
+// 리뷰 작성
+router.post('/', authenticate, requireUserType('reviewer'), fingerprintMiddleware, createReviewValidation, reviewController.createReview);
+
+// 리뷰 목록 (공개)
+router.get('/', optionalAuth, reviewController.getReviews);
+
+// === 파라미터 있는 라우트 ===
+// 선공개 리뷰 상세 조회
+router.get('/preview/:id', authenticate, requireUserType('business'), reviewController.getPreviewReview);
+
+// 리뷰 상세 (공개)
+router.get('/:id', optionalAuth, reviewController.getReview);
+
+// 리뷰 수정
+router.put('/:id', authenticate, requireUserType('reviewer'), createReviewValidation, reviewController.updateReview);
+
+// 리뷰 제출
+router.post('/:id/submit', authenticate, requireUserType('reviewer'), fingerprintMiddleware, reviewController.submitReview);
+
+// 증거 자료 업로드
+router.post('/:id/evidence/photos', authenticate, requireUserType('reviewer'), validateReviewPhotos, reviewController.uploadPhotos);
+router.post('/:id/evidence/receipt', authenticate, requireUserType('reviewer'), validateReceiptUpload, reviewController.uploadReceipt);
+router.post('/:id/evidence/video', authenticate, requireUserType('reviewer'), validateVideoUpload, reviewController.uploadVideo);
+
+// 영수증 사용 등록 (재사용 방지 기록) - :id 는 미션 ID
+router.post('/:id/receipt-usage', authenticate, requireUserType('reviewer'), reviewController.registerReceiptUsage);
+
+// 7일 후 추가 리뷰 (이커머스)
+router.post('/:id/follow-up', authenticate, requireUserType('reviewer'), reviewController.submitFollowUpReview);
+
+// 리뷰 유용성 투표
+router.post('/:id/helpful', authenticate, reviewController.markHelpful);
+router.post('/:id/not-helpful', authenticate, reviewController.markNotHelpful);
+
+// 리뷰 신고
+router.post('/:id/report', authenticate, reportReviewValidation, reviewController.reportReview);
+
+// === 업체용 ===
+// 리뷰에 반박/개선 약속 작성
+router.post('/:id/business-response', authenticate, requireUserType('business'), businessResponseValidation, reviewController.submitBusinessResponse);
+
+// 리뷰 이의 제기
+router.post('/:id/dispute', authenticate, requireUserType('business'), disputeReviewValidation, reviewController.disputeReview);
 
 module.exports = router;

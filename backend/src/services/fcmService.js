@@ -18,13 +18,13 @@ async function sendPushNotification(userId, title, body, data = {}) {
 
   try {
     // 사용자의 푸시 알림 설정 확인
-    const { data: user } = await supabase
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('notify_push')
       .eq('id', userId)
       .single();
 
-    if (!user?.notify_push) return;
+    if (userError || !user?.notify_push) return;
 
     // 활성 토큰 조회
     const { data: tokens } = await supabase

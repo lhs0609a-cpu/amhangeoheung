@@ -1,11 +1,13 @@
 const supabase = require('../config/supabase');
 const { confirmPayment, cancelPayment } = require('../utils/tossPayments');
 const { createErrorResponse, createPaymentErrorResponse } = require('../utils/errorMessages');
+const { PLAN_DETAILS: PLAN_DETAILS_RAW } = require('../config/constants');
 
+// 표시명을 포함한 플랜 상세. 코드 키(starter/growth/pro)는 스키마 enum과 일치.
 const PLAN_DETAILS = {
-  basic: { monthlyInspections: 2, price: 99000, name: 'Basic' },
-  standard: { monthlyInspections: 4, price: 179000, name: 'Standard' },
-  premium: { monthlyInspections: 8, price: 299000, name: 'Premium' }
+  starter: { ...PLAN_DETAILS_RAW.starter, name: 'Starter' },
+  growth: { ...PLAN_DETAILS_RAW.growth, name: 'Growth' },
+  pro: { ...PLAN_DETAILS_RAW.pro, name: 'Pro' },
 };
 
 // ROI 계산 상수
@@ -133,14 +135,14 @@ exports.getMyBusinesses = async (req, res, next) => {
 // 업체 수정
 exports.updateBusiness = async (req, res, next) => {
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from('businesses')
       .select('id')
       .eq('id', req.params.id)
       .eq('owner_id', req.user.id)
       .single();
 
-    if (!existing) {
+    if (existingError || !existing) {
       return res.status(404).json({
         success: false,
         error: {
@@ -174,14 +176,14 @@ exports.updateBusiness = async (req, res, next) => {
 exports.uploadImages = async (req, res, next) => {
   try {
     // 업체 소유권 확인
-    const { data: business } = await supabase
+    const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id, images')
       .eq('id', req.params.id)
       .eq('owner_id', req.user.id)
       .single();
 
-    if (!business) {
+    if (businessError || !business) {
       return res.status(404).json({
         success: false,
         error: {
@@ -259,14 +261,14 @@ exports.subscribe = async (req, res, next) => {
     const { plan } = req.body;
     paymentKey = req.body.paymentKey;
 
-    const { data: business } = await supabase
+    const { data: business, error: businessFetchError } = await supabase
       .from('businesses')
       .select('id, name')
       .eq('id', req.params.id)
       .eq('owner_id', req.user.id)
       .single();
 
-    if (!business) {
+    if (businessFetchError || !business) {
       return res.status(404).json({
         success: false,
         error: {
@@ -285,7 +287,7 @@ exports.subscribe = async (req, res, next) => {
         error: {
           code: 'INVALID_PLAN',
           message: '유효하지 않은 플랜입니다.',
-          guidance: ['basic, standard, premium 중 선택해주세요.'],
+          guidance: ['starter, growth, pro 중 선택해주세요.'],
           action: 'select_plan'
         }
       });
@@ -311,6 +313,16 @@ exports.subscribe = async (req, res, next) => {
       );
     }
 
+    // 결제 금액 검증
+    if (paymentResult.totalAmount !== planDetails.price) {
+      console.error(`[SUBSCRIPTION] Amount mismatch: expected=${planDetails.price}, actual=${paymentResult.totalAmount}`);
+      await cancelPayment(paymentKey, '결제 금액 불일치');
+      return res.status(400).json({
+        success: false,
+        message: '결제 금액이 일치하지 않습니다.'
+      });
+    }
+
     // Step 2: 구독 정보 업데이트
     const startDate = new Date();
     const endDate = new Date();
@@ -320,9 +332,9 @@ exports.subscribe = async (req, res, next) => {
       .from('businesses')
       .update({
         subscription_plan: plan,
-        subscription_start_date: startDate.toISOString(),
-        subscription_end_date: endDate.toISOString(),
-        subscription_auto_renew: true,
+        subscription_start: startDate.toISOString(),
+        subscription_end: endDate.toISOString(),
+        auto_renew: true,
         subscription_payment_key: paymentKey,
         subscription_order_id: orderId,
         monthly_inspections: planDetails.monthlyInspections,
@@ -373,14 +385,14 @@ exports.subscribe = async (req, res, next) => {
 // 구독 해지
 exports.unsubscribe = async (req, res, next) => {
   try {
-    const { data: business } = await supabase
+    const { data: business, error: businessFetchError } = await supabase
       .from('businesses')
-      .select('id, subscription_end_date')
+      .select('id, subscription_end')
       .eq('id', req.params.id)
       .eq('owner_id', req.user.id)
       .single();
 
-    if (!business) {
+    if (businessFetchError || !business) {
       return res.status(404).json({
         success: false,
         error: {
@@ -394,7 +406,7 @@ exports.unsubscribe = async (req, res, next) => {
 
     const { error } = await supabase
       .from('businesses')
-      .update({ subscription_auto_renew: false })
+      .update({ auto_renew: false })
       .eq('id', req.params.id);
 
     if (error) throw error;
@@ -403,9 +415,110 @@ exports.unsubscribe = async (req, res, next) => {
       success: true,
       message: '구독 자동 갱신이 해지되었습니다.',
       data: {
-        subscriptionEndDate: business.subscription_end_date,
+        subscriptionEndDate: business.subscription_end,
         note: '현재 구독 기간이 끝날 때까지 서비스를 이용하실 수 있습니다.'
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 신뢰도 분석 (앱 trust_analysis 화면용 - 공개)
+exports.getTrustAnalysis = async (req, res, next) => {
+  try {
+    const { data: business, error: businessFetchError } = await supabase
+      .from('businesses')
+      .select('id, name, category, badge_level, total_reviews, average_rating')
+      .eq('id', req.params.id)
+      .single();
+
+    if (businessFetchError || !business) {
+      return res.status(404).json(createErrorResponse('BUSINESS_NOT_FOUND'));
+    }
+
+    // 게시된 리뷰 (최근 6개월) 로 추이 계산
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const { data: recentReviews } = await supabase
+      .from('reviews')
+      .select('total_score, created_at')
+      .eq('business_id', req.params.id)
+      .eq('status', 'published')
+      .gte('created_at', sixMonthsAgo.toISOString())
+      .order('created_at', { ascending: true });
+
+    // 전체 게시 리뷰 평균 (신뢰도 산정용)
+    const { data: allReviews } = await supabase
+      .from('reviews')
+      .select('total_score')
+      .eq('business_id', req.params.id)
+      .eq('status', 'published');
+
+    const reviewList = allReviews || [];
+    const totalReviews = reviewList.length;
+    const averageScore = totalReviews > 0
+      ? Math.round((reviewList.reduce((s, r) => s + (r.total_score || 0), 0) / totalReviews) * 100) / 100
+      : 0;
+
+    // 신뢰점수: 5점 만점 평균을 100점 척도로 환산
+    const trustScore = Math.round((averageScore / 5) * 100);
+
+    // 등급 산정
+    const grade =
+      trustScore >= 90 ? 'A+' :
+      trustScore >= 80 ? 'A' :
+      trustScore >= 70 ? 'B' :
+      trustScore >= 60 ? 'C' : 'D';
+
+    // 월별 추이 (앱 모델 필드명: averageScore)
+    const monthlyData = {};
+    (recentReviews || []).forEach((r) => {
+      const d = new Date(r.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyData[key]) monthlyData[key] = { total: 0, count: 0 };
+      monthlyData[key].total += r.total_score || 0;
+      monthlyData[key].count += 1;
+    });
+    const trend = Object.entries(monthlyData)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, v]) => ({
+        month,
+        averageScore: Math.round((v.total / v.count) * 100) / 100,
+        reviewCount: v.count,
+      }));
+
+    // 카테고리 내 비교
+    const { data: competitors } = await supabase
+      .from('businesses')
+      .select('average_rating')
+      .eq('category', business.category)
+      .eq('status', 'active')
+      .neq('id', business.id);
+
+    const competitorList = competitors || [];
+    const categoryAverage = competitorList.length > 0
+      ? Math.round((competitorList.reduce((s, c) => s + (c.average_rating || 0), 0) / competitorList.length) * 100) / 100
+      : averageScore;
+
+    res.json({
+      success: true,
+      data: {
+        businessName: business.name,
+        category: business.category,
+        trustScore,
+        grade,
+        totalReviews,
+        averageScore,
+        badgeLevel: business.badge_level || 'none',
+        trend,
+        categoryComparison: {
+          categoryAverage,
+          difference: Math.round((averageScore - categoryAverage) * 100) / 100,
+          totalInCategory: competitorList.length + 1,
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -415,14 +528,14 @@ exports.unsubscribe = async (req, res, next) => {
 // P1: 대시보드 (ROI 시각화 강화)
 exports.getDashboard = async (req, res, next) => {
   try {
-    const { data: business } = await supabase
+    const { data: business, error: businessFetchError } = await supabase
       .from('businesses')
       .select('*')
       .eq('id', req.params.id)
       .eq('owner_id', req.user.id)
       .single();
 
-    if (!business) {
+    if (businessFetchError || !business) {
       return res.status(404).json({
         success: false,
         error: {
@@ -512,8 +625,8 @@ exports.getDashboard = async (req, res, next) => {
         subscription: {
           plan: business.subscription_plan,
           planName: PLAN_DETAILS[business.subscription_plan]?.name || '없음',
-          endDate: business.subscription_end_date,
-          autoRenew: business.subscription_auto_renew,
+          endDate: business.subscription_end,
+          autoRenew: business.auto_renew,
           monthlyInspections: business.monthly_inspections || 0,
           usedInspections: business.used_inspections || 0,
           remainingInspections: (business.monthly_inspections || 0) - (business.used_inspections || 0)
@@ -736,14 +849,14 @@ function getBadgeProgress(business) {
 // 경쟁력 리포트 (강화)
 exports.getCompetitiveReport = async (req, res, next) => {
   try {
-    const { data: business } = await supabase
+    const { data: business, error: businessFetchError } = await supabase
       .from('businesses')
       .select('*')
       .eq('id', req.params.id)
       .eq('owner_id', req.user.id)
       .single();
 
-    if (!business) {
+    if (businessFetchError || !business) {
       return res.status(404).json({
         success: false,
         error: {
@@ -950,27 +1063,27 @@ exports.respondToReview = async (req, res, next) => {
     const { content, improvementPromise } = req.body;
 
     // 업체 소유권 확인
-    const { data: business } = await supabase
+    const { data: business, error: businessFetchError } = await supabase
       .from('businesses')
       .select('id')
       .eq('id', req.params.id)
       .eq('owner_id', req.user.id)
       .single();
 
-    if (!business) {
+    if (businessFetchError || !business) {
       return res.status(403).json(
         createErrorResponse('FORBIDDEN')
       );
     }
 
-    const { data: review, error } = await supabase
+    const { data: review, error: reviewFetchError } = await supabase
       .from('reviews')
       .select('id')
       .eq('id', req.params.reviewId)
       .eq('business_id', req.params.id)
       .single();
 
-    if (!review) {
+    if (reviewFetchError || !review) {
       return res.status(404).json({
         success: false,
         error: {
@@ -1048,7 +1161,11 @@ exports.searchBusinesses = async (req, res, next) => {
       .eq('status', 'active');
 
     if (q) {
-      query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%`);
+      // 특수문자 이스케이프하여 SQL injection 방지
+      const sanitized = q.replace(/[%_\\'"()]/g, '');
+      if (sanitized.length > 0) {
+        query = query.or(`name.ilike.%${sanitized}%,description.ilike.%${sanitized}%`);
+      }
     }
 
     if (category) query = query.eq('category', category);
@@ -1063,6 +1180,48 @@ exports.searchBusinesses = async (req, res, next) => {
     res.json({
       success: true,
       data: { businesses }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 대안 업체 추천 (같은 카테고리+지역, 신뢰도 가중 평점 높은 순)
+exports.getAlternatives = async (req, res, next) => {
+  try {
+    const { data: business, error: bizError } = await supabase
+      .from('businesses')
+      .select('id, category, address_city')
+      .eq('id', req.params.id)
+      .single();
+
+    if (bizError || !business) {
+      return res.status(404).json({
+        success: false,
+        message: '업체를 찾을 수 없습니다.',
+      });
+    }
+
+    const { data: alternatives, error } = await supabase
+      .from('businesses')
+      .select('id, name, category, address_city, badge_level, trust_weighted_rating, average_rating, total_reviews')
+      .eq('category', business.category)
+      .eq('address_city', business.address_city)
+      .eq('status', 'active')
+      .neq('id', business.id)
+      .order('trust_weighted_rating', { ascending: false })
+      .limit(5);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      data: {
+        businessId: business.id,
+        category: business.category,
+        city: business.address_city,
+        alternatives: alternatives || [],
+      },
     });
   } catch (error) {
     next(error);

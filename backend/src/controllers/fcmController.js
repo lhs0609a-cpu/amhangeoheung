@@ -48,13 +48,13 @@ exports.registerDeviceToken = async (req, res, next) => {
     }
 
     // 같은 토큰이 이미 존재하는지 확인
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from('device_tokens')
       .select('id, user_id, is_active')
       .eq('token', token)
       .single();
 
-    if (existing) {
+    if (existing && !existingError) {
       if (existing.user_id === userId) {
         // 같은 사용자의 같은 토큰 → last_used_at 갱신
         await supabase

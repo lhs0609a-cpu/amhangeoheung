@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const supabase = require('../config/supabase');
 const { confirmPayment, cancelPayment, safeRollback, PAYMENT_STATUS } = require('../utils/tossPayments');
 const { createErrorResponse, createPaymentErrorResponse } = require('../utils/errorMessages');
+const { GRADE_BENEFITS, GRADE_PROMOTION } = require('../config/constants');
 
 // 내 프로필 조회
 exports.getMyProfile = async (req, res, next) => {
@@ -388,6 +389,16 @@ exports.subscribePremium = async (req, res, next) => {
       );
     }
 
+    // 결제 금액 검증
+    if (paymentResult.totalAmount !== prices[plan]) {
+      logStep('AMOUNT_MISMATCH', false, { expected: prices[plan], actual: paymentResult.totalAmount });
+      await safeRollback(paymentKey, '결제 금액 불일치', { userId: req.user.id, plan });
+      return res.status(400).json({
+        success: false,
+        message: '결제 금액이 일치하지 않습니다.'
+      });
+    }
+
     logStep('PAYMENT_CONFIRM', true, { status: paymentResult.status, orderId });
 
     // Step 2: 사용자 프리미엄 상태 업데이트
@@ -749,6 +760,185 @@ exports.checkAccountDeletable = async (req, res, next) => {
         canDelete,
         issues
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 수익 대시보드
+// 정산 신청 (리뷰어)
+// 정산금 지급은 에스크로 자동 정산(auto_release) 스케줄러가 처리하므로,
+// 이 엔드포인트는 지급 가능한 정산 내역과 예상 지급일을 확인/안내한다.
+exports.requestSettlement = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // 계좌 등록 여부 확인
+    const { data: user } = await supabase
+      .from('users')
+      .select('bank_name, bank_account, bank_holder, bank_verification_status')
+      .eq('id', userId)
+      .single();
+
+    if (!user || !user.bank_account) {
+      return res.status(400).json({
+        success: false,
+        message: '정산 계좌를 먼저 등록해주세요.',
+      });
+    }
+
+    // 지급 대기/보류 중인 에스크로 조회
+    const { data: pending } = await supabase
+      .from('escrows')
+      .select('reviewer_fee, status, auto_release_at')
+      .eq('reviewer_id', userId)
+      .in('status', ['paid', 'hold']);
+
+    const pendingList = pending || [];
+    const pendingAmount = pendingList.reduce(
+      (sum, e) => sum + (e.reviewer_fee || 0),
+      0
+    );
+
+    if (pendingAmount === 0) {
+      return res.json({
+        success: true,
+        message: '정산 신청 가능한 내역이 없습니다.',
+        data: { pendingAmount: 0, count: 0 },
+      });
+    }
+
+    // 가장 빠른 자동 지급 예정일
+    const releaseDates = pendingList
+      .map((e) => e.auto_release_at)
+      .filter(Boolean)
+      .sort();
+
+    res.json({
+      success: true,
+      message: '정산 신청이 접수되었습니다. 검토 후 등록 계좌로 지급됩니다.',
+      data: {
+        pendingAmount,
+        count: pendingList.length,
+        estimatedPayoutDate: releaseDates[0] || null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getMyEarnings = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // 총 수익
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('total_earnings, reviewer_grade, quality_bonus_count')
+      .eq('id', userId)
+      .single();
+
+    // 수익 이력
+    const { data: earnings } = await supabase
+      .from('reviewer_earnings')
+      .select('*')
+      .eq('reviewer_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    // 월별 수익 집계
+    const monthlyEarnings = {};
+    (earnings || []).forEach(e => {
+      const date = new Date(e.created_at);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyEarnings[key]) {
+        monthlyEarnings[key] = { base: 0, gradeBonus: 0, qualityBonus: 0, total: 0 };
+      }
+      monthlyEarnings[key].base += e.base_amount || 0;
+      monthlyEarnings[key].gradeBonus += e.grade_bonus || 0;
+      monthlyEarnings[key].qualityBonus += e.quality_bonus || 0;
+      monthlyEarnings[key].total += e.total_amount || 0;
+    });
+
+    const monthly = Object.entries(monthlyEarnings)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([month, data]) => ({ month, ...data }));
+
+    res.json({
+      success: true,
+      data: {
+        totalEarnings: user?.total_earnings || 0,
+        grade: user?.reviewer_grade || 'rookie',
+        gradeLabel: GRADE_BENEFITS[user?.reviewer_grade]?.label || '루키',
+        payMultiplier: GRADE_BENEFITS[user?.reviewer_grade]?.payMultiplier || 1.0,
+        qualityBonusCount: user?.quality_bonus_count || 0,
+        monthlyEarnings: monthly,
+        recentEarnings: (earnings || []).slice(0, 10),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 등급 진행률
+exports.getGradeProgress = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('reviewer_grade, completed_missions, trust_score')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !user) {
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    const currentGrade = user.reviewer_grade || 'rookie';
+    const gradeOrder = ['rookie', 'regular', 'senior', 'master'];
+    const currentIdx = gradeOrder.indexOf(currentGrade);
+    const nextGrade = currentIdx < gradeOrder.length - 1 ? gradeOrder[currentIdx + 1] : null;
+
+    let nextRequirements = null;
+    let progress = null;
+
+    if (nextGrade && GRADE_PROMOTION[nextGrade]) {
+      const req = GRADE_PROMOTION[nextGrade];
+      const missionProgress = Math.min(100, Math.round(((user.completed_missions || 0) / req.minMissions) * 100));
+      const trustProgress = Math.min(100, Math.round(((user.trust_score || 0) / req.minTrustScore) * 100));
+
+      nextRequirements = {
+        grade: nextGrade,
+        label: GRADE_BENEFITS[nextGrade]?.label || nextGrade,
+        minMissions: req.minMissions,
+        minTrustScore: req.minTrustScore,
+      };
+      progress = {
+        missions: { current: user.completed_missions || 0, required: req.minMissions, percent: missionProgress },
+        trustScore: { current: user.trust_score || 0, required: req.minTrustScore, percent: trustProgress },
+        overall: Math.min(missionProgress, trustProgress),
+      };
+    }
+
+    res.json({
+      success: true,
+      data: {
+        currentGrade,
+        currentLabel: GRADE_BENEFITS[currentGrade]?.label || '루키',
+        currentBenefits: GRADE_BENEFITS[currentGrade] || {},
+        nextGrade: nextRequirements,
+        progress,
+        allGrades: Object.entries(GRADE_BENEFITS).map(([key, val]) => ({
+          grade: key,
+          ...val,
+          isCurrent: key === currentGrade,
+          requirements: GRADE_PROMOTION[key] || null,
+        })),
+      },
     });
   } catch (error) {
     next(error);

@@ -256,13 +256,39 @@ exports.processSettlement = async (req, res, next) => {
       });
     }
 
-    // 정산 처리 시뮬레이션 (실제로는 은행 API 연동 필요)
+    // 실제 결제사 송금 요청
     const payoutResult = await simulateBankTransfer({
       bankName: reviewer.bank_name,
       accountNumber: reviewer.bank_account_number,
       accountHolder: reviewer.bank_account_holder,
       amount: escrow.reviewer_fee
     });
+
+    // 보류(pending): 결제사 미설정 또는 일시적 오류(타임아웃/5xx).
+    // 리뷰어 책임이 아니므로 실패 카운트를 올리지 않고 hold 로 둔다.
+    if (!payoutResult.success && payoutResult.pending) {
+      await supabase
+        .from('escrows')
+        .update({
+          status: 'hold',
+          payout_error_message: payoutResult.errorMessage
+        })
+        .eq('id', escrowId);
+
+      console.warn(
+        `[SETTLEMENT] Held (pending): escrowId=${escrowId}, notConfigured=${!!payoutResult.notConfigured}, msg=${payoutResult.errorMessage}`
+      );
+
+      return res.status(202).json({
+        success: false,
+        error: {
+          code: payoutResult.notConfigured ? 'PAYOUT_NOT_CONFIGURED' : 'SETTLEMENT_PENDING',
+          message: payoutResult.errorMessage,
+          guidance: ['정산이 보류되었습니다. 처리 가능 상태가 되면 자동/수동으로 재처리됩니다.'],
+          action: 'hold'
+        }
+      });
+    }
 
     if (payoutResult.success) {
       // 정산 성공
@@ -524,52 +550,14 @@ function maskAccountNumber(accountNumber) {
   return accountNumber.slice(0, -4).replace(/./g, '*') + accountNumber.slice(-4);
 }
 
-/**
- * 은행 송금 시뮬레이션 (실제로는 은행 API 연동 필요)
- */
-async function simulateBankTransfer({ bankName, accountNumber, accountHolder, amount }) {
-  // TODO: 실제 은행 API 연동
-  // 개발 환경에서는 90% 확률로 성공 시뮬레이션
-  const success = Math.random() > 0.1;
+// 실제 송금/계좌검증은 payoutService 로 위임한다.
+// 결제사 미설정 시 가짜 성공을 만들지 않고 보류(pending) 처리된다.
+const {
+  requestBankTransfer: simulateBankTransfer,
+  requestAccountVerification: simulateAccountVerification
+} = require('../utils/payoutService');
 
-  if (success) {
-    return {
-      success: true,
-      transactionId: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    };
-  } else {
-    const errors = [
-      '예금주명이 일치하지 않습니다.',
-      '해당 계좌를 찾을 수 없습니다.',
-      '은행 점검 시간입니다. 잠시 후 다시 시도해주세요.',
-      '계좌가 해지되었거나 거래정지 상태입니다.'
-    ];
-    return {
-      success: false,
-      errorMessage: errors[Math.floor(Math.random() * errors.length)]
-    };
-  }
-}
-
-/**
- * 계좌 유효성 검증 시뮬레이션
- */
-async function simulateAccountVerification({ bankName, accountNumber, accountHolder }) {
-  // TODO: 실제 은행 API 연동 (오픈뱅킹 등)
-  // 개발 환경에서는 95% 확률로 성공 시뮬레이션
-  const success = Math.random() > 0.05;
-
-  if (success) {
-    return { success: true };
-  } else {
-    return {
-      success: false,
-      errorMessage: '예금주명이 일치하지 않습니다.'
-    };
-  }
-}
-
-module.exports = {
-  SETTLEMENT_STATUS,
-  MAX_RETRY_COUNT
-};
+// NOTE: 위에서 exports.getMySettlements 등으로 정의한 핸들러를 유지하기 위해
+// module.exports 전체를 재할당하지 않고 상수만 추가한다.
+module.exports.SETTLEMENT_STATUS = SETTLEMENT_STATUS;
+module.exports.MAX_RETRY_COUNT = MAX_RETRY_COUNT;

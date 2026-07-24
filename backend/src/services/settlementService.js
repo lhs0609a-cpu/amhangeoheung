@@ -6,6 +6,9 @@
 const supabase = require('../config/supabase');
 const { createNotification } = require('../utils/notificationService');
 const NT = require('../config/notificationTypes');
+const { GRADE_BENEFITS } = require('../config/constants');
+// 실제 결제사 송금. 미설정 시 가짜 성공 없이 pending 반환.
+const { requestBankTransfer: simulateBankTransfer } = require('../utils/payoutService');
 
 const MAX_RETRY_COUNT = 3;
 
@@ -21,7 +24,8 @@ async function processAutoSettlement() {
       *,
       reviewer:users!escrows_reviewer_id_fkey(
         id, bank_name, bank_account_number, bank_account_holder,
-        bank_verification_status, bank_verification_failed_count
+        bank_verification_status, bank_verification_failed_count,
+        reviewer_grade
       )
     `)
     .eq('status', 'paid')
@@ -39,6 +43,7 @@ async function processAutoSettlement() {
 
   let succeeded = 0;
   let failed = 0;
+  let held = 0;
 
   for (const escrow of escrows) {
     try {
@@ -97,20 +102,45 @@ async function processAutoSettlement() {
         continue;
       }
 
-      // 은행 송금 시뮬레이션
+      // 등급 배율 적용
+      const gradeMultiplier = GRADE_BENEFITS[reviewer.reviewer_grade]?.payMultiplier || 1.0;
+      const baseAmount = escrow.reviewer_fee;
+      const gradeBonus = Math.round(baseAmount * (gradeMultiplier - 1));
+      const totalPayout = baseAmount + gradeBonus;
+
+      // 실제 결제사 송금 요청
       const payoutResult = await simulateBankTransfer({
         bankName: reviewer.bank_name,
         accountNumber: reviewer.bank_account_number,
         accountHolder: reviewer.bank_account_holder,
-        amount: escrow.reviewer_fee,
+        amount: totalPayout,
       });
+
+      // 보류(pending): 결제사 미설정/일시오류. 리뷰어 책임이 아니므로
+      // 재시도 카운트를 올리지 않고 'paid' 상태로 되돌려 다음 주기에 재처리.
+      if (!payoutResult.success && payoutResult.pending) {
+        await supabase
+          .from('escrows')
+          .update({
+            status: 'paid',
+            payout_error_message: payoutResult.errorMessage,
+            payout_last_attempt_at: new Date().toISOString(),
+          })
+          .eq('id', escrow.id)
+          .eq('status', 'releasing');
+        console.warn(
+          `[SETTLEMENT] Held (pending): escrowId=${escrow.id}, notConfigured=${!!payoutResult.notConfigured}, msg=${payoutResult.errorMessage}`
+        );
+        held++;
+        continue;
+      }
 
       if (payoutResult.success) {
         await supabase
           .from('escrows')
           .update({
             status: 'released',
-            payout_amount: escrow.reviewer_fee,
+            payout_amount: totalPayout,
             payout_bank: reviewer.bank_name,
             payout_account: maskAccountNumber(reviewer.bank_account_number),
             payout_holder: reviewer.bank_account_holder,
@@ -121,42 +151,88 @@ async function processAutoSettlement() {
           })
           .eq('id', escrow.id);
 
-        // 인증 실패 횟수 초기화
-        await supabase
-          .from('users')
-          .update({
-            bank_verification_status: 'verified',
-            bank_verification_failed_count: 0,
-          })
-          .eq('id', reviewer.id);
+        // Record earning history
+        await supabase.from('reviewer_earnings').insert({
+          reviewer_id: reviewer.id,
+          mission_id: escrow.mission_id,
+          escrow_id: escrow.id,
+          earning_type: 'mission_pay',
+          base_amount: baseAmount,
+          grade_bonus: gradeBonus,
+          total_amount: totalPayout,
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+        });
 
+        // Update user total_earnings (atomic increment via RPC)
+        const { error: rpcError } = await supabase.rpc('increment_user_earnings', {
+          p_user_id: reviewer.id,
+          p_amount: totalPayout,
+        });
+        if (rpcError) {
+          // Fallback: direct update with atomic SQL expression
+          console.warn(`[SETTLEMENT] RPC fallback for user ${reviewer.id}:`, rpcError.message);
+          await supabase.from('users')
+            .update({
+              total_earnings: supabase.raw(`COALESCE(total_earnings, 0) + ${totalPayout}`),
+              bank_verification_status: 'verified',
+              bank_verification_failed_count: 0,
+            })
+            .eq('id', reviewer.id);
+        } else {
+          await supabase.from('users')
+            .update({
+              bank_verification_status: 'verified',
+              bank_verification_failed_count: 0,
+            })
+            .eq('id', reviewer.id);
+        }
+
+        const bonusText = gradeBonus > 0
+          ? ` (등급 보너스 +${gradeBonus.toLocaleString()}원 포함)`
+          : '';
         const notifResult = await createNotification(
           reviewer.id,
           NT.SETTLEMENT_COMPLETE,
           '정산이 완료되었습니다',
-          `${escrow.reviewer_fee.toLocaleString()}원이 정산되었습니다.`,
-          { escrowId: escrow.id, amount: escrow.reviewer_fee }
+          `${totalPayout.toLocaleString()}원이 정산되었습니다.${bonusText}`,
+          { escrowId: escrow.id, amount: totalPayout, gradeBonus }
         );
         if (!notifResult.success) {
           console.error(`[SETTLEMENT] Notification failed for escrow ${escrow.id}:`, notifResult.error);
         }
 
-        console.log(`[SETTLEMENT] Success: escrowId=${escrow.id}, amount=${escrow.reviewer_fee}`);
+        console.log(`[SETTLEMENT] Success: escrowId=${escrow.id}, base=${baseAmount}, bonus=${gradeBonus}, total=${totalPayout}`);
         succeeded++;
       } else {
-        // 실패 - 재시도 카운트 증가
-        const retryCount = (escrow.payout_retry_count || 0) + 1;
-        const needsVerification = retryCount >= MAX_RETRY_COUNT;
-
-        await supabase
+        // 실패 - 재시도 카운트 원자적 증가
+        // status를 'releasing'에서 다시 'paid'로 되돌리면서 retry_count 증가
+        const { data: updatedEscrow } = await supabase
           .from('escrows')
           .update({
-            status: needsVerification ? 'hold' : 'paid',
-            payout_retry_count: retryCount,
+            status: 'paid',
             payout_error_message: payoutResult.errorMessage,
             payout_last_attempt_at: new Date().toISOString(),
           })
-          .eq('id', escrow.id);
+          .eq('id', escrow.id)
+          .eq('status', 'releasing')
+          .select('payout_retry_count');
+
+        // RPC로 retry count 원자적 증가
+        const { data: incrementedEscrow } = await supabase.rpc('increment_escrow_retry', {
+          p_escrow_id: escrow.id,
+        });
+
+        const retryCount = incrementedEscrow?.payout_retry_count
+          || (updatedEscrow?.[0]?.payout_retry_count || 0) + 1;
+        const needsVerification = retryCount >= MAX_RETRY_COUNT;
+
+        if (needsVerification) {
+          await supabase
+            .from('escrows')
+            .update({ status: 'hold' })
+            .eq('id', escrow.id);
+        }
 
         await supabase
           .from('users')
@@ -175,30 +251,7 @@ async function processAutoSettlement() {
     }
   }
 
-  return { processed: escrows.length, succeeded, failed };
-}
-
-/**
- * 은행 송금 시뮬레이션 (실제로는 은행 API 연동)
- */
-async function simulateBankTransfer({ bankName, accountNumber, accountHolder, amount }) {
-  const success = Math.random() > 0.1;
-  if (success) {
-    return {
-      success: true,
-      transactionId: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    };
-  }
-  const errors = [
-    '예금주명이 일치하지 않습니다.',
-    '해당 계좌를 찾을 수 없습니다.',
-    '은행 점검 시간입니다. 잠시 후 다시 시도해주세요.',
-    '계좌가 해지되었거나 거래정지 상태입니다.',
-  ];
-  return {
-    success: false,
-    errorMessage: errors[Math.floor(Math.random() * errors.length)],
-  };
+  return { processed: escrows.length, succeeded, failed, held };
 }
 
 function maskAccountNumber(accountNumber) {

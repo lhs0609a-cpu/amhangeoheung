@@ -1,14 +1,9 @@
 const supabase = require('../config/supabase');
 
-const MAX_LIMIT = 100;
-
-/**
- * GET /api/notifications — 내 알림 목록
- */
+// 알림 목록 조회
 exports.getNotifications = async (req, res, next) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 20), MAX_LIMIT);
+    const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
     const { data: notifications, error, count } = await supabase
@@ -25,64 +20,24 @@ exports.getNotifications = async (req, res, next) => {
       data: {
         notifications: notifications || [],
         pagination: {
-          page,
-          limit,
+          page: parseInt(page),
+          limit: parseInt(limit),
           total: count || 0,
-          pages: Math.ceil((count || 0) / limit),
-        },
-      },
+          totalPages: Math.ceil((count || 0) / limit)
+        }
+      }
     });
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * PUT /api/notifications/:id/read — 읽음 처리
- */
-exports.markAsRead = async (req, res, next) => {
-  try {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', req.params.id)
-      .eq('user_id', req.user.id);
-
-    if (error) throw error;
-
-    res.json({ success: true, message: '읽음 처리되었습니다.' });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * PUT /api/notifications/read-all — 전체 읽음 처리
- */
-exports.markAllAsRead = async (req, res, next) => {
-  try {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', req.user.id)
-      .eq('is_read', false);
-
-    if (error) throw error;
-
-    res.json({ success: true, message: '모든 알림을 읽음 처리했습니다.' });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/notifications/unread-count — 읽지 않은 알림 수
- */
+// 읽지 않은 알림 수 조회
 exports.getUnreadCount = async (req, res, next) => {
   try {
     const { count, error } = await supabase
       .from('notifications')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', req.user.id)
       .eq('is_read', false);
 
@@ -90,9 +45,95 @@ exports.getUnreadCount = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: { unreadCount: count || 0 },
+      data: { unreadCount: count || 0 }
     });
   } catch (error) {
     next(error);
+  }
+};
+
+// 알림 읽음 처리
+exports.markAsRead = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', req.user.id);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: '알림을 읽음 처리했습니다.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 전체 읽음 처리
+exports.markAllAsRead = async (req, res, next) => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('user_id', req.user.id)
+      .eq('is_read', false);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: '모든 알림을 읽음 처리했습니다.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 알림 삭제
+exports.deleteNotification = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', req.user.id);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: '알림이 삭제되었습니다.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 알림 생성 유틸리티 (내부 사용)
+exports.createNotification = async ({ userId, type, title, body, data = {} }) => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type,
+        title,
+        body,
+        data,
+        is_read: false
+      });
+
+    if (error) {
+      console.error('Failed to create notification:', error);
+    }
+  } catch (err) {
+    console.error('Notification creation error:', err);
   }
 };

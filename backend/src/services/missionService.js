@@ -88,13 +88,13 @@ async function processMissionExpiry() {
         .eq('id', mission.id);
 
       // 업체에 알림
-      const { data: business } = await supabase
+      const { data: business, error: businessError } = await supabase
         .from('businesses')
         .select('owner_id')
         .eq('id', mission.business_id)
         .single();
 
-      if (business?.owner_id) {
+      if (!businessError && business?.owner_id) {
         const notifResult = await createNotification(
           business.owner_id,
           NT.MISSION_EXPIRED,
