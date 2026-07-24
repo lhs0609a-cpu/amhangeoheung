@@ -51,27 +51,6 @@ class EnvironmentConfig {
     }
   }
 
-  /// 아임포트 가맹점 ID
-  static String get iamportMerchantId {
-    switch (_environment) {
-      case Environment.development:
-        return const String.fromEnvironment(
-          'IAMPORT_MERCHANT_ID',
-          defaultValue: 'imp00000000',
-        );
-      case Environment.staging:
-        return const String.fromEnvironment(
-          'IAMPORT_MERCHANT_ID',
-          defaultValue: 'imp00000000',
-        );
-      case Environment.production:
-        return const String.fromEnvironment(
-          'IAMPORT_MERCHANT_ID',
-          defaultValue: 'imp_amhangeoheung',
-        );
-    }
-  }
-
   /// Toss Payments 클라이언트 키 (위젯 SDK용).
   /// 운영 키는 --dart-define=TOSS_CLIENT_KEY=... 로 주입한다.
   /// 기본값은 Toss 공식 문서의 공용 테스트 키.

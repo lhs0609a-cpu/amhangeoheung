@@ -5,9 +5,8 @@ import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../shared/widgets/hwahae/hwahae_buttons.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../payment/data/models/payment_models.dart';
-import '../../../payment/data/services/payment_service.dart';
-import '../../../payment/presentation/screens/payment_screen.dart';
+import '../../../payment/presentation/screens/toss_payment_screen.dart';
+import '../../data/repositories/premium_repository.dart';
 
 // 요금제 모델
 class PricingPlan {
@@ -1059,100 +1058,112 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
     );
   }
 
+  // Toss Payments + 백엔드 /users/premium/subscribe 흐름.
+  // method 인자는 UI 호환용으로 유지하지만 Toss 위젯이 결제 수단을 자체 처리한다.
   Future<void> _processPayment(String method, PricingPlan plan) async {
     if (_isProcessingPayment) return;
-    setState(() => _isProcessingPayment = true);
 
     Navigator.pop(context); // 결제 방법 선택 시트 닫기
 
-    // 결제 수단 매핑
-    final paymentMethod = switch (method) {
-      'card' => PaymentMethod.card,
-      'kakaopay' => PaymentMethod.kakaoPay,
-      'apple' => PaymentMethod.applePay,
-      _ => PaymentMethod.card,
-    };
+    // 엔터프라이즈는 인앱 결제 대상이 아니므로 문의 안내 후 종료.
+    // (백엔드 프리미엄 구독은 monthly/yearly 단일 요금만 승인한다)
+    if (plan.id == 'enterprise') {
+      _showResultSnack(
+        '엔터프라이즈 플랜은 support@amhangeoheung.com 으로 문의해주세요.',
+        HwahaeColors.warning,
+      );
+      return;
+    }
 
+    setState(() => _isProcessingPayment = true);
+
+    // 월간/연간에 따라 백엔드 플랜 및 금액 결정.
+    // 금액은 서버 승인 시 검증되므로 백엔드 가격과 반드시 일치해야 한다.
+    final billing = _isYearly ? 'yearly' : 'monthly';
     final price = plan.getPrice(_isYearly);
-    final paymentService = PaymentService();
 
     // 로그인된 사용자 정보 가져오기
     String customerName = '암행어흥 사용자';
     String customerEmail = 'user@amhangeoheung.com';
     try {
-      final storage = const FlutterSecureStorage();
+      const storage = FlutterSecureStorage();
       final name = await storage.read(key: 'user_name');
       final email = await storage.read(key: 'user_email');
       if (name != null) customerName = name;
       if (email != null) customerEmail = email;
     } catch (_) {}
 
-    // 결제 요청 데이터 생성
-    final request = PaymentRequest(
-      orderId: paymentService.generateOrderId(),
-      orderName: '암행어흥 ${plan.name} 플랜 (${_isYearly ? '연간' : '월간'})',
-      amount: price,
-      customerName: customerName,
-      customerEmail: customerEmail,
-      method: paymentMethod,
-      isSubscription: true,
-    );
+    if (!mounted) return;
 
-    // 결제 화면 띄우기
-    final result = await showPaymentScreen(
-      context: context,
-      request: request,
+    // 1. Toss 결제 위젯을 띄워 paymentKey 획득
+    final orderId =
+        'premium_${billing}_${DateTime.now().millisecondsSinceEpoch}';
+    final tossResult = await Navigator.of(context).push<TossPaymentResult>(
+      MaterialPageRoute(
+        builder: (_) => TossPaymentScreen(
+          orderId: orderId,
+          orderName: '암행어흥 ${plan.name} 플랜 (${_isYearly ? '연간' : '월간'})',
+          amount: price,
+          customerName: customerName,
+          customerEmail: customerEmail,
+        ),
+      ),
     );
 
     if (!mounted) return;
 
-    if (result != null && result.success) {
-      // 결제 성공
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 12),
-              Text('${plan.name} 플랜 구독이 완료되었습니다!'),
-            ],
-          ),
-          backgroundColor: HwahaeColors.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
+    if (tossResult == null || !tossResult.success) {
+      _showResultSnack(
+        tossResult?.errorMessage ?? '결제가 취소되었습니다',
+        HwahaeColors.error,
       );
+      setState(() => _isProcessingPayment = false);
+      return;
+    }
 
+    // 2. 백엔드에 paymentKey 전달 → 서버에서 confirmPayment + 프리미엄 상태 업데이트
+    final subResult = await PremiumRepository().subscribe(
+      billing: billing,
+      paymentKey: tossResult.paymentKey!,
+    );
+
+    if (!mounted) return;
+
+    if (subResult.success) {
+      _showResultSnack('${plan.name} 플랜 구독이 완료되었습니다!', HwahaeColors.success);
       Navigator.pop(context); // 요금제 화면 닫기
-    } else if (result != null) {
-      // 결제 실패
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  result.errorMessage ?? '결제에 실패했습니다',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: HwahaeColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
+    } else {
+      _showResultSnack(
+        subResult.message ?? '구독 처리에 실패했습니다',
+        HwahaeColors.error,
       );
     }
 
     if (mounted) setState(() => _isProcessingPayment = false);
+  }
+
+  void _showResultSnack(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              color == HwahaeColors.success
+                  ? Icons.check_circle
+                  : Icons.error_outline,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
   }
 
   IconData _getPlanIcon(String planId) {
