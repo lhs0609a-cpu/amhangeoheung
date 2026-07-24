@@ -11,6 +11,21 @@
 flutter build web --release --web-renderer html --dart-define=ENV=production
 ```
 
+> ⚠️ 운영(production) 빌드는 아래 사업자 법적 정보를 `--dart-define` 으로 주입해야
+> 합니다. 누락 시 앱 부팅 시점에 `assertReleaseReady()` 가 예외를 던져 실행이
+> 중단됩니다(전자상거래법 필수 표기 누락 방지).
+>
+> ```
+> --dart-define=ENV=production \
+> --dart-define=COMPANY_CEO_NAME=대표자명 \
+> --dart-define=COMPANY_BRN=123-45-67890 \
+> --dart-define=COMPANY_MAIL_ORDER_NO=2026-지역-00000 \
+> --dart-define=COMPANY_ADDRESS="사업장 주소" \
+> --dart-define=COMPANY_CS_PHONE=1600-0000 \
+> --dart-define=TOSS_CLIENT_KEY=live_ck_xxx \
+> --dart-define=IOS_APP_ID=id1234567890
+> ```
+
 ### 2. 스테이징 빌드
 ```powershell
 .\scripts\build_web.ps1 staging

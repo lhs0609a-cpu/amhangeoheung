@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'core/theme/app_theme.dart';
 import 'core/network/api_client.dart';
 import 'core/config/environment.dart';
+import 'core/config/company_info.dart';
 import 'core/services/fcm_service.dart';
 import 'app_router.dart';
 
@@ -15,6 +16,11 @@ Future<void> main() async {
 
   // 환경 설정 초기화
   _initializeEnvironment();
+
+  // 운영 빌드에 필수 사업자 법적 정보가 주입되지 않았으면 부팅을 중단한다.
+  // (전자상거래법상 필수 표기 누락 상태로 출시되는 것을 방지)
+  CompanyInfo.assertReleaseReady();
+  CompanyInfo.warnIfUnfilled();
 
   // Firebase 초기화
   try {
