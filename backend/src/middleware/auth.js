@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const supabase = require('../config/supabase');
 
 // JWT 토큰 검증 미들웨어
@@ -15,6 +16,21 @@ const authenticate = async (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Check if token has been blacklisted (logged out)
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const { data: blacklisted, error: blacklistError } = await supabase
+      .from('token_blacklist')
+      .select('id')
+      .eq('token_hash', tokenHash)
+      .single();
+
+    if (blacklisted && !blacklistError) {
+      return res.status(401).json({
+        success: false,
+        message: '로그아웃된 토큰입니다.'
+      });
+    }
 
     const { data: user, error } = await supabase
       .from('users')
@@ -65,13 +81,13 @@ const optionalAuth = async (req, res, next) => {
       const token = authHeader.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      const { data: user } = await supabase
+      const { data: user, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('id', decoded.userId)
         .single();
 
-      if (user) {
+      if (!userError && user) {
         delete user.password;
         req.user = user;
       }
@@ -95,6 +111,26 @@ const requireUserType = (...types) => {
     }
     next();
   };
+};
+
+// 관리자 권한 체크
+// user_type enum에는 'admin'이 없으므로, users.is_admin 플래그 또는
+// ADMIN_USER_IDS(쉼표구분 env)로 관리자를 식별한다.
+const requireAdmin = (req, res, next) => {
+  const adminIds = (process.env.ADMIN_USER_IDS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const isAdmin = req.user?.is_admin === true || adminIds.includes(String(req.user?.id));
+
+  if (!isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: '관리자 권한이 필요합니다.'
+    });
+  }
+  next();
 };
 
 // 본인 인증 필수
@@ -133,6 +169,7 @@ module.exports = {
   authenticate,
   optionalAuth,
   requireUserType,
+  requireAdmin,
   requireVerification,
   requireReviewerGrade
 };

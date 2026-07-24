@@ -1,115 +1,173 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = 'noreply@amhangeoheung.com';
-const APP_NAME = '암행어흥';
-
-/**
- * 비밀번호 재설정 이메일 발송
- */
-async function sendPasswordResetEmail(email, token, userName) {
-  try {
-    const resetUrl = `${process.env.APP_URL || 'https://amhangeoheung.com'}/reset-password?token=${token}`;
-    
-    await resend.emails.send({
-      from: `${APP_NAME} <${FROM_EMAIL}>`,
-      to: email,
-      subject: `[${APP_NAME}] 비밀번호 재설정 안내`,
-      html: `
-        <div style="font-family: 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #6366f1;">비밀번호 재설정</h2>
-          <p>${userName || '회원'}님, 안녕하세요.</p>
-          <p>비밀번호 재설정을 요청하셨습니다. 아래 버튼을 클릭하여 새 비밀번호를 설정해주세요.</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" style="background-color: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-              비밀번호 재설정하기
-            </a>
-          </div>
-          <p style="color: #6b7280; font-size: 14px;">이 링크는 6시간 동안 유효합니다.</p>
-          <p style="color: #6b7280; font-size: 14px;">본인이 요청하지 않은 경우 이 이메일을 무시해주세요.</p>
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-          <p style="color: #9ca3af; font-size: 12px;">${APP_NAME} | support@amhangeoheung.com</p>
-        </div>
-      `,
+// 이메일 전송 설정
+// 프로덕션에서는 SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS 환경변수 사용
+// 개발 환경에서는 콘솔 로그로 대체
+const createTransporter = () => {
+  if (process.env.SMTP_HOST) {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
     });
-    
-    console.log(`[EMAIL] Password reset email sent to ${email}`);
-    return { success: true };
-  } catch (error) {
-    console.error(`[EMAIL] Failed to send password reset email to ${email}:`, error);
-    return { success: false, error: error.message };
   }
+
+  // 개발 환경: Ethereal 또는 콘솔 로그 사용
+  return null;
+};
+
+const transporter = createTransporter();
+
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@amhangeoheung.com';
+const FROM_NAME = '암행어흥';
+
+// Rate limiting: 수신자당 5분에 최대 3회
+const EMAIL_RATE_LIMIT = { maxPerWindow: 3, windowMs: 5 * 60 * 1000 };
+const emailRateMap = new Map(); // key: email, value: [timestamp, ...]
+
+// 30분마다 만료된 rate limit 엔트리 정리
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamps] of emailRateMap.entries()) {
+    const valid = timestamps.filter(t => now - t < EMAIL_RATE_LIMIT.windowMs);
+    if (valid.length === 0) emailRateMap.delete(key);
+    else emailRateMap.set(key, valid);
+  }
+}, 30 * 60 * 1000);
+
+function checkEmailRateLimit(to) {
+  const now = Date.now();
+  const timestamps = (emailRateMap.get(to) || []).filter(
+    t => now - t < EMAIL_RATE_LIMIT.windowMs
+  );
+  if (timestamps.length >= EMAIL_RATE_LIMIT.maxPerWindow) {
+    return false;
+  }
+  timestamps.push(now);
+  emailRateMap.set(to, timestamps);
+  return true;
 }
 
 /**
- * 가입 환영 이메일
+ * 이메일 전송
  */
-async function sendWelcomeEmail(email, userName) {
-  try {
-    await resend.emails.send({
-      from: `${APP_NAME} <${FROM_EMAIL}>`,
-      to: email,
-      subject: `[${APP_NAME}] 가입을 환영합니다!`,
-      html: `
-        <div style="font-family: 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #6366f1;">환영합니다, ${userName || '회원'}님!</h2>
-          <p>${APP_NAME}에 가입해주셔서 감사합니다.</p>
-          <p>이제 리뷰 신뢰 플랫폼의 다양한 기능을 이용하실 수 있습니다.</p>
-          <ul>
-            <li>미스터리 쇼핑 미션 참여</li>
-            <li>검증된 리뷰 작성 및 수익 창출</li>
-            <li>업체 신뢰도 분석</li>
-          </ul>
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-          <p style="color: #9ca3af; font-size: 12px;">${APP_NAME} | support@amhangeoheung.com</p>
-        </div>
-      `,
-    });
-
-    console.log(`[EMAIL] Welcome email sent to ${email}`);
-    return { success: true };
-  } catch (error) {
-    console.error(`[EMAIL] Failed to send welcome email to ${email}:`, error);
-    return { success: false, error: error.message };
+const sendEmail = async ({ to, subject, html }) => {
+  // Rate limit 체크
+  if (!checkEmailRateLimit(to)) {
+    console.warn(`[EMAIL] Rate limited: ${to} (max ${EMAIL_RATE_LIMIT.maxPerWindow} per ${EMAIL_RATE_LIMIT.windowMs / 60000}min)`);
+    return;
   }
-}
+
+  if (transporter) {
+    await transporter.sendMail({
+      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+      to,
+      subject,
+      html,
+    });
+    console.log(`[EMAIL] Sent to ${to}: ${subject}`);
+  } else {
+    // 개발 환경: 콘솔에 내용 출력
+    console.log(`\n[EMAIL - DEV MODE] Would send to: ${to}`);
+    console.log(`  Subject: ${subject}`);
+    console.log(`  Preview: ${html.substring(0, 200)}...\n`);
+  }
+};
 
 /**
- * 결제 확인 이메일
+ * 비밀번호 재설정 이메일
  */
-async function sendPaymentConfirmEmail(email, orderName, amount) {
-  try {
-    const formattedAmount = amount.toLocaleString('ko-KR');
+const sendPasswordResetEmail = async (email, name, resetToken) => {
+  // 실제 서비스에서는 프론트엔드 URL로 교체
+  const resetUrl = `${process.env.FRONTEND_URL || 'https://amhangeoheung.com'}/reset-password?token=${resetToken}`;
 
-    await resend.emails.send({
-      from: `${APP_NAME} <${FROM_EMAIL}>`,
-      to: email,
-      subject: `[${APP_NAME}] 결제 완료 안내`,
-      html: `
-        <div style="font-family: 'Apple SD Gothic Neo', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #6366f1;">결제가 완료되었습니다</h2>
-          <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>주문명:</strong> ${orderName}</p>
-            <p><strong>결제 금액:</strong> ${formattedAmount}원</p>
-            <p><strong>결제 일시:</strong> ${new Date().toLocaleString('ko-KR')}</p>
-          </div>
-          <p>결제 관련 문의사항이 있으시면 고객센터로 연락해주세요.</p>
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-          <p style="color: #9ca3af; font-size: 12px;">${APP_NAME} | support@amhangeoheung.com</p>
+  const html = `
+    <div style="max-width:600px;margin:0 auto;font-family:'Pretendard',sans-serif;background:#fafafc;padding:40px 20px;">
+      <div style="background:#fff;border-radius:16px;padding:40px;border:1px solid #eee;">
+        <div style="text-align:center;margin-bottom:32px;">
+          <h1 style="color:#6C5CE7;font-size:24px;margin:0;">암행어흥</h1>
+          <p style="color:#6B6B80;font-size:14px;margin-top:8px;">비밀번호 재설정 안내</p>
         </div>
-      `,
-    });
 
-    console.log(`[EMAIL] Payment confirmation email sent to ${email}`);
-    return { success: true };
-  } catch (error) {
-    console.error(`[EMAIL] Failed to send payment confirmation email to ${email}:`, error);
-    return { success: false, error: error.message };
-  }
-}
+        <p style="color:#1A1A2E;font-size:16px;line-height:1.6;">
+          안녕하세요${name ? ', ' + name + '님' : ''}.
+        </p>
+
+        <p style="color:#1A1A2E;font-size:16px;line-height:1.6;">
+          비밀번호 재설정이 요청되었습니다. 아래 버튼을 클릭하여 새 비밀번호를 설정해주세요.
+        </p>
+
+        <div style="text-align:center;margin:32px 0;">
+          <a href="${resetUrl}"
+             style="display:inline-block;background:#6C5CE7;color:#fff;padding:14px 40px;
+                    border-radius:12px;text-decoration:none;font-size:16px;font-weight:600;">
+            비밀번호 재설정
+          </a>
+        </div>
+
+        <p style="color:#A0A0B0;font-size:13px;line-height:1.5;">
+          이 링크는 6시간 동안 유효합니다.<br>
+          본인이 요청하지 않은 경우 이 이메일을 무시해주세요.
+        </p>
+
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+
+        <p style="color:#A0A0B0;font-size:12px;text-align:center;">
+          이 이메일은 암행어흥에서 자동으로 발송되었습니다.<br>
+          문의: support@amhangeoheung.com
+        </p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: '[암행어흥] 비밀번호 재설정 안내',
+    html,
+  });
+};
+
+/**
+ * 환영 이메일
+ */
+const sendWelcomeEmail = async (email, name) => {
+  const html = `
+    <div style="max-width:600px;margin:0 auto;font-family:'Pretendard',sans-serif;background:#fafafc;padding:40px 20px;">
+      <div style="background:#fff;border-radius:16px;padding:40px;border:1px solid #eee;">
+        <div style="text-align:center;margin-bottom:32px;">
+          <h1 style="color:#6C5CE7;font-size:24px;margin:0;">암행어흥에 오신 것을 환영합니다!</h1>
+        </div>
+
+        <p style="color:#1A1A2E;font-size:16px;line-height:1.6;">
+          안녕하세요, ${name}님! 암행어흥에 가입해 주셔서 감사합니다.
+        </p>
+
+        <p style="color:#1A1A2E;font-size:16px;line-height:1.6;">
+          지금 바로 앱에서 첫 미션을 시작해보세요.
+        </p>
+
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
+
+        <p style="color:#A0A0B0;font-size:12px;text-align:center;">
+          문의: support@amhangeoheung.com
+        </p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({
+    to: email,
+    subject: '[암행어흥] 가입을 환영합니다!',
+    html,
+  });
+};
 
 module.exports = {
+  sendEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,
-  sendPaymentConfirmEmail,
 };

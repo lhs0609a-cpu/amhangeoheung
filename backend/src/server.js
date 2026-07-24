@@ -1,14 +1,26 @@
 require('dotenv').config();
 
+// Validate critical environment variables before starting
+const requiredEnvVars = ['JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error(`[FATAL] Missing required environment variables: ${missingVars.join(', ')}`);
+  console.error('Copy .env.example to .env and fill in the values.');
+  process.exit(1);
+}
+
+if (process.env.JWT_SECRET.length < 64) {
+  console.error('[FATAL] JWT_SECRET is too short. Generate a secure key:');
+  console.error('  node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
 
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
-const { startScheduler, stopScheduler } = require('./services/schedulerService');
-const { initializeFirebase } = require('./config/firebase');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -17,89 +29,75 @@ const businessRoutes = require('./routes/business');
 const missionRoutes = require('./routes/mission');
 const reviewRoutes = require('./routes/review');
 const settlementRoutes = require('./routes/settlement');
+const notificationRoutes = require('./routes/notifications'); // FCM 디바이스 토큰 포함 버전
+const rankingRoutes = require('./routes/ranking');
+const seasonRoutes = require('./routes/season');
+const tutorialRoutes = require('./routes/tutorial');
+const referralRoutes = require('./routes/referral');
+const analyticsRoutes = require('./routes/analytics');
+const certificationRoutes = require('./routes/certification');
+const reviewRequestRoutes = require('./routes/reviewRequest');
+const detectionTestRoutes = require('./routes/detectionTest');
+const collusionRoutes = require('./routes/collusion');
+const whistleblowerRoutes = require('./routes/whistleblower');
 const trustPreviewRoutes = require('./routes/trustPreview');
-const notificationRoutes = require('./routes/notifications');
+const cronRoutes = require('./routes/cron');
+
+const { startScheduler, stopScheduler } = require('./services/schedulerService');
 
 const app = express();
 
-// CORS 설정 - 허용된 오리진만 허용
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:3000'];
-
+// 미들웨어
 app.use(helmet());
+
+// CORS: 허용된 출처만 접근 가능
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'https://amhangeoheung.com',
+  'https://app.amhangeoheung.com',
+  'https://amhangeoheung-backend.fly.dev',
+  'https://amhangeoheung-backend-staging.fly.dev',
+];
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: function (origin, callback) {
     // 모바일 앱 등 origin이 없는 요청 허용
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(new Error('CORS 정책에 의해 차단되었습니다.'));
+    return callback(new Error('CORS policy: Origin not allowed'), false);
   },
   credentials: true,
 }));
+
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Rate Limiting - 전역
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15분
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: '너무 많은 요청을 보냈습니다. 잠시 후 다시 시도해주세요.',
-  },
-});
-app.use(globalLimiter);
-
-// Rate Limiting - 인증 엔드포인트 (더 엄격)
-const authLoginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15분
-  max: 10,
-  message: {
-    success: false,
-    message: '로그인 시도가 너무 많습니다. 15분 후 다시 시도해주세요.',
-  },
-});
-
-const authRegisterLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1시간
-  max: 5,
-  message: {
-    success: false,
-    message: '회원가입 시도가 너무 많습니다. 1시간 후 다시 시도해주세요.',
-  },
-});
-
-const paymentLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1분
-  max: 3,
-  message: {
-    success: false,
-    message: '결제 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-  },
-});
 
 // 정적 파일 서빙
 app.use('/uploads', express.static('uploads'));
 
 // API Routes
-app.use('/api/auth/login', authLoginLimiter);
-app.use('/api/auth/register', authRegisterLimiter);
-app.use('/api/payments', paymentLimiter);
-
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/businesses', businessRoutes);
 app.use('/api/missions', missionRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/settlements', settlementRoutes);
-app.use('/api/trust-preview', trustPreviewRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/rankings', rankingRoutes);
+app.use('/api/seasons', seasonRoutes);
+app.use('/api/tutorials', tutorialRoutes);
+app.use('/api/referrals', referralRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/certification', certificationRoutes);
+app.use('/api/review-requests', reviewRequestRoutes);
+app.use('/api/detection-tests', detectionTestRoutes);
+app.use('/api/admin/collusion', collusionRoutes);
+app.use('/api/whistleblower', whistleblowerRoutes);
+app.use('/api/trust-preview', trustPreviewRoutes);
+app.use('/api/cron', cronRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -124,8 +122,18 @@ app.get('/api', (req, res) => {
       missions: '/api/missions',
       reviews: '/api/reviews',
       settlements: '/api/settlements',
-      trustPreview: '/api/trust-preview',
-      notifications: '/api/notifications'
+      notifications: '/api/notifications',
+      rankings: '/api/rankings',
+      seasons: '/api/seasons',
+      tutorials: '/api/tutorials',
+      referrals: '/api/referrals',
+      analytics: '/api/analytics',
+      certification: '/api/certification',
+      reviewRequests: '/api/review-requests',
+      detectionTests: '/api/detection-tests',
+      collusion: '/api/admin/collusion',
+      whistleblower: '/api/whistleblower',
+      trustPreview: '/api/trust-preview'
     }
   });
 });
@@ -138,10 +146,10 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 
-// Firebase Admin SDK 초기화
-initializeFirebase();
+// Vercel 등 서버리스 환경에서는 app 핸들러만 export하고 listen하지 않는다.
+const isServerless = Boolean(process.env.VERCEL);
 
-app.listen(PORT, () => {
+const server = isServerless ? null : app.listen(PORT, () => {
   console.log(`
   ╔═══════════════════════════════════════════╗
   ║                                           ║
@@ -153,27 +161,52 @@ app.listen(PORT, () => {
   ╚═══════════════════════════════════════════╝
   `);
 
-  // 스케줄러 시작 (환경변수로 제어)
-  if (process.env.SCHEDULER_ENABLED === 'true') {
+  // 스케줄러 시작 (정산, 리뷰 자동게시, 미션 만료 등)
+  try {
     startScheduler();
-  } else {
-    console.log('[SCHEDULER] Disabled (set SCHEDULER_ENABLED=true to enable)');
+    console.log('[SERVER] Scheduler started successfully');
+  } catch (err) {
+    console.error('[SERVER] Failed to start scheduler:', err.message);
   }
 });
-
-// Graceful shutdown
-const gracefulShutdown = (signal) => {
-  console.log(`\n${signal} received. Shutting down gracefully...`);
-  stopScheduler();
-  process.exit(0);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // 처리되지 않은 Promise 거부 처리
 process.on('unhandledRejection', (err) => {
   console.error('UNHANDLED REJECTION:', err);
 });
+
+// Graceful Shutdown
+const gracefulShutdown = (signal) => {
+  console.log(`[SERVER] ${signal} received. Shutting down gracefully...`);
+
+  // 스케줄러 정지
+  try {
+    stopScheduler();
+    console.log('[SERVER] Scheduler stopped');
+  } catch (err) {
+    console.error('[SERVER] Error stopping scheduler:', err.message);
+  }
+
+  // HTTP 서버 종료 (in-flight 요청 drain 후)
+  if (!server) {
+    process.exit(0);
+    return;
+  }
+  server.close(() => {
+    console.log('[SERVER] HTTP server closed');
+    process.exit(0);
+  });
+
+  // 30초 후 강제 종료
+  setTimeout(() => {
+    console.error('[SERVER] Forced shutdown after timeout');
+    process.exit(1);
+  }, 30000);
+};
+
+if (!isServerless) {
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+}
 
 module.exports = app;

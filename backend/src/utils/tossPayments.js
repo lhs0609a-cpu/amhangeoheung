@@ -4,8 +4,10 @@
  */
 
 const axios = require('axios');
+const supabase = require('../config/supabase');
 
 const TOSS_API_URL = 'https://api.tosspayments.com/v1';
+const TOSS_TIMEOUT = 30000; // 30초
 
 // 결제 상태 상수
 const PAYMENT_STATUS = {
@@ -50,7 +52,7 @@ async function confirmPayment(paymentKey, orderId, amount) {
     const response = await axios.post(
       `${TOSS_API_URL}/payments/confirm`,
       { paymentKey, orderId, amount },
-      { headers: getAuthHeader() }
+      { headers: getAuthHeader(), timeout: TOSS_TIMEOUT }
     );
     return response.data;
   } catch (error) {
@@ -113,7 +115,7 @@ async function cancelPayment(paymentKey, cancelReason, cancelAmount = null, opti
       const response = await axios.post(
         `${TOSS_API_URL}/payments/${paymentKey}/cancel`,
         body,
-        { headers: getAuthHeader() }
+        { headers: getAuthHeader(), timeout: TOSS_TIMEOUT }
       );
 
       console.log(`[PAYMENT] Cancel success: ${paymentKey}, reason: ${cancelReason}`);
@@ -193,8 +195,22 @@ async function safeRollback(paymentKey, reason, context = {}) {
   } catch (error) {
     rollbackLog.error = error.message;
 
-    // 롤백 실패 로그 (CRITICAL - 추후 알림 시스템 연동 필요)
+    // CRITICAL: Payment rollback alert
+    console.error(`[CRITICAL ALERT] Payment rollback failed: paymentKey=${paymentKey}, reason=${reason}, error=${error.message}`);
     console.error('[ROLLBACK FAILED - CRITICAL]', JSON.stringify(rollbackLog));
+
+    // Persist alert to system_alerts table for ops monitoring
+    // TODO: Integrate Sentry/Slack webhook when available
+    try {
+      await supabase.from('system_alerts').insert({
+        alert_type: 'payment_rollback_failure',
+        severity: 'critical',
+        message: `Payment rollback failed: ${reason}`,
+        metadata: { paymentKey, context, error: error.message }
+      });
+    } catch (alertErr) {
+      console.error('[ALERT FAILURE] Could not save alert:', alertErr.message);
+    }
 
     return {
       success: false,
@@ -214,7 +230,7 @@ async function getPayment(paymentKey) {
   try {
     const response = await axios.get(
       `${TOSS_API_URL}/payments/${paymentKey}`,
-      { headers: getAuthHeader() }
+      { headers: getAuthHeader(), timeout: TOSS_TIMEOUT }
     );
     return response.data;
   } catch (error) {
@@ -235,7 +251,7 @@ async function getPaymentByOrderId(orderId) {
   try {
     const response = await axios.get(
       `${TOSS_API_URL}/payments/orders/${orderId}`,
-      { headers: getAuthHeader() }
+      { headers: getAuthHeader(), timeout: TOSS_TIMEOUT }
     );
     return response.data;
   } catch (error) {
@@ -258,7 +274,7 @@ async function issueBillingKey(authKey, customerKey) {
     const response = await axios.post(
       `${TOSS_API_URL}/billing/authorizations/issue`,
       { authKey, customerKey },
-      { headers: getAuthHeader() }
+      { headers: getAuthHeader(), timeout: TOSS_TIMEOUT }
     );
     return response.data;
   } catch (error) {
@@ -284,7 +300,7 @@ async function payWithBillingKey(billingKey, customerKey, amount, orderId, order
     const response = await axios.post(
       `${TOSS_API_URL}/billing/${billingKey}`,
       { customerKey, amount, orderId, orderName },
-      { headers: getAuthHeader() }
+      { headers: getAuthHeader(), timeout: TOSS_TIMEOUT }
     );
     return response.data;
   } catch (error) {
