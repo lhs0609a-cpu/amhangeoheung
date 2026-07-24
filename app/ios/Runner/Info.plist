@@ -45,5 +45,20 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- 위치 (GPS 체크인) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>미션 장소 방문을 인증하기 위해 위치 정보가 필요합니다.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>미션 장소 방문을 인증하기 위해 위치 정보가 필요합니다.</string>
+	<!-- 카메라/사진 (리뷰 사진, 영수증) -->
+	<key>NSCameraUsageDescription</key>
+	<string>리뷰 사진과 영수증을 촬영하기 위해 카메라 접근이 필요합니다.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>리뷰 사진과 영수증을 첨부하기 위해 사진 보관함 접근이 필요합니다.</string>
+	<!-- 푸시 알림 백그라운드 모드 -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

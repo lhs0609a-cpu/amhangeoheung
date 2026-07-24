@@ -1,13 +1,16 @@
-# Environment files
+# Environment variables (NEVER commit secrets)
 .env
 .env.local
-.env.*.local
+.env.production
+.env.staging
 
-# Dependencies
-node_modules/
-
-# OS files
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # IDE
@@ -15,20 +18,26 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+*~
 
-# Firebase (sensitive credentials)
-firebase-service-account.json
-google-services.json
-GoogleService-Info.plist
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Uploads
+# Logs
+logs/
+*.log
+
+# Uploads (user-generated content)
 uploads/
 
-# Build
-build/
-dist/
+# Deployment
+.vercel/
 
-# Claude temp files
-.claude/
-tmpclaude-*
+# Claude Code (local machine settings)
+.claude/settings.local.json
+
+# Windows: accidental redirects to the NUL device create a literal `nul` file
 nul

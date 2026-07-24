@@ -1,3 +1,27 @@
+# Environment variables (NEVER commit secrets)
 .env
+.env.local
+.env.production
+.env.staging
+
+# Dependencies
 node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Uploads (user-generated content)
 uploads/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+.vercel
