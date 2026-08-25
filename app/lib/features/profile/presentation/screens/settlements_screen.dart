@@ -5,6 +5,7 @@ import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../providers/profile_provider.dart';
 import '../../data/repositories/user_repository.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class SettlementsScreen extends ConsumerStatefulWidget {
   const SettlementsScreen({super.key});
@@ -39,7 +40,8 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
               child: CircularProgressIndicator(color: HwahaeColors.primary),
             )
           : RefreshIndicator(
-              onRefresh: () => ref.read(settlementsProvider.notifier).loadSettlements(),
+              onRefresh: () =>
+                  ref.read(settlementsProvider.notifier).loadSettlements(),
               color: HwahaeColors.primary,
               child: CustomScrollView(
                 slivers: [
@@ -59,7 +61,8 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
-                            final settlement = settlementsState.settlements[index];
+                            final settlement =
+                                settlementsState.settlements[index];
                             return _buildSettlementCard(settlement);
                           },
                           childCount: settlementsState.settlements.length,
@@ -85,7 +88,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
         borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: HwahaeColors.primary.withOpacity(0.3),
+            color: HwahaeColors.primary.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -99,7 +102,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -112,7 +115,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
               Text(
                 '정산 대기 금액',
                 style: HwahaeTypography.titleSmall.copyWith(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                 ),
               ),
             ],
@@ -129,13 +132,11 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: amount > 0
-                  ? () => _requestSettlement(amount)
-                  : null,
+              onPressed: amount > 0 ? () => _requestSettlement(amount) : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: HwahaeColors.primary,
-                disabledBackgroundColor: Colors.white.withOpacity(0.5),
+                disabledBackgroundColor: Colors.white.withValues(alpha: 0.5),
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
@@ -188,12 +189,15 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
         color: HwahaeColors.surface,
         borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
         border: Border.all(
-          color: isExpanded ? _getStatusColor(settlement.status).withOpacity(0.3) : HwahaeColors.border,
+          color: isExpanded
+              ? _getStatusColor(settlement.status).withValues(alpha: 0.3)
+              : HwahaeColors.border,
         ),
         boxShadow: isExpanded
             ? [
                 BoxShadow(
-                  color: _getStatusColor(settlement.status).withOpacity(0.1),
+                  color:
+                      _getStatusColor(settlement.status).withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -218,7 +222,8 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: _getStatusColor(settlement.status).withOpacity(0.1),
+                      color: _getStatusColor(settlement.status)
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -234,9 +239,11 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: _getStatusColor(settlement.status).withOpacity(0.1),
+                                color: _getStatusColor(settlement.status)
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -280,7 +287,9 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                             ],
                             const Spacer(),
                             Icon(
-                              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                              isExpanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
                               color: HwahaeColors.textTertiary,
                               size: 20,
                             ),
@@ -297,7 +306,9 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: _buildSettlementTimeline(settlement),
-            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 200),
           ),
         ],
@@ -332,12 +343,14 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
             return _buildTimelineEvent(event, isLast);
           }),
           // 실패 시 재시도 버튼
-          if (settlement.status == 'failed' && (settlement.retryCount ?? 0) < 3) ...[
+          if (settlement.status == 'failed' &&
+              (settlement.retryCount ?? 0) < 3) ...[
             const SizedBox(height: 12),
             _buildRetryButton(settlement),
           ],
           // 예상 지급일 안내
-          if (settlement.estimatedPayoutDate != null && settlement.status != 'completed') ...[
+          if (settlement.estimatedPayoutDate != null &&
+              settlement.status != 'completed') ...[
             const SizedBox(height: 12),
             _buildEstimatedPayoutInfo(settlement.estimatedPayoutDate!),
           ],
@@ -383,7 +396,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                   height: 40,
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   color: event.isCompleted
-                      ? HwahaeColors.success.withOpacity(0.3)
+                      ? HwahaeColors.success.withValues(alpha: 0.3)
                       : HwahaeColors.border,
                 ),
             ],
@@ -442,7 +455,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: HwahaeColors.error.withOpacity(0.1),
+                      color: HwahaeColors.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
@@ -498,9 +511,9 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: HwahaeColors.primary.withOpacity(0.05),
+        color: HwahaeColors.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: HwahaeColors.primary.withOpacity(0.1)),
+        border: Border.all(color: HwahaeColors.primary.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -521,7 +534,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                   ),
                 ),
                 Text(
-                  '${_formatDate(estimatedDate)} ${daysLeft > 0 ? '(${daysLeft}일 후)' : '(오늘)'}',
+                  '${_formatDate(estimatedDate)} ${daysLeft > 0 ? '($daysLeft일 후)' : '(오늘)'}',
                   style: HwahaeTypography.labelMedium.copyWith(
                     color: HwahaeColors.primary,
                     fontWeight: FontWeight.w600,
@@ -538,7 +551,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
   void _retrySettlement(Settlement settlement) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
         ),
@@ -549,7 +562,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(
               '취소',
               style: HwahaeTypography.labelLarge.copyWith(
@@ -558,7 +571,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
             ),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(
               '재시도',
               style: HwahaeTypography.labelLarge.copyWith(
@@ -577,31 +590,16 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
         final success = await ref
             .read(settlementsProvider.notifier)
             .retrySettlement(settlement.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? '정산 재시도를 요청했습니다' : '정산 재시도에 실패했습니다'),
-            backgroundColor:
-                success ? HwahaeColors.primary : HwahaeColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-      }
+        if (mounted) {
+          if (success) {
+            AppToast.success(context, '정산 재시도를 요청했습니다');
+          } else {
+            AppToast.error(context, '정산 재시도에 실패했습니다');
+          }
+        }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('정산 재시도에 실패했습니다'),
-              backgroundColor: HwahaeColors.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
+          AppToast.error(context, '정산 재시도에 실패했습니다');
         }
       }
     }
@@ -640,7 +638,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
   void _requestSettlement(int amount) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
         ),
@@ -679,7 +677,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               '취소',
               style: HwahaeTypography.labelLarge.copyWith(
@@ -689,25 +687,17 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               final success = await ref
                   .read(settlementsProvider.notifier)
                   .requestSettlement();
 
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success ? '정산 신청이 완료되었습니다' : '정산 신청에 실패했습니다',
-                    ),
-                    backgroundColor:
-                        success ? HwahaeColors.success : HwahaeColors.error,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
+                if (success) {
+                  AppToast.success(context, '정산 신청이 완료되었습니다');
+                } else {
+                  AppToast.error(context, '정산 신청에 실패했습니다');
+                }
               }
             },
             child: Text(

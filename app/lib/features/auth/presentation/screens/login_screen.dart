@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
-import '../../../../core/theme/hwahae_theme.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/services/social_auth_service.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -122,29 +122,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: HwahaeColors.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-        ),
-      ),
-    );
-  }
-
-  void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: HwahaeColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-        ),
-      ),
-    );
+    AppToast.error(context, message);
   }
 
   @override
@@ -153,7 +131,13 @@ class _LoginScreenState extends State<LoginScreen>
       backgroundColor: HwahaeColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          // 키보드가 올라와도 마지막 요소까지 스크롤로 닿게 한다.
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            bottom: context.keyboardInset > 0 ? 24 : context.bottomInset + 24,
+          ),
           child: FadeTransition(
             opacity: _fadeAnimation,
             child: SlideTransition(
@@ -163,7 +147,9 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 60),
+                    // 세로가 짧은 기기에서는 히어로 여백을 줄여 입력 필드가
+                    // 첫 화면에 들어오게 한다.
+                    SizedBox(height: context.isShortHeight ? 28 : 60),
 
                     // 로고 & 타이틀
                     Center(child: _buildLogo()),
@@ -193,7 +179,6 @@ class _LoginScreenState extends State<LoginScreen>
 
                     // 회원가입 링크
                     _buildSignUpLink(),
-                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -217,13 +202,7 @@ class _LoginScreenState extends State<LoginScreen>
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: HwahaeColors.primary.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            boxShadow: AppElevation.glow(HwahaeColors.primary),
           ),
           child: const Icon(
             Icons.verified_user_rounded,
@@ -372,20 +351,24 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildForgotPassword() {
     return Align(
       alignment: Alignment.centerRight,
-      child: TextButton(
-        onPressed: (_isLoading || _isSocialLoading)
+      // 텍스트만 두면 터치 영역이 20dp 남짓이라 누르기 어렵다. 패딩으로 넓힌다.
+      child: Pressable(
+        onTap: (_isLoading || _isSocialLoading)
             ? null
             : () => context.push('/forgot-password'),
-        style: TextButton.styleFrom(
-          foregroundColor: HwahaeColors.primary,
-          padding: EdgeInsets.zero,
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: Text(
-          '비밀번호를 잊으셨나요?',
-          style: HwahaeTypography.labelMedium.copyWith(
-            color: HwahaeColors.primary,
+        scale: 0.94,
+        semanticLabel: '비밀번호 찾기',
+        child: Container(
+          constraints: const BoxConstraints(minHeight: AppLayout.minTapTarget),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          alignment: Alignment.centerRight,
+          color: Colors.transparent,
+          child: Text(
+            '비밀번호를 잊으셨나요?',
+            style: HwahaeTypography.labelMedium.copyWith(
+              color: HwahaeColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -395,54 +378,10 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildLoginButton() {
     final isDisabled = _isLoading || _isSocialLoading;
 
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: isDisabled
-            ? null
-            : const LinearGradient(
-                colors: HwahaeColors.gradientPrimary,
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-        color: isDisabled ? HwahaeColors.surfaceVariant : null,
-        borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-        boxShadow: isDisabled
-            ? null
-            : [
-                BoxShadow(
-                  color: HwahaeColors.primary.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isDisabled ? null : _login,
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-          child: Center(
-            child: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: HwahaeColors.primary,
-                      strokeWidth: 2.5,
-                    ),
-                  )
-                : Text(
-                    '로그인',
-                    style: HwahaeTypography.button.copyWith(
-                      color: isDisabled ? HwahaeColors.textTertiary : Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-          ),
-        ),
-      ),
+    return AppButton.primary(
+      label: '로그인',
+      isLoading: _isLoading,
+      onPressed: isDisabled ? null : _login,
     );
   }
 
@@ -591,13 +530,13 @@ class _SocialLoginButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDisabled
-                ? HwahaeColors.border.withOpacity(0.5)
+                ? HwahaeColors.border.withValues(alpha: 0.5)
                 : HwahaeColors.border,
           ),
           boxShadow: isLoading
               ? [
                   BoxShadow(
-                    color: _getBrandColor().withOpacity(0.3),
+                    color: _getBrandColor().withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -625,7 +564,7 @@ class _SocialLoginButton extends StatelessWidget {
   Color _getBackgroundColor() {
     if (provider == SocialProvider.kakao) {
       return isDisabled
-          ? const Color(0xFFFEE500).withOpacity(0.5)
+          ? const Color(0xFFFEE500).withValues(alpha: 0.5)
           : const Color(0xFFFEE500);
     }
     return HwahaeColors.surface;

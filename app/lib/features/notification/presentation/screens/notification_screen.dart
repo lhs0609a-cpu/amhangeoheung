@@ -186,7 +186,7 @@ class _NotificationTile extends StatelessWidget {
         child: Container(
           color: notification.isRead
               ? HwahaeColors.surface
-              : HwahaeColors.primary.withOpacity(0.04),
+              : HwahaeColors.primary.withValues(alpha: 0.04),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,7 +195,7 @@ class _NotificationTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _colorForType(notification.type).withOpacity(0.1),
+                  color: _colorForType(notification.type).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(

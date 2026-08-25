@@ -98,7 +98,7 @@ class _FreeTrialScreenState extends ConsumerState<FreeTrialScreen> {
   List<String> _generateStrengths(int reviewCount, double avgRating, int trustScore) {
     final strengths = <String>[];
     if (avgRating >= 4.0) strengths.add('평균 평점이 ${avgRating.toStringAsFixed(1)}점으로 우수합니다');
-    if (reviewCount >= 10) strengths.add('리뷰가 ${reviewCount}개로 충분한 데이터가 축적되어 있습니다');
+    if (reviewCount >= 10) strengths.add('리뷰가 $reviewCount개로 충분한 데이터가 축적되어 있습니다');
     if (trustScore >= 70) strengths.add('신뢰도 점수가 상위 그룹에 속합니다');
     if (strengths.isEmpty) strengths.add('서비스를 이용하면 더 정확한 분석이 가능합니다');
     return strengths;
@@ -218,7 +218,7 @@ class _FreeTrialScreenState extends ConsumerState<FreeTrialScreen> {
         border: Border.all(color: HwahaeColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -389,13 +389,13 @@ class _FreeTrialScreenState extends ConsumerState<FreeTrialScreen> {
                       Text(
                         '점',
                         style: HwahaeTypography.titleLarge.copyWith(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                       Text(
                         '/ 100',
                         style: HwahaeTypography.bodySmall.copyWith(
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -406,7 +406,7 @@ class _FreeTrialScreenState extends ConsumerState<FreeTrialScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(

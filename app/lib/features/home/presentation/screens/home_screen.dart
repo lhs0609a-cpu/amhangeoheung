@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../core/providers/user_type_provider.dart';
 import '../../../review/data/models/review_model.dart';
-import '../../../mission/data/models/mission_model.dart';
 import '../../providers/home_provider.dart';
 import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
-import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/skeleton_widgets.dart';
 import '../../../ranking/data/models/ranking_model.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -23,7 +21,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _currentBannerIndex = 0;
 
   final List<String> _categories = [
     '전체',
@@ -99,7 +96,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
 
                   // 하단 여백 (네비게이션 바 고려)
-                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  const SliverBottomSpacer(),
                 ],
               ),
             ),
@@ -131,7 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(Icons.explore_rounded, color: Colors.white, size: 24),
@@ -152,7 +149,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Text(
                       '내 주변 미션을 확인해보세요',
                       style: HwahaeTypography.captionLarge.copyWith(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -203,7 +200,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(Icons.flag_rounded, color: Colors.white, size: 24),
@@ -216,7 +213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Text(
                       '진행 중 미션',
                       style: HwahaeTypography.labelSmall.copyWith(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -231,7 +228,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Text(
                         'D-${mission.daysUntilDeadline}',
                         style: HwahaeTypography.captionLarge.copyWith(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -242,7 +239,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -266,58 +263,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildSettlementCard() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-      child: InkWell(
+      child: AppCard(
+        style: AppCardStyle.outlined,
+        padding: const EdgeInsets.all(20),
         onTap: () => context.push('/settlements'),
-        borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: HwahaeColors.surface,
-            borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-            border: Border.all(color: HwahaeColors.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: HwahaeColors.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.account_balance_wallet_rounded,
-                  color: HwahaeColors.secondary,
-                  size: 22,
-                ),
+        semanticLabel: '정산 대기 금액 보기',
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: HwahaeColors.secondaryContainer,
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '정산 대기',
-                      style: HwahaeTypography.captionLarge.copyWith(
-                        color: HwahaeColors.textSecondary,
-                      ),
+              child: const Icon(
+                Icons.account_balance_wallet_rounded,
+                color: HwahaeColors.secondary,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '정산 대기',
+                    style: HwahaeTypography.captionLarge.copyWith(
+                      color: HwahaeColors.textSecondary,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '0원',
-                      style: HwahaeTypography.titleMedium.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '0원',
+                    style: HwahaeTypography.titleMedium.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: HwahaeColors.textTertiary,
-              ),
-            ],
-          ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: HwahaeColors.textTertiary,
+            ),
+          ],
         ),
       ),
     );
@@ -327,70 +318,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildGradeProgressCard() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: InkWell(
+      child: AppCard(
+        style: AppCardStyle.outlined,
+        padding: const EdgeInsets.all(20),
         onTap: () => context.push('/ranking?tab=reviewer'),
-        borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: HwahaeColors.surface,
-            borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-            border: Border.all(color: HwahaeColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: HwahaeColors.gradeRookie.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.eco_rounded, size: 14, color: HwahaeColors.gradeRookie),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Rookie',
-                          style: HwahaeTypography.labelSmall.copyWith(
-                            color: HwahaeColors.gradeRookie,
-                            fontWeight: FontWeight.w700,
-                          ),
+        semanticLabel: '내 등급 진행 상황 보기',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: HwahaeColors.gradeRookie.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.eco_rounded, size: 14, color: HwahaeColors.gradeRookie),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Rookie',
+                        style: HwahaeTypography.labelSmall.copyWith(
+                          color: HwahaeColors.gradeRookie,
+                          fontWeight: FontWeight.w700,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  Text(
-                    '다음 등급까지',
-                    style: HwahaeTypography.captionMedium.copyWith(
-                      color: HwahaeColors.textTertiary,
-                    ),
+                ),
+                const Spacer(),
+                Text(
+                  '다음 등급까지',
+                  style: HwahaeTypography.captionMedium.copyWith(
+                    color: HwahaeColors.textTertiary,
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: const LinearProgressIndicator(
-                  value: 0.0,
-                  minHeight: 8,
-                  backgroundColor: HwahaeColors.surfaceVariant,
-                  valueColor: AlwaysStoppedAnimation<Color>(HwahaeColors.primary),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const AppProgressBar(value: 0.0, height: 8),
+            const SizedBox(height: 8),
+            Text(
+              '미션 0/5 완료',
+              style: HwahaeTypography.captionMedium.copyWith(
+                color: HwahaeColors.textSecondary,
               ),
-              const SizedBox(height: 8),
-              Text(
-                '미션 0/5 완료',
-                style: HwahaeTypography.captionMedium.copyWith(
-                  color: HwahaeColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -400,9 +377,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: InkWell(
+      child: Pressable(
         onTap: () => context.push('/search'),
-        borderRadius: BorderRadius.circular(HwahaeTheme.radiusFull),
+        scale: 0.98,
+        semanticLabel: '업체 검색',
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
@@ -456,14 +434,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             itemCount: categories.length,
             itemBuilder: (context, index) {
               final cat = categories[index];
-              return InkWell(
+              return Pressable(
                 onTap: () => context.push('/search'),
-                borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+                scale: 0.95,
+                semanticLabel: cat['label'] as String,
                 child: Container(
                   decoration: BoxDecoration(
                     color: HwahaeColors.surface,
                     borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-                    border: Border.all(color: HwahaeColors.border),
+                    border: Border.all(color: HwahaeColors.borderLight),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -501,8 +480,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           _buildLogoHeader(),
           Expanded(
-            child: ErrorView.fromMessage(
-              message: errorMessage,
+            child: AppErrorState.fromMessage(
+              errorMessage,
               onRetry: () {
                 ref.read(homeDataProvider.notifier).loadHomeData();
               },
@@ -554,10 +533,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return SliverAppBar(
       floating: true,
       snap: true,
-      backgroundColor: HwahaeColors.surface,
+      pinned: false,
+      backgroundColor: HwahaeColors.background,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       toolbarHeight: 64,
+      // 로고/알림은 항상 같은 자리에 있어야 하므로 접히지 않게 여백을 고정한다.
+      titleSpacing: AppLayout.gutter,
       title: Row(
         children: [
           Container(
@@ -569,7 +552,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: HwahaeColors.primary.withOpacity(0.3),
+                  color: HwahaeColors.primary.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -617,194 +600,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required VoidCallback onTap,
     bool showBadge = false,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: HwahaeColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(
-              icon,
-              color: HwahaeColors.textPrimary,
-              size: 22,
-            ),
-            if (showBadge)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: HwahaeColors.gradientWarm,
-                    ),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: HwahaeColors.surface, width: 1.5),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBannerSlider() {
-    final banners = [
-      _BannerData(
-        title: '암행어흥과 함께',
-        subtitle: '투명한 소비 문화를\n만들어요',
-        buttonText: '자세히 보기',
-        gradient: HwahaeColors.gradientPrimary,
-        icon: Icons.verified_user_rounded,
-      ),
-      _BannerData(
-        title: '이번 달 미션',
-        subtitle: '5만원 보상\n미션 참여하기',
-        buttonText: '미션 참여',
-        gradient: HwahaeColors.gradientAccent,
-        icon: Icons.flag_rounded,
-      ),
-      _BannerData(
-        title: '신뢰 리뷰어 되기',
-        subtitle: '등급 혜택을\n확인하세요',
-        buttonText: '등급 안내',
-        gradient: HwahaeColors.gradientCool,
-        icon: Icons.workspace_premium_rounded,
-      ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
-        children: [
-          CarouselSlider.builder(
-            itemCount: banners.length,
-            options: CarouselOptions(
-              height: 170,
-              viewportFraction: 0.9,
-              enlargeCenterPage: true,
-              enlargeFactor: 0.15,
-              autoPlay: true,
-              autoPlayInterval: const Duration(seconds: 5),
-              onPageChanged: (index, reason) {
-                setState(() {
-                  _currentBannerIndex = index;
-                });
-              },
-            ),
-            itemBuilder: (context, index, realIndex) {
-              final banner = banners[index];
-              return Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: banner.gradient,
-                  ),
-                  borderRadius: BorderRadius.circular(HwahaeTheme.radiusXL),
-                  boxShadow: [
-                    BoxShadow(
-                      color: banner.gradient[0].withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(22),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            banner.title,
-                            style: HwahaeTypography.labelMedium.copyWith(
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            banner.subtitle,
-                            style: HwahaeTypography.headlineSmall.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              height: 1.3,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              banner.buttonText,
-                              style: HwahaeTypography.labelSmall.copyWith(
-                                color: banner.gradient[0],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Icon(
-                        banner.icon,
-                        size: 36,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 14),
-          // 인디케이터
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(banners.length, (index) {
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: _currentBannerIndex == index ? 24 : 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  gradient: _currentBannerIndex == index
-                      ? const LinearGradient(colors: HwahaeColors.gradientPrimary)
-                      : null,
-                  color: _currentBannerIndex == index
-                      ? null
-                      : HwahaeColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
+    return AppIconButton(
+      icon: icon,
+      onPressed: onTap,
+      background: HwahaeColors.surfaceVariant,
+      // 개수를 모르는 단계라 점 하나로만 알린다. 실제 개수가 생기면 badgeCount 로 교체.
+      badgeCount: showBadge ? 1 : 0,
     );
   }
 
@@ -844,7 +645,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: HwahaeColors.primary.withOpacity(0.3),
+                          color: HwahaeColors.primary.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -930,7 +731,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ];
         break;
       case UserType.consumer:
-      default:
         actions = [
           _QuickActionData(
             icon: Icons.search_rounded,
@@ -972,7 +772,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getUserTypeColor(userType).withOpacity(0.1),
+                    color: _getUserTypeColor(userType).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -1034,7 +834,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: action.gradient[0].withOpacity(0.3),
+                      color: action.gradient[0].withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -1046,26 +846,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   size: 26,
                 ),
               ),
-              if (action.badge != null)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: HwahaeColors.error,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: Text(
-                      action.badge!,
-                      style: HwahaeTypography.captionSmall.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 8),
@@ -1162,7 +942,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.08) : HwahaeColors.surface,
+          color: isSelected ? color.withValues(alpha: 0.08) : HwahaeColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : HwahaeColors.border,
@@ -1175,7 +955,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color),
@@ -1210,52 +990,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildSectionHeader(String title, {String? emoji, VoidCallback? onSeeAll}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              if (emoji != null) ...[
-                Text(emoji, style: const TextStyle(fontSize: 20)),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                title,
-                style: HwahaeTypography.headlineSmall.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          if (onSeeAll != null)
-            GestureDetector(
-              onTap: onSeeAll,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: HwahaeColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      '전체 보기',
-                      style: HwahaeTypography.labelSmall.copyWith(
-                        color: HwahaeColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      size: 16,
-                      color: HwahaeColors.textSecondary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
+      padding: const EdgeInsets.only(bottom: AppLayout.headerGap),
+      child: AppSectionHeader(
+        title: title,
+        emoji: emoji,
+        onAction: onSeeAll,
       ),
     );
   }
@@ -1313,13 +1052,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
           border: Border.all(
             color: rank <= 3
-                ? gradients[gradientIndex][0].withOpacity(0.2)
+                ? gradients[gradientIndex][0].withValues(alpha: 0.2)
                 : HwahaeColors.border,
           ),
           boxShadow: rank <= 3
               ? [
                   BoxShadow(
-                    color: gradients[gradientIndex][0].withOpacity(0.1),
+                    color: gradients[gradientIndex][0].withValues(alpha: 0.1),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -1367,7 +1106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: 10),
             // 업체명
             Text(
-              business.businessName ?? '${rank}위 업체',
+              business.businessName ?? '$rank위 업체',
               style: HwahaeTypography.labelSmall.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -1512,7 +1251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           border: Border.all(color: HwahaeColors.border),
           boxShadow: [
             BoxShadow(
-              color: HwahaeColors.primary.withOpacity(0.04),
+              color: HwahaeColors.primary.withValues(alpha: 0.04),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -1646,178 +1385,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildTopReviewersSection() {
-    final homeState = ref.watch(homeDataProvider);
-    final reviewers = homeState.topReviewers;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 28),
-        _buildSectionHeader('우수 리뷰어', emoji: '👑', onSeeAll: () {
-          context.push('/ranking?tab=reviewer');
-        }),
-        if (reviewers.isEmpty)
-          _buildEmptyState(icon: Icons.person_outline, message: '우수 리뷰어 데이터가 없습니다')
-        else
-          SizedBox(
-            height: 110,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: reviewers.length.clamp(0, 6),
-              separatorBuilder: (_, __) => const SizedBox(width: 16),
-              itemBuilder: (context, index) {
-                return _buildReviewerChip(reviewers[index]);
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildReviewerChip(ReviewerRankingModel reviewer) {
-    final grade = reviewer.reviewerGrade ?? 'silver';
-    final colors = HwahaeColors.getGradeGradient(grade);
-    final displayName = reviewer.nickname ?? '리뷰어';
-    final initial = displayName.isNotEmpty ? displayName[0] : '?';
-
-    return Column(
-      children: [
-        Stack(
-          children: [
-            Container(
-              width: 68,
-              height: 68,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    colors[0].withOpacity(0.15),
-                    colors[1].withOpacity(0.1),
-                  ],
-                ),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: colors[0].withOpacity(0.3),
-                  width: 2,
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                initial,
-                style: HwahaeTypography.titleSmall.copyWith(
-                  color: colors[0],
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: colors),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors[0].withOpacity(0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '${reviewer.rank}',
-                  style: HwahaeTypography.badge.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          displayName,
-          style: HwahaeTypography.labelSmall.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 4),
-        HwahaeGradeBadge(grade: grade, showLabel: false),
-      ],
-    );
-  }
-
   Widget _buildEmptyState({required IconData icon, required String message}) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Center(
-        child: Column(
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: HwahaeColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                icon,
-                size: 32,
-                color: HwahaeColors.textTertiary,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              message,
-              style: HwahaeTypography.bodyMedium.copyWith(
-                color: HwahaeColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return AppEmptyState(
+      icon: icon,
+      title: message,
+      compact: true,
     );
   }
-}
-
-class _BannerData {
-  final String title;
-  final String subtitle;
-  final String buttonText;
-  final List<Color> gradient;
-  final IconData icon;
-
-  _BannerData({
-    required this.title,
-    required this.subtitle,
-    required this.buttonText,
-    required this.gradient,
-    required this.icon,
-  });
 }
 
 class _QuickActionData {
   final IconData icon;
   final String label;
   final List<Color> gradient;
-  final String? badge;
   final VoidCallback onTap;
 
   _QuickActionData({
     required this.icon,
     required this.label,
     required this.gradient,
-    this.badge,
     required this.onTap,
   });
 }

@@ -3,6 +3,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../data/legal_content.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 enum LegalType {
   terms,
@@ -44,7 +45,7 @@ class LegalScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: HwahaeColors.primaryLight.withOpacity(0.1),
+                color: HwahaeColors.primaryLight.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -86,7 +87,7 @@ class LegalScreen extends StatelessWidget {
 
             // 문의 안내
             _buildContactInfo(),
-            const SizedBox(height: 100), // 하단 여백
+            const AppBottomSpacer.plain(),
           ],
         ),
       ),

@@ -6,6 +6,7 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../providers/referral_provider.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class InviteScreen extends ConsumerStatefulWidget {
   const InviteScreen({super.key});
@@ -44,7 +45,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
                   if (state.stats != null) _buildStatsSection(state.stats!),
                   // 지역 수요
                   if (state.demand.isNotEmpty) _buildDemandSection(state.demand),
-                  const SizedBox(height: 100),
+                  const AppBottomSpacer.plain(),
                 ],
               ),
             ),
@@ -60,7 +61,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         borderRadius: BorderRadius.circular(HwahaeTheme.radiusXL),
         boxShadow: [
           BoxShadow(
-            color: HwahaeColors.primary.withOpacity(0.3),
+            color: HwahaeColors.primary.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -82,7 +83,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -101,9 +102,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
                   onTap: () {
                     if (code != null) {
                       Clipboard.setData(ClipboardData(text: code));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('추천 코드가 복사되었습니다!')),
-                      );
+                      AppToast.info(context, '추천 코드가 복사되었습니다!');
                     }
                   },
                   child: const Icon(Icons.copy_rounded, color: Colors.white, size: 20),
@@ -134,9 +133,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           final code = ref.read(referralProvider).code;
           if (code != null) {
             Clipboard.setData(ClipboardData(text: '암행어흥에서 함께 리뷰어로 활동해요! 추천코드: $code'));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('공유 링크가 복사되었습니다!')),
-            );
+            AppToast.info(context, '공유 링크가 복사되었습니다!');
           }
         }
       },
@@ -146,7 +143,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.white, size: 22),

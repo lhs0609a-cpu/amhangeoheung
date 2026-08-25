@@ -7,6 +7,7 @@ import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
 import '../../../../shared/widgets/grade_progress_widget.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 import '../../providers/profile_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -57,7 +58,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               : RefreshIndicator(
                   onRefresh: () async {
                     await ref.read(profileProvider.notifier).loadProfile();
-                    await ref.read(settlementsProvider.notifier).loadSettlements();
+                    await ref
+                        .read(settlementsProvider.notifier)
+                        .loadSettlements();
                   },
                   color: HwahaeColors.primary,
                   child: SingleChildScrollView(
@@ -74,11 +77,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: GradeProgressWidget(
-                              currentGrade: profileState.user!.reviewerInfo!.grade!,
-                              completedMissions: profileState.stats?.completedMissions ?? 0,
+                              currentGrade:
+                                  profileState.user!.reviewerInfo!.grade,
+                              completedMissions:
+                                  profileState.stats?.completedMissions ?? 0,
                               trustScore: profileState.stats?.trustScore ?? 0.0,
                               compact: false,
-                              onTap: () => context.push('/ranking?tab=reviewer'),
+                              onTap: () =>
+                                  context.push('/ranking?tab=reviewer'),
                             ),
                           ),
                         const SizedBox(height: 16),
@@ -102,13 +108,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             _MenuItem(
                               icon: Icons.assignment,
                               title: '내 미션',
-                              subtitle: '진행중 ${profileState.stats?.ongoingMissions ?? 0}개',
+                              subtitle:
+                                  '진행중 ${profileState.stats?.ongoingMissions ?? 0}개',
                               onTap: () => context.go('/missions'),
                             ),
                             _MenuItem(
                               icon: Icons.rate_review,
                               title: '작성한 리뷰',
-                              subtitle: '${profileState.stats?.completedMissions ?? 0}개',
+                              subtitle:
+                                  '${profileState.stats?.completedMissions ?? 0}개',
                               onTap: () => context.push('/my-reviews'),
                             ),
                             _MenuItem(
@@ -124,21 +132,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             _MenuItem(
                               icon: Icons.category,
                               title: '전문 카테고리',
-                              subtitle: profileState.user?.reviewerInfo?.specialties?.join(', ') ?? '설정 안됨',
+                              subtitle: profileState
+                                      .user?.reviewerInfo?.specialties
+                                      ?.join(', ') ??
+                                  '설정 안됨',
                               onTap: () => context.push('/specialties'),
                             ),
                             _MenuItem(
                               icon: Icons.account_balance,
                               title: '정산 계좌',
-                              subtitle: profileState.user?.bankAccount != null
-                                  ? '${profileState.user?.bankName ?? ''} ****${profileState.user?.bankAccount?.substring(profileState.user!.bankAccount!.length - 4)}'
-                                  : '계좌 미등록',
+                              subtitle: profileState.user?.maskedBankAccount ??
+                                  '계좌 미등록',
                               onTap: () => context.push('/bank-account'),
                             ),
                             _MenuItem(
                               icon: Icons.notifications,
                               title: '알림 설정',
-                              onTap: () => context.push('/notifications-settings'),
+                              onTap: () =>
+                                  context.push('/notifications-settings'),
                             ),
                           ],
                         ),
@@ -154,7 +165,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             _MenuItem(
                               icon: Icons.card_giftcard_rounded,
                               title: '포트폴리오',
-                              onTap: () => context.push('/portfolio/${profileState.user?.id ?? ''}'),
+                              onTap: () => context.push(
+                                  '/portfolio/${profileState.user?.id ?? ''}'),
                             ),
                           ],
                         ),
@@ -164,7 +176,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             _MenuItem(
                               icon: Icons.workspace_premium,
                               title: '요금제',
-                              subtitle: profileState.user?.premiumInfo?.planName ?? '무료',
+                              subtitle:
+                                  profileState.user?.premiumInfo?.planName ??
+                                      '무료',
                               onTap: () => context.push('/pricing'),
                             ),
                             _MenuItem(
@@ -196,13 +210,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               side: const BorderSide(color: HwahaeColors.error),
                               minimumSize: const Size(double.infinity, 48),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+                                borderRadius:
+                                    BorderRadius.circular(HwahaeTheme.radiusMD),
                               ),
                             ),
                             child: const Text('로그아웃'),
                           ),
                         ),
-                        const SizedBox(height: 100),
+                        const AppBottomSpacer(),
                       ],
                     ),
                   ),
@@ -336,7 +351,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Semantics(
                 label: '프로필 수정',
                 child: IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: HwahaeColors.textSecondary),
+                  icon: const Icon(Icons.edit_outlined,
+                      color: HwahaeColors.textSecondary),
                   onPressed: () => context.push('/edit-profile'),
                   tooltip: '프로필 수정',
                 ),
@@ -387,7 +403,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(
+      String label, String value, IconData icon, Color color) {
     return Column(
       children: [
         Icon(icon, size: 20, color: color),
@@ -411,9 +428,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildReviewerStatusCard(profileState) {
-    if (profileState.user?.userType != 'reviewer') return const SizedBox.shrink();
+    if (profileState.user?.userType != 'reviewer') {
+      return const SizedBox.shrink();
+    }
 
-    return HwahaeCard(
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -421,10 +441,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.verified_user, color: HwahaeColors.primary, size: 20),
+                Icon(Icons.verified_user,
+                    color: HwahaeColors.primary, size: 20),
                 const SizedBox(width: 8),
                 Text('리뷰어 현황',
-                    style: HwahaeTypography.titleSmall.copyWith(fontWeight: FontWeight.bold)),
+                    style: HwahaeTypography.titleSmall
+                        .copyWith(fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 12),
@@ -446,13 +468,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.school, color: HwahaeColors.primary),
+                            const Icon(Icons.school,
+                                color: HwahaeColors.primary),
                             const SizedBox(height: 4),
                             Text('인증', style: HwahaeTypography.labelSmall),
                             Text(
-                              profileState.user?.isCertified == true ? '완료' : '미완료',
+                              profileState.user?.isCertified == true
+                                  ? '완료'
+                                  : '미완료',
                               style: HwahaeTypography.bodySmall.copyWith(
-                                color: profileState.user?.isCertified == true ? Colors.green : Colors.orange,
+                                color: profileState.user?.isCertified == true
+                                    ? Colors.green
+                                    : Colors.orange,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -479,7 +506,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.visibility_off, color: Colors.purple),
+                            const Icon(Icons.visibility_off,
+                                color: Colors.purple),
                             const SizedBox(height: 4),
                             Text('은밀성', style: HwahaeTypography.labelSmall),
                             Text(
@@ -519,7 +547,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
         boxShadow: [
           BoxShadow(
-            color: HwahaeColors.primary.withOpacity(0.3),
+            color: HwahaeColors.primary.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -530,7 +558,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -547,7 +575,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text(
                   '정산 대기 금액',
                   style: HwahaeTypography.captionMedium.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -572,12 +600,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           ElevatedButton(
             onPressed: pendingAmount > 0
-                ? () => _showSettlementDialog(context, pendingAmount)
+                ? () => _showSettlementDialog(pendingAmount)
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: HwahaeColors.primary,
-              disabledBackgroundColor: Colors.white.withOpacity(0.5),
+              disabledBackgroundColor: Colors.white.withValues(alpha: 0.5),
               disabledForegroundColor: HwahaeColors.textTertiary,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -662,10 +690,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _showSettlementDialog(BuildContext context, int amount) {
+  void _showSettlementDialog(int amount) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
         ),
@@ -704,7 +732,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               '취소',
               style: HwahaeTypography.labelLarge.copyWith(
@@ -714,25 +742,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               final success = await ref
                   .read(settlementsProvider.notifier)
                   .requestSettlement();
 
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success ? '정산 신청이 완료되었습니다!' : '정산 신청에 실패했습니다.',
-                    ),
-                    backgroundColor:
-                        success ? HwahaeColors.success : HwahaeColors.error,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
+                if (success) {
+                  AppToast.success(context, '정산 신청이 완료되었습니다!');
+                } else {
+                  AppToast.error(context, '정산 신청에 실패했습니다.');
+                }
               }
             },
             child: Text(
@@ -751,7 +771,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
         ),
@@ -762,7 +782,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               '취소',
               style: HwahaeTypography.labelLarge.copyWith(
@@ -774,7 +794,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onPressed: () async {
               await ApiClient().clearToken();
               if (context.mounted) {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 context.go('/login');
               }
             },
@@ -796,13 +816,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: HwahaeCard(
+      child: AppCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.monetization_on, color: HwahaeColors.warning, size: 20),
+                const Icon(Icons.monetization_on,
+                    color: HwahaeColors.warning, size: 20),
                 const SizedBox(width: 8),
                 Text('수익 현황', style: HwahaeTypography.titleSmall),
               ],
@@ -813,9 +834,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('총 수익', style: HwahaeTypography.bodyMedium.copyWith(
-                  color: HwahaeColors.textSecondary,
-                )),
+                Text('총 수익',
+                    style: HwahaeTypography.bodyMedium.copyWith(
+                      color: HwahaeColors.textSecondary,
+                    )),
                 Text(
                   '${_formatCurrency(totalEarnings)}원',
                   style: HwahaeTypography.headlineSmall.copyWith(
@@ -831,15 +853,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('현재 등급', style: HwahaeTypography.bodyMedium.copyWith(
-                  color: HwahaeColors.textSecondary,
-                )),
+                Text('현재 등급',
+                    style: HwahaeTypography.bodyMedium.copyWith(
+                      color: HwahaeColors.textSecondary,
+                    )),
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _gradeColor(grade).withOpacity(0.1),
+                        color: _gradeColor(grade).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -868,16 +892,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.primary.withOpacity(0.05),
+                  color: HwahaeColors.primary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(HwahaeTheme.radiusSM),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('등급 혜택', style: HwahaeTypography.labelMedium.copyWith(
-                      color: HwahaeColors.primary,
-                      fontWeight: FontWeight.bold,
-                    )),
+                    Text('등급 혜택',
+                        style: HwahaeTypography.labelMedium.copyWith(
+                          color: HwahaeColors.primary,
+                          fontWeight: FontWeight.bold,
+                        )),
                     const SizedBox(height: 8),
                     _buildBenefitRow(Icons.lock_open, '히든 미션 접근'),
                     const SizedBox(height: 4),
@@ -901,37 +926,50 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       children: [
         Icon(icon, size: 16, color: HwahaeColors.primary),
         const SizedBox(width: 6),
-        Text(label, style: HwahaeTypography.bodySmall.copyWith(
-          color: HwahaeColors.textPrimary,
-        )),
+        Text(label,
+            style: HwahaeTypography.bodySmall.copyWith(
+              color: HwahaeColors.textPrimary,
+            )),
       ],
     );
   }
 
   String _gradeLabel(String grade) {
     switch (grade) {
-      case 'master': return '마스터';
-      case 'senior': return '시니어';
-      case 'regular': return '정규';
-      default: return '루키';
+      case 'master':
+        return '마스터';
+      case 'senior':
+        return '시니어';
+      case 'regular':
+        return '정규';
+      default:
+        return '루키';
     }
   }
 
   String _gradePayMultiplier(String grade) {
     switch (grade) {
-      case 'master': return '1.3';
-      case 'senior': return '1.2';
-      case 'regular': return '1.1';
-      default: return '1.0';
+      case 'master':
+        return '1.3';
+      case 'senior':
+        return '1.2';
+      case 'regular':
+        return '1.1';
+      default:
+        return '1.0';
     }
   }
 
   Color _gradeColor(String grade) {
     switch (grade) {
-      case 'master': return const Color(0xFFFF6B35);
-      case 'senior': return HwahaeColors.primary;
-      case 'regular': return HwahaeColors.info;
-      default: return HwahaeColors.textSecondary;
+      case 'master':
+        return const Color(0xFFFF6B35);
+      case 'senior':
+        return HwahaeColors.primary;
+      case 'regular':
+        return HwahaeColors.info;
+      default:
+        return HwahaeColors.textSecondary;
     }
   }
 

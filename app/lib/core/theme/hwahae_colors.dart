@@ -156,17 +156,17 @@ class HwahaeColors {
   static Color getGradeBackgroundColor(String grade) {
     switch (grade.toLowerCase()) {
       case 'diamond':
-        return gradeDiamond.withOpacity(0.12);
+        return gradeDiamond.withValues(alpha: 0.12);
       case 'platinum':
-        return gradePlatinum.withOpacity(0.12);
+        return gradePlatinum.withValues(alpha: 0.12);
       case 'gold':
-        return gradeGold.withOpacity(0.12);
+        return gradeGold.withValues(alpha: 0.12);
       case 'silver':
-        return gradeSilver.withOpacity(0.12);
+        return gradeSilver.withValues(alpha: 0.12);
       case 'bronze':
-        return gradeBronze.withOpacity(0.12);
+        return gradeBronze.withValues(alpha: 0.12);
       default:
-        return gradeRookie.withOpacity(0.08);
+        return gradeRookie.withValues(alpha: 0.08);
     }
   }
 

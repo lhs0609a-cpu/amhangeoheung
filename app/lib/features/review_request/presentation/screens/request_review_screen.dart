@@ -6,6 +6,7 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../data/repositories/review_request_repository.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class RequestReviewScreen extends ConsumerStatefulWidget {
   final String businessId;
@@ -35,16 +36,12 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
         message: _messageController.text.isNotEmpty ? _messageController.text : null,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('리뷰 요청이 등록되었습니다!')),
-        );
+        AppToast.info(context, '리뷰 요청이 등록되었습니다!');
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('요청 실패: ${e.toString()}')),
-        );
+        AppToast.info(context, '요청 실패: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

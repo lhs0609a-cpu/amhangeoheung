@@ -27,7 +27,7 @@ class HwahaeTheme {
   // === Shadow ===
   static List<BoxShadow> shadowSM = [
     BoxShadow(
-      color: HwahaeColors.primary.withOpacity(0.04),
+      color: HwahaeColors.primary.withValues(alpha: 0.04),
       blurRadius: 8,
       offset: const Offset(0, 2),
     ),
@@ -35,7 +35,7 @@ class HwahaeTheme {
 
   static List<BoxShadow> shadowMD = [
     BoxShadow(
-      color: HwahaeColors.primary.withOpacity(0.06),
+      color: HwahaeColors.primary.withValues(alpha: 0.06),
       blurRadius: 16,
       offset: const Offset(0, 4),
     ),
@@ -43,7 +43,7 @@ class HwahaeTheme {
 
   static List<BoxShadow> shadowLG = [
     BoxShadow(
-      color: HwahaeColors.primary.withOpacity(0.08),
+      color: HwahaeColors.primary.withValues(alpha: 0.08),
       blurRadius: 24,
       offset: const Offset(0, 8),
     ),
@@ -51,7 +51,7 @@ class HwahaeTheme {
 
   static List<BoxShadow> shadowXL = [
     BoxShadow(
-      color: HwahaeColors.primary.withOpacity(0.12),
+      color: HwahaeColors.primary.withValues(alpha: 0.12),
       blurRadius: 32,
       offset: const Offset(0, 12),
     ),
@@ -113,7 +113,7 @@ class HwahaeTheme {
       ),
 
       // Card
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: HwahaeColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -230,7 +230,7 @@ class HwahaeTheme {
       ),
 
       // Dialog
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: HwahaeColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -252,7 +252,7 @@ class HwahaeTheme {
       ),
 
       // Tab Bar
-      tabBarTheme: TabBarTheme(
+      tabBarTheme: TabBarThemeData(
         labelColor: HwahaeColors.primary,
         unselectedLabelColor: HwahaeColors.textSecondary,
         labelStyle: HwahaeTypography.labelLarge,
@@ -342,7 +342,7 @@ class HwahaeTheme {
         activeTrackColor: HwahaeColors.primary,
         inactiveTrackColor: HwahaeColors.surfaceVariant,
         thumbColor: HwahaeColors.primary,
-        overlayColor: HwahaeColors.primary.withOpacity(0.12),
+        overlayColor: HwahaeColors.primary.withValues(alpha: 0.12),
         trackHeight: 4,
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
       ),
@@ -387,10 +387,10 @@ class GlassDecoration extends BoxDecoration {
     double radius = HwahaeTheme.radiusLG,
     Color? borderColor,
   }) : super(
-          color: Colors.white.withOpacity(opacity),
+          color: Colors.white.withValues(alpha: opacity),
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(
-            color: borderColor ?? Colors.white.withOpacity(0.2),
+            color: borderColor ?? Colors.white.withValues(alpha: 0.2),
             width: 1,
           ),
         );

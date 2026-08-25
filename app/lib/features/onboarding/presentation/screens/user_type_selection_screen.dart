@@ -162,7 +162,7 @@ class _UserTypeSelectionScreenState
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: isSelected
-                  ? gradient[0].withOpacity(0.08)
+                  ? gradient[0].withValues(alpha: 0.08)
                   : HwahaeColors.surface,
               borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
               border: Border.all(
@@ -172,7 +172,7 @@ class _UserTypeSelectionScreenState
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: gradient[0].withOpacity(0.15),
+                        color: gradient[0].withValues(alpha: 0.15),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
