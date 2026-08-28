@@ -9,33 +9,28 @@ import 'hwahae_colors.dart';
 class AppElevation {
   AppElevation._();
 
-  static const Color _shadowTint = Color(0xFF1A1A2E);
+  static const Color _shadowTint = Color(0xFF3D2E1F);
 
   /// 배경에서 살짝 떠 있는 정도. 리스트 카드, 칩.
-  static List<BoxShadow> get level1 => [
-        BoxShadow(
-          color: _shadowTint.withValues(alpha: 0.04),
-          blurRadius: 2,
-          offset: const Offset(0, 1),
-        ),
-        BoxShadow(
-          color: _shadowTint.withValues(alpha: 0.04),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ];
+  ///
+  /// 흐린 그림자가 아니라 아래로 딱 떨어지는 단색 면이다. 스티커를 붙여둔
+  /// 느낌이라 크림색 배경 위에서 또렷하고, 흐린 그림자처럼 화면을 탁하게
+  /// 만들지 않는다.
+  static List<BoxShadow> get level1 => sticker(2);
 
   /// 기본 카드. 배경과 확실히 분리된다.
-  static List<BoxShadow> get level2 => [
+  static List<BoxShadow> get level2 => sticker(3);
+
+  /// 스티커 그림자 — blur 0, 아래로 [depth] px.
+  ///
+  /// [color] 를 주지 않으면 크림 배경에 맞는 기본 테두리색을 쓴다. 골드 버튼처럼
+  /// 면 색이 있는 요소는 그 색의 진한 값을 넘겨야 한다
+  /// (예: `sticker(3, color: HwahaeColors.stickerShadowPrimary)`).
+  static List<BoxShadow> sticker(double depth, {Color? color}) => [
         BoxShadow(
-          color: _shadowTint.withValues(alpha: 0.05),
-          blurRadius: 4,
-          offset: const Offset(0, 2),
-        ),
-        BoxShadow(
-          color: _shadowTint.withValues(alpha: 0.05),
-          blurRadius: 16,
-          offset: const Offset(0, 6),
+          color: color ?? HwahaeColors.stickerShadow,
+          blurRadius: 0,
+          offset: Offset(0, depth),
         ),
       ];
 
@@ -72,14 +67,8 @@ class AppElevation {
         ),
       ];
 
-  /// 눌린 상태 - 그림자를 거의 없애 표면에 붙는 느낌을 준다.
-  static List<BoxShadow> get pressed => [
-        BoxShadow(
-          color: _shadowTint.withValues(alpha: 0.05),
-          blurRadius: 4,
-          offset: const Offset(0, 1),
-        ),
-      ];
+  /// 눌린 상태 - 스티커가 눌려 표면에 붙는 느낌. 깊이를 1px 로 줄인다.
+  static List<BoxShadow> get pressed => sticker(1);
 }
 
 /// 반투명 표면(글래스) 토큰.

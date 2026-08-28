@@ -7,11 +7,11 @@ class HwahaeTheme {
   HwahaeTheme._();
 
   // === Border Radius ===
-  static const double radiusXS = 6.0;
-  static const double radiusSM = 10.0;
-  static const double radiusMD = 14.0;
-  static const double radiusLG = 18.0;
-  static const double radiusXL = 24.0;
+  static const double radiusXS = 8.0;
+  static const double radiusSM = 12.0;
+  static const double radiusMD = 16.0;
+  static const double radiusLG = 20.0;
+  static const double radiusXL = 26.0;
   static const double radiusXXL = 32.0;
   static const double radiusFull = 100.0;
 
