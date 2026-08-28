@@ -5,6 +5,7 @@ import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/hwahae_colors.dart';
 import '../../../core/theme/hwahae_typography.dart';
 import 'app_button.dart';
+import 'app_mascot.dart';
 
 /// 빈 상태.
 ///
@@ -28,6 +29,14 @@ class AppEmptyState extends StatelessWidget {
   /// 리스트 안에 인라인으로 넣을 때 true (수직 여백을 줄인다)
   final bool compact;
 
+  /// 아이콘 대신 어흥이를 세운다.
+  ///
+  /// 빈 화면은 캐릭터를 써도 되는 자리다 — 판정이 걸려 있지 않고, 오히려
+  /// 아무것도 없는 화면의 어색함을 캐릭터가 덜어준다. 다만 오류 상태
+  /// ([AppErrorState])에는 쓰지 않는다. 문제가 생겼는데 캐릭터가 웃고 있으면
+  /// 놀리는 것처럼 보인다.
+  final bool showMascot;
+
   const AppEmptyState({
     super.key,
     required this.icon,
@@ -39,6 +48,7 @@ class AppEmptyState extends StatelessWidget {
     this.onSecondary,
     this.accent,
     this.compact = false,
+    this.showMascot = false,
   });
 
   @override
@@ -55,22 +65,18 @@ class AppEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: iconBox,
-              height: iconBox,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    tint.withValues(alpha: 0.14),
-                    tint.withValues(alpha: 0.04),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            if (showMascot)
+              AppMascot.eoheung(size: compact ? 56 : 88)
+            else
+              Container(
+                width: iconBox,
+                height: iconBox,
+                decoration: BoxDecoration(
+                  color: tint.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
-                shape: BoxShape.circle,
+                child: Icon(icon, size: compact ? 26 : 36, color: tint),
               ),
-              child: Icon(icon, size: compact ? 26 : 36, color: tint),
-            ),
             SizedBox(height: compact ? 14 : 20),
             Text(
               title,

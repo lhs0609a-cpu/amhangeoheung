@@ -300,4 +300,62 @@ void main() {
       expect(sizes[0] - sizes[1], AppLayout.navBarClearance);
     });
   });
+
+  group('SealBadge', () {
+    testWidgets('감찰 횟수를 새겨 보여준다', (tester) async {
+      await pumpInApp(tester, const SealBadge(count: 3));
+
+      expect(find.text('감찰'), findsOneWidget);
+      expect(find.text('3회'), findsOneWidget);
+    });
+
+    testWidgets('감찰 0회면 인장을 찍지 않는다', (tester) async {
+      await pumpInApp(tester, const SealBadge(count: 0));
+
+      expect(find.text('감찰'), findsNothing);
+      // 아직 감찰되지 않은 업체에 도장이 찍히면 안 된다.
+      expect(tester.widget<SealBadge>(find.byType(SealBadge)).count, 0);
+    });
+
+    testWidgets('정렬이 중요한 곳에서는 기울이지 않는다', (tester) async {
+      await pumpInApp(tester, const SealBadge(count: 2, tilted: false));
+
+      expect(
+        find.descendant(
+          of: find.byType(SealBadge),
+          matching: find.byType(Transform),
+        ),
+        findsNothing,
+      );
+    });
+  });
+
+  group('AppEmptyState 어흥이', () {
+    testWidgets('showMascot 이면 아이콘 대신 어흥이가 선다', (tester) async {
+      await pumpInApp(
+        tester,
+        const AppEmptyState(
+          icon: Icons.flag_outlined,
+          title: '어흥, 지금은 갈 곳이 없네',
+          showMascot: true,
+        ),
+      );
+
+      expect(find.byType(AppMascot), findsOneWidget);
+      expect(find.byIcon(Icons.flag_outlined), findsNothing);
+    });
+
+    testWidgets('기본값은 아이콘이다', (tester) async {
+      await pumpInApp(
+        tester,
+        const AppEmptyState(
+          icon: Icons.flag_outlined,
+          title: '미션이 없습니다',
+        ),
+      );
+
+      expect(find.byType(AppMascot), findsNothing);
+      expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
+    });
+  });
 }

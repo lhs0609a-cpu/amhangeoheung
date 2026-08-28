@@ -1390,6 +1390,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       icon: icon,
       title: message,
       compact: true,
+      showMascot: true,
     );
   }
 }

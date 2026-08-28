@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 /// 신뢰도 분석 데이터 모델
 class TrustAnalysisData {
@@ -445,12 +446,26 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   children: [
                     _buildMiniStat(Icons.reviews, '${data.totalReviews}', '리뷰'),
                     const SizedBox(width: 16),
-                    _buildMiniStat(Icons.verified, '${((data.verifiedReviews / data.totalReviews) * 100).toInt()}%', '검증률'),
+                    // 리뷰가 0건이면 0/0 = NaN 이고 NaN.toInt() 는 예외를 던진다.
+                    // 아직 감찰되지 않은 업체에서 실제로 화면이 죽던 자리다.
+                    _buildMiniStat(
+                      Icons.verified,
+                      data.totalReviews == 0
+                          ? '-'
+                          : '${(data.verifiedReviews / data.totalReviews * 100).round()}%',
+                      '검증률',
+                    ),
                   ],
                 ),
               ],
             ),
           ),
+          // 감찰이 끝난 업체에만 인장이 찍힌다. 0건이면 SealBadge 가 스스로
+          // 아무것도 그리지 않는다.
+          if (data.verifiedReviews > 0) ...[
+            const SizedBox(width: 12),
+            SealBadge(count: data.verifiedReviews, size: 58),
+          ],
         ],
       ),
     );

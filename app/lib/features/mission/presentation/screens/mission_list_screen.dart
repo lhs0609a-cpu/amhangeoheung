@@ -264,8 +264,9 @@ class _AvailableMissionsTab extends ConsumerWidget {
     if (state.missions.isEmpty) {
       return const AppEmptyState(
         icon: Icons.flag_outlined,
-        title: '참여 가능한 미션이 없습니다',
-        message: '새로운 미션이 등록되면 알려드릴게요',
+        showMascot: true,
+        title: '어흥, 지금은 갈 곳이 없네',
+        message: '새 감찰이 열리면 바로 알려줄게',
       );
     }
 
