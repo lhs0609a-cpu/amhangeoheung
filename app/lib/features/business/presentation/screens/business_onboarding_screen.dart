@@ -213,7 +213,7 @@ class _BusinessOnboardingScreenState extends State<BusinessOnboardingScreen> {
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: slide.gradient[0].withOpacity(0.3),
+                  color: slide.gradient[0].withValues(alpha: 0.3),
                   blurRadius: 24,
                   offset: const Offset(0, 12),
                 ),
@@ -237,7 +237,7 @@ class _BusinessOnboardingScreenState extends State<BusinessOnboardingScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: slide.gradient[0].withOpacity(0.1),
+              color: slide.gradient[0].withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -284,7 +284,7 @@ class _BusinessOnboardingScreenState extends State<BusinessOnboardingScreen> {
               boxShadow: [
                 BoxShadow(
                   color: (isLastSlide ? HwahaeColors.warning : HwahaeColors.primary)
-                      .withOpacity(0.3),
+                      .withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),

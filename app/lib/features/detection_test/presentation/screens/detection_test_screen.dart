@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/models/detection_test_model.dart';
 import '../../providers/detection_test_provider.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class DetectionTestScreen extends ConsumerStatefulWidget {
   final String testId;
@@ -215,9 +215,7 @@ class _DetectionTestScreenState extends ConsumerState<DetectionTestScreen> {
     if (!mounted) return;
 
     if (result.containsKey('error')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['error'].toString())),
-      );
+      AppToast.info(context, result['error'].toString());
       return;
     }
 

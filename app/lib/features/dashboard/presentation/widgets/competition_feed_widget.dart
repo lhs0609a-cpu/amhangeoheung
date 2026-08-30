@@ -29,7 +29,7 @@ class CompetitionFeedWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.error.withOpacity(0.1),
+                  color: HwahaeColors.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.local_fire_department_rounded, size: 20, color: HwahaeColors.error),

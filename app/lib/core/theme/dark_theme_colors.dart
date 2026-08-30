@@ -1,84 +1,101 @@
 import 'package:flutter/material.dart';
 
-/// 암행어흥 다크 모드 컬러 시스템
+/// 암행어흥 다크 모드 컬러 시스템 — 밤의 호랭이
+///
+/// 라이트 모드의 크림/먹을 뒤집되, 순검정 바탕은 쓰지 않는다. 먹색을 더 진하게
+/// 내린 갈색 바탕이라야 호랭이 털색이 위에서 살아난다. 순검정 위의 금색은
+/// 싸구려 금박처럼 보인다.
 class DarkThemeColors {
   DarkThemeColors._();
 
-  // === Primary Colors - 딥 바이올렛 (밝게 조정) ===
-  static const Color primary = Color(0xFF8B7CF6);
-  static const Color primaryLight = Color(0xFFA09AFF);
-  static const Color primaryDark = Color(0xFF6C5CE7);
-  static const Color primaryContainer = Color(0xFF2D2A4A);
-  static const Color onPrimary = Color(0xFFFFFFFF);
+  // === Primary Colors - 호랭이 털 (어두운 바탕에서 살짝 밝게) ===
+  static const Color primary = Color(0xFFF7C868);
+  static const Color primaryLight = Color(0xFFFAD98F);
+  static const Color primaryDark = Color(0xFFF2B33D);
+  static const Color primaryContainer = Color(0xFF4C3A27);
+  static const Color onPrimary = Color(0xFF241A11);
 
-  // === Secondary/Accent - 네온 민트 ===
-  static const Color secondary = Color(0xFF5EEAD4);
-  static const Color secondaryLight = Color(0xFF7EEFC9);
-  static const Color secondaryDark = Color(0xFF00D4AA);
-  static const Color secondaryContainer = Color(0xFF1A3A35);
-  static const Color onSecondary = Color(0xFF0A0A0A);
+  // === Secondary/Accent - 낙관 붉은색 (감찰 · 지적) ===
+  static const Color secondary = Color(0xFFF5896F);
+  static const Color secondaryLight = Color(0xFFFAA894);
+  static const Color secondaryDark = Color(0xFFD9482F);
+  static const Color secondaryContainer = Color(0xFF4A2A22);
+  static const Color onSecondary = Color(0xFF241A11);
 
-  // === Accent - 핫핑크 ===
-  static const Color accent = Color(0xFFFF8FB3);
-  static const Color accentLight = Color(0xFFFFABC8);
-  static const Color accentDark = Color(0xFFFF6B9D);
-  static const Color accentContainer = Color(0xFF3A2533);
+  // === Accent - 풀색 (개선 확인) ===
+  static const Color accent = Color(0xFF7FBE93);
+  static const Color accentLight = Color(0xFF9FD1AF);
+  static const Color accentDark = Color(0xFF4E8C5B);
+  static const Color accentContainer = Color(0xFF27402D);
 
-  // === Background & Surface ===
-  static const Color background = Color(0xFF0F0F14);
-  static const Color surface = Color(0xFF1A1A24);
-  static const Color surfaceVariant = Color(0xFF252532);
-  static const Color surfaceContainer = Color(0xFF1F1F2C);
-  static const Color surfaceElevated = Color(0xFF2A2A38);
+  // === Background & Surface - 밤의 먹 ===
+  static const Color background = Color(0xFF201810);
+  static const Color surface = Color(0xFF2C2116);
+  static const Color surfaceVariant = Color(0xFF3D2E1F);
+  static const Color surfaceContainer = Color(0xFF352819);
+  static const Color surfaceElevated = Color(0xFF4C3A27);
 
   // === Text Colors ===
-  static const Color textPrimary = Color(0xFFF0F0F8);
-  static const Color textSecondary = Color(0xFFB0B0C0);
-  static const Color textTertiary = Color(0xFF707080);
-  static const Color textDisabled = Color(0xFF505060);
-  static const Color textOnDark = Color(0xFFFAFAFC);
+  static const Color textPrimary = Color(0xFFFDF6E9);
+  static const Color textSecondary = Color(0xFFCBBB9E);
+  static const Color textTertiary = Color(0xFFA89880);
+  static const Color textDisabled = Color(0xFF7A6248);
+  static const Color textOnDark = Color(0xFFFDF6E9);
 
   // === Status Colors (다크 모드에서 더 밝게) ===
-  static const Color success = Color(0xFF34D399);
-  static const Color successLight = Color(0xFF1A3A30);
-  static const Color warning = Color(0xFFFBBF24);
-  static const Color warningLight = Color(0xFF3A3520);
-  static const Color error = Color(0xFFF87171);
-  static const Color errorLight = Color(0xFF3A2525);
-  static const Color info = Color(0xFF60A5FA);
-  static const Color infoLight = Color(0xFF1E3A5F);
+  static const Color success = Color(0xFF7FBE93);
+  static const Color successLight = Color(0xFF27402D);
+  static const Color warning = Color(0xFFF7C868);
+  static const Color warningLight = Color(0xFF4C3A27);
+  static const Color error = Color(0xFFF5896F);
+  static const Color errorLight = Color(0xFF4A2A22);
+  static const Color info = Color(0xFFCBBB9E);
+  static const Color infoLight = Color(0xFF3D2E1F);
 
   // === Border & Divider ===
-  static const Color divider = Color(0xFF2A2A38);
-  static const Color border = Color(0xFF353545);
-  static const Color borderLight = Color(0xFF404055);
-  static const Color borderFocused = Color(0xFF8B7CF6);
+  static const Color divider = Color(0xFF3D2E1F);
+  static const Color border = Color(0xFF54402B);
+  static const Color borderLight = Color(0xFF6B5540);
+  static const Color borderFocused = Color(0xFFF7C868);
+
+  /// 조작 요소의 테두리. [border] 는 1.79:1 로 카드 윤곽용이고,
+  /// 입력창처럼 테두리가 조작 단서인 곳에는 이걸 쓴다. 3.06:1.
+  static const Color borderStrong = Color(0xFF7A6248);
 
   // === Rating Colors ===
-  static const Color ratingStar = Color(0xFFFBBF24);
-  static const Color ratingStarEmpty = Color(0xFF404050);
+  static const Color ratingStar = Color(0xFFF7C868);
+  static const Color ratingStarEmpty = Color(0xFF54402B);
+
+  // === 인장 · 캐릭터 ===
+  static const Color sealInk = Color(0xFFF5896F);
+  static const Color sealBackground = Color(0xFF4A2A22);
+  static const Color tigerFur = Color(0xFFF2B33D);
+  static const Color tigerEar = Color(0xFFE09A28);
+  static const Color tigerBlush = Color(0xFFF5896F);
+  static const Color tigerMuzzle = Color(0xFFFDF6E9);
+  static const Color satoSkin = Color(0xFFF7DFC0);
 
   // === Gradient Colors (다크 모드용) ===
   static const List<Color> gradientPrimary = [
-    Color(0xFF8B7CF6),
-    Color(0xFFA78BFA),
+    Color(0xFFF7C868),
+    Color(0xFFF2B33D),
   ];
 
   static const List<Color> gradientAccent = [
-    Color(0xFF5EEAD4),
-    Color(0xFF38BDF8),
+    Color(0xFF7FBE93),
+    Color(0xFF4E8C5B),
   ];
 
   static const List<Color> gradientWarm = [
-    Color(0xFFFF8FB3),
-    Color(0xFFFFA071),
+    Color(0xFFF7C868),
+    Color(0xFFF5896F),
   ];
 
   static const List<Color> gradientCool = [
-    Color(0xFF818CF8),
-    Color(0xFFA78BFA),
+    Color(0xFFCBBB9E),
+    Color(0xFF7A6A55),
   ];
 
   // === Card Elevation Shadow ===
-  static const Color cardShadow = Color(0x20000000);
+  static const Color cardShadow = Color(0x33241A11);
 }

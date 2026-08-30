@@ -6,6 +6,7 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../providers/profile_provider.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class BankAccountScreen extends ConsumerStatefulWidget {
   const BankAccountScreen({super.key});
@@ -57,14 +58,7 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
   Future<void> _saveBankAccount() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedBank == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('은행을 선택해주세요'),
-          backgroundColor: HwahaeColors.warning,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
+      AppToast.warning(context, '은행을 선택해주세요');
       return;
     }
 
@@ -80,24 +74,10 @@ class _BankAccountScreenState extends ConsumerState<BankAccountScreen> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('계좌 정보가 저장되었습니다'),
-            backgroundColor: HwahaeColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        AppToast.success(context, '계좌 정보가 저장되었습니다');
         context.pop();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('저장에 실패했습니다'),
-            backgroundColor: HwahaeColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        AppToast.error(context, '저장에 실패했습니다');
       }
     }
   }

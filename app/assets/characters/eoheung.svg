@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <title>어흥이 — 갓 쓴 호랭이</title>
+  <!--
+    먹색 요소에 크림색 테두리를 두른다. 크림 배경에서는 배경과 같아 보이지 않고,
+    먹색 배경(MascotMessage dark)에서는 실루엣을 살려준다.
+  -->
+  <g>
+    <!-- 볼 -->
+    <circle cx="48" cy="58" r="30" fill="#F2B33D"/>
+
+    <!-- 볼 줄무늬 — 호랑이로 읽히게 하는 유일한 신호라 이마가 아니라 볼에 둔다.
+         이마에 두면 화난 눈썹처럼 보인다. -->
+    <path d="M20.5 54.5h8.5" stroke="#3D2E1F" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M19.5 62h8" stroke="#3D2E1F" stroke-width="3" stroke-linecap="round"/>
+    <path d="M75.5 54.5h-8.5" stroke="#3D2E1F" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M76.5 62h-8" stroke="#3D2E1F" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- 주둥이 -->
+    <ellipse cx="48" cy="68" rx="15" ry="9.5" fill="#FDF6E9"/>
+
+    <!-- 볼터치 -->
+    <ellipse cx="28" cy="66.5" rx="6" ry="3.8" fill="#F5896F" opacity="0.6"/>
+    <ellipse cx="68" cy="66.5" rx="6" ry="3.8" fill="#F5896F" opacity="0.6"/>
+
+    <!-- 눈 -->
+    <circle cx="38" cy="56" r="4.6" fill="#3D2E1F"/>
+    <circle cx="58" cy="56" r="4.6" fill="#3D2E1F"/>
+    <circle cx="39.7" cy="54.3" r="1.6" fill="#FDF6E9"/>
+    <circle cx="59.7" cy="54.3" r="1.6" fill="#FDF6E9"/>
+
+    <!-- 코와 웃는 입 (ω) -->
+    <path d="M44.9 63.2h6.2l-3.1 3.4z" fill="#3D2E1F"/>
+    <path d="M48 66.6v2.2" stroke="#3D2E1F" stroke-width="1.9" stroke-linecap="round"/>
+    <path d="M48 68.8c-1.9 2.8-5.4 2.6-6.4-.2" stroke="#3D2E1F" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M48 68.8c1.9 2.8 5.4 2.6 6.4-.2" stroke="#3D2E1F" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+    <!-- 귀 — 갓 챙 아래로 삐져나온다 -->
+    <circle cx="19" cy="49" r="10" fill="#E09A28"/>
+    <circle cx="77" cy="49" r="10" fill="#E09A28"/>
+    <circle cx="19" cy="49" r="4.4" fill="#F5896F"/>
+    <circle cx="77" cy="49" r="4.4" fill="#F5896F"/>
+
+    <!-- 갓 — 챙이 머리보다 확실히 넓어야 갓으로 읽힌다 -->
+    <ellipse cx="48" cy="36" rx="42" ry="8" fill="#3D2E1F" stroke="#FDF6E9" stroke-width="1.1"/>
+    <path d="M35.5 36V20.5c0-2.6 2.1-4.7 4.7-4.7h15.6c2.6 0 4.7 2.1 4.7 4.7V36z"
+          fill="#3D2E1F" stroke="#FDF6E9" stroke-width="1.1"/>
+    <ellipse cx="48" cy="20.5" rx="12.2" ry="2.8" fill="#5A452E"/>
+  </g>
+</svg>

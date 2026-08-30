@@ -5,6 +5,7 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../providers/profile_provider.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class SpecialtiesScreen extends ConsumerStatefulWidget {
   const SpecialtiesScreen({super.key});
@@ -43,14 +44,7 @@ class _SpecialtiesScreenState extends ConsumerState<SpecialtiesScreen> {
 
   Future<void> _saveSpecialties() async {
     if (_selectedCategories.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('최소 1개 이상의 카테고리를 선택해주세요'),
-          backgroundColor: HwahaeColors.warning,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
+      AppToast.warning(context, '최소 1개 이상의 카테고리를 선택해주세요');
       return;
     }
 
@@ -64,24 +58,10 @@ class _SpecialtiesScreenState extends ConsumerState<SpecialtiesScreen> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('전문 카테고리가 저장되었습니다'),
-            backgroundColor: HwahaeColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        AppToast.success(context, '전문 카테고리가 저장되었습니다');
         context.pop();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('저장에 실패했습니다'),
-            backgroundColor: HwahaeColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        AppToast.error(context, '저장에 실패했습니다');
       }
     }
   }
@@ -209,7 +189,7 @@ class _SpecialtiesScreenState extends ConsumerState<SpecialtiesScreen> {
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: category.gradient[0].withOpacity(0.3),
+                                color: category.gradient[0].withValues(alpha: 0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),

@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 /// 신뢰도 분석 데이터 모델
 class TrustAnalysisData {
@@ -290,9 +291,9 @@ class TrustAnalysisScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: badgeColor.withOpacity(0.2),
+                          color: badgeColor.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: badgeColor.withOpacity(0.5)),
+                          border: Border.all(color: badgeColor.withValues(alpha: 0.5)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -323,7 +324,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   Text(
                     '총 ${data.totalReviews}개 리뷰 중 ${data.verifiedReviews}개 검증됨',
                     style: HwahaeTypography.bodyMedium.copyWith(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -373,12 +374,12 @@ class TrustAnalysisScreen extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            scoreColor.withOpacity(0.1),
-            scoreColor.withOpacity(0.05),
+            scoreColor.withValues(alpha: 0.1),
+            scoreColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: scoreColor.withOpacity(0.3)),
+        border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -395,7 +396,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   child: CircularProgressIndicator(
                     value: data.overallScore / 100,
                     strokeWidth: 10,
-                    backgroundColor: scoreColor.withOpacity(0.2),
+                    backgroundColor: scoreColor.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
                     strokeCap: StrokeCap.round,
                   ),
@@ -445,12 +446,26 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   children: [
                     _buildMiniStat(Icons.reviews, '${data.totalReviews}', '리뷰'),
                     const SizedBox(width: 16),
-                    _buildMiniStat(Icons.verified, '${((data.verifiedReviews / data.totalReviews) * 100).toInt()}%', '검증률'),
+                    // 리뷰가 0건이면 0/0 = NaN 이고 NaN.toInt() 는 예외를 던진다.
+                    // 아직 감찰되지 않은 업체에서 실제로 화면이 죽던 자리다.
+                    _buildMiniStat(
+                      Icons.verified,
+                      data.totalReviews == 0
+                          ? '-'
+                          : '${(data.verifiedReviews / data.totalReviews * 100).round()}%',
+                      '검증률',
+                    ),
                   ],
                 ),
               ],
             ),
           ),
+          // 감찰이 끝난 업체에만 인장이 찍힌다. 0건이면 SealBadge 가 스스로
+          // 아무것도 그리지 않는다.
+          if (data.verifiedReviews > 0) ...[
+            const SizedBox(width: 12),
+            SealBadge(count: data.verifiedReviews, size: 58),
+          ],
         ],
       ),
     );
@@ -483,7 +498,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -526,7 +541,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                             height: 8,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [color, color.withOpacity(0.7)],
+                                colors: [color, color.withValues(alpha: 0.7)],
                               ),
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -568,7 +583,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -587,7 +602,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.success.withOpacity(0.1),
+                  color: HwahaeColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -690,8 +705,8 @@ class TrustAnalysisScreen extends ConsumerWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          HwahaeColors.primary.withOpacity(0.3),
-                          HwahaeColors.primary.withOpacity(0.0),
+                          HwahaeColors.primary.withValues(alpha: 0.3),
+                          HwahaeColors.primary.withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -726,7 +741,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -778,7 +793,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                               gradient: LinearGradient(
                                 colors: [
                                   HwahaeColors.ratingStar,
-                                  HwahaeColors.ratingStar.withOpacity(0.7),
+                                  HwahaeColors.ratingStar.withValues(alpha: 0.7),
                                 ],
                               ),
                               borderRadius: BorderRadius.circular(10),
@@ -818,7 +833,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -837,7 +852,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.primary.withOpacity(0.1),
+                  color: HwahaeColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -912,9 +927,9 @@ class TrustAnalysisScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isHighlighted ? color.withOpacity(0.1) : HwahaeColors.surfaceVariant,
+        color: isHighlighted ? color.withValues(alpha: 0.1) : HwahaeColors.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
-        border: isHighlighted ? Border.all(color: color.withOpacity(0.3)) : null,
+        border: isHighlighted ? Border.all(color: color.withValues(alpha: 0.3)) : null,
       ),
       child: Column(
         children: [
@@ -945,7 +960,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -959,7 +974,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.success.withOpacity(0.1),
+                  color: HwahaeColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.thumb_up, color: HwahaeColors.success, size: 20),
@@ -977,7 +992,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: HwahaeColors.successLight.withOpacity(0.3),
+                color: HwahaeColors.successLight.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -985,7 +1000,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: HwahaeColors.success.withOpacity(0.15),
+                      color: HwahaeColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(item.icon, color: HwahaeColors.success, size: 20),
@@ -1041,7 +1056,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1055,7 +1070,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.warning.withOpacity(0.1),
+                  color: HwahaeColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.lightbulb_outline, color: HwahaeColors.warning, size: 20),
@@ -1073,7 +1088,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: HwahaeColors.warningLight.withOpacity(0.3),
+                color: HwahaeColors.warningLight.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -1091,7 +1106,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: HwahaeColors.warning.withOpacity(0.2),
+                          color: HwahaeColors.warning.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(

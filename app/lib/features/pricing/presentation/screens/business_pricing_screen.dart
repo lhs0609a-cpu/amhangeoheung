@@ -7,6 +7,7 @@ import '../../../../shared/widgets/hwahae/hwahae_buttons.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../business/data/repositories/subscription_repository.dart';
 import '../../../payment/presentation/screens/toss_payment_screen.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class BusinessPricingPlan {
   final String id;
@@ -221,7 +222,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
                       Text(
                         '신뢰 배지로 고객 전환율을 높이세요',
                         style: HwahaeTypography.bodyMedium.copyWith(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ],
@@ -369,7 +370,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
           }),
           const SizedBox(height: 24),
           _buildValueProposition(),
-          const SizedBox(height: 100),
+          const AppBottomSpacer.plain(),
         ],
       ),
     );
@@ -525,7 +526,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
                         width: 20,
                         height: 20,
                         decoration: BoxDecoration(
-                          color: plan.gradientColors[0].withOpacity(0.1),
+                          color: plan.gradientColors[0].withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -637,7 +638,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
           }),
           const SizedBox(height: 24),
           _buildValueProposition(),
-          const SizedBox(height: 100),
+          const AppBottomSpacer.plain(),
         ],
       ),
     );
@@ -676,13 +677,13 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                HwahaeColors.accent.withOpacity(0.1),
-                HwahaeColors.accent.withOpacity(0.05),
+                HwahaeColors.accent.withValues(alpha: 0.1),
+                HwahaeColors.accent.withValues(alpha: 0.05),
               ],
             ),
             borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
             border:
-                Border.all(color: HwahaeColors.accent.withOpacity(0.3)),
+                Border.all(color: HwahaeColors.accent.withValues(alpha: 0.3)),
           ),
           child: Column(
             children: [
@@ -785,7 +786,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
         color: HwahaeColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -887,7 +888,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
                         Text(
                           _isYearly ? '연간 구독' : '월간 구독',
                           style: HwahaeTypography.captionMedium.copyWith(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -906,7 +907,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
                       Text(
                         _isYearly ? '/년' : '/월',
                         style: HwahaeTypography.captionSmall.copyWith(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                     ],

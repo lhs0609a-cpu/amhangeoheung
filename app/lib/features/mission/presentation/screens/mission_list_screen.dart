@@ -7,7 +7,6 @@ import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/empty_view.dart';
-import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
 import '../../providers/mission_provider.dart';
 import '../../providers/season_provider.dart';
 import '../../data/models/mission_model.dart';
@@ -16,6 +15,7 @@ import '../widgets/mission_visibility_badges.dart';
 import '../../../../shared/widgets/grade_progress_widget.dart';
 import '../../../profile/providers/profile_provider.dart';
 import '../../../certification/providers/certification_provider.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class MissionListScreen extends ConsumerStatefulWidget {
   const MissionListScreen({super.key});
@@ -60,9 +60,9 @@ class _MissionListScreenState extends ConsumerState<MissionListScreen>
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: HwahaeColors.warning.withOpacity(0.1),
+            color: HwahaeColors.warning.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: HwahaeColors.warning.withOpacity(0.3)),
+            border: Border.all(color: HwahaeColors.warning.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -183,7 +183,7 @@ class _MissionListScreenState extends ConsumerState<MissionListScreen>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: _selectedMissionType != null
-              ? HwahaeColors.primary.withOpacity(0.1)
+              ? HwahaeColors.primary.withValues(alpha: 0.1)
               : HwahaeColors.surfaceVariant,
           borderRadius: BorderRadius.circular(20),
         ),
@@ -253,8 +253,8 @@ class _AvailableMissionsTab extends ConsumerWidget {
     }
 
     if (state.error != null) {
-      return ErrorView.fromMessage(
-        message: state.error!,
+      return AppErrorState.fromMessage(
+        state.error!,
         onRetry: () {
           ref.read(availableMissionsProvider.notifier).loadMissions();
         },
@@ -262,10 +262,11 @@ class _AvailableMissionsTab extends ConsumerWidget {
     }
 
     if (state.missions.isEmpty) {
-      return EmptyView(
-        title: '참여 가능한 미션이 없습니다',
-        message: '새로운 미션이 등록되면 알려드릴게요',
+      return const AppEmptyState(
         icon: Icons.flag_outlined,
+        showMascot: true,
+        title: '어흥, 지금은 갈 곳이 없네',
+        message: '새 감찰이 열리면 바로 알려줄게',
       );
     }
 
@@ -353,8 +354,10 @@ class _SeasonBannerCarousel extends StatelessWidget {
           final season = seasons[index];
           final remaining = season.endAt.difference(DateTime.now());
 
-          return GestureDetector(
+          return Pressable(
             onTap: () => context.push('/seasons/${season.id}'),
+            scale: 0.97,
+            semanticLabel: season.name,
             child: Container(
               width: 260,
               padding: const EdgeInsets.all(16),
@@ -367,7 +370,7 @@ class _SeasonBannerCarousel extends StatelessWidget {
                 borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
                 boxShadow: [
                   BoxShadow(
-                    color: HwahaeColors.accent.withOpacity(0.3),
+                    color: HwahaeColors.accent.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -378,12 +381,12 @@ class _SeasonBannerCarousel extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const SeasonBadge(),
+                      const SeasonMissionBadge(),
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -417,7 +420,7 @@ class _SeasonBannerCarousel extends StatelessWidget {
                   Text(
                     season.description ?? '시즌 미션에 참여하고 추가 보상을 받으세요!',
                     style: HwahaeTypography.captionMedium.copyWith(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -447,7 +450,7 @@ class _HiddenMissionsSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const HiddenBadge(),
+              const HiddenMissionBadge(),
               const SizedBox(width: 8),
               Text(
                 '히든 미션',
@@ -474,8 +477,9 @@ class _HiddenMissionsSection extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (context, index) {
                 final mission = missions[index];
-                return GestureDetector(
+                return Pressable(
                   onTap: () => context.push('/missions/${mission.id}'),
+                  scale: 0.96,
                   child: GlowContainer(
                     child: Container(
                       width: 180,
@@ -484,7 +488,7 @@ class _HiddenMissionsSection extends StatelessWidget {
                         color: HwahaeColors.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: HwahaeColors.accent.withOpacity(0.3),
+                          color: HwahaeColors.accent.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Column(
@@ -506,7 +510,7 @@ class _HiddenMissionsSection extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: HwahaeColors.success.withOpacity(0.1),
+                                    color: HwahaeColors.success.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
@@ -552,12 +556,6 @@ class _HiddenMissionsSection extends StatelessWidget {
     );
   }
 
-  String _formatCurrency(int amount) {
-    return amount.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
 }
 
 // 내 미션 탭 (진행 중 + 완료 통합)
@@ -664,29 +662,10 @@ class _MyMissionsTabState extends ConsumerState<_MyMissionsTab> {
   }
 
   Widget _buildFilterChip(String value, String label) {
-    final isSelected = _filter == value;
-    return InkWell(
+    return AppChip(
+      label: label,
+      selected: _filter == value,
       onTap: () => setState(() => _filter = value),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? HwahaeColors.primary.withOpacity(0.1)
-              : HwahaeColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(20),
-          border: isSelected
-              ? Border.all(color: HwahaeColors.primary.withOpacity(0.3))
-              : null,
-        ),
-        child: Text(
-          label,
-          style: HwahaeTypography.labelSmall.copyWith(
-            color: isSelected ? HwahaeColors.primary : HwahaeColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -721,16 +700,17 @@ class _MissionCard extends StatelessWidget {
     }
 
     return Semantics(
-      label: '${mission.business?.name ?? mission.category ?? '미션'}, ${statusText}, ${mission.rewardDisplayText}',
+      label: '${mission.business?.name ?? mission.category ?? '미션'}, $statusText, ${mission.rewardDisplayText}',
       button: true,
-      child: GestureDetector(
+      child: Pressable(
         onTap: () => context.push('/missions/${mission.id}'),
+        scale: 0.985,
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: HwahaeColors.surface,
             borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-            border: Border.all(color: HwahaeColors.border),
+            boxShadow: AppElevation.level1,
           ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,7 +724,7 @@ class _MissionCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -757,18 +737,18 @@ class _MissionCard extends StatelessWidget {
                 ),
                 if (mission.isHidden) ...[
                   const SizedBox(width: 6),
-                  const HiddenBadge(),
+                  const HiddenMissionBadge(),
                 ],
                 if (mission.isSeason) ...[
                   const SizedBox(width: 6),
-                  const SeasonBadge(),
+                  const SeasonMissionBadge(),
                 ],
                 // 미션 유형 배지
                 const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
-                    color: mission.missionTypeColor.withOpacity(0.1),
+                    color: mission.missionTypeColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
@@ -875,7 +855,7 @@ class _MissionCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isUrgent
-            ? HwahaeColors.error.withOpacity(0.1)
+            ? HwahaeColors.error.withValues(alpha: 0.1)
             : HwahaeColors.surfaceVariant,
         borderRadius: BorderRadius.circular(4),
       ),
@@ -942,8 +922,8 @@ class _MissionCard extends StatelessWidget {
     }
 
     // 참여 가능
-    final current = mission.currentApplicants ?? 0;
-    final max = mission.maxApplicants ?? 20;
+    final current = mission.currentApplicants;
+    final max = mission.maxApplicants;
 
     return Text(
       '$current/$max명 신청',
@@ -975,12 +955,6 @@ class _MissionCard extends StatelessWidget {
     }
   }
 
-  String _formatCurrency(int amount) {
-    return amount.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
 }
 
 // 미션 유형 필터 칩
@@ -1012,31 +986,15 @@ class _MissionTypeFilterChips extends ConsumerWidget {
           final type = types[index];
           final isSelected = selectedType == type.value;
 
-          return FilterChip(
+          return AppChip(
+            label: type.label,
+            icon: type.icon,
+            accent: type.color,
             selected: isSelected,
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(type.icon, size: 16,
-                  color: isSelected ? Colors.white : type.color),
-                const SizedBox(width: 4),
-                Text(type.label),
-              ],
-            ),
-            labelStyle: HwahaeTypography.labelSmall.copyWith(
-              color: isSelected ? Colors.white : HwahaeColors.textPrimary,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            ),
-            backgroundColor: HwahaeColors.surface,
-            selectedColor: type.color,
-            side: BorderSide(
-              color: isSelected ? type.color : HwahaeColors.border,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            onSelected: (_) {
-              ref.read(availableMissionsProvider.notifier).loadMissions(type: type.value);
+            onTap: () {
+              ref
+                  .read(availableMissionsProvider.notifier)
+                  .loadMissions(type: type.value);
             },
           );
         },

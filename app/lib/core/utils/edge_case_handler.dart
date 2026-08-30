@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import '../services/connectivity_service.dart';
 import '../theme/hwahae_colors.dart';
 import '../theme/hwahae_typography.dart';
 
@@ -10,6 +10,8 @@ class EdgeCaseHandler {
   static final EdgeCaseHandler _instance = EdgeCaseHandler._internal();
   factory EdgeCaseHandler() => _instance;
   EdgeCaseHandler._internal();
+
+  final ConnectivityService _connectivity = ConnectivityService();
 
   // 중복 제출 방지를 위한 진행 중인 요청 추적
   final Set<String> _pendingRequests = {};
@@ -21,17 +23,12 @@ class EdgeCaseHandler {
   final Map<String, DateTime> _throttleTimestamps = {};
 
   /// 네트워크 연결 상태 확인
-  Future<bool> isConnected() async {
-    final result = await Connectivity().checkConnectivity();
-    return result != ConnectivityResult.none;
-  }
+  /// connectivity_plus 5.x 부터 결과가 `List<ConnectivityResult>` 라서
+  /// 단일 값 비교는 항상 true 가 된다. 판정은 ConnectivityService 로 일원화.
+  Future<bool> isConnected() => _connectivity.isConnected;
 
   /// 네트워크 연결 스트림
-  Stream<bool> get connectivityStream {
-    return Connectivity().onConnectivityChanged.map(
-      (result) => result != ConnectivityResult.none,
-    );
-  }
+  Stream<bool> get connectivityStream => _connectivity.onConnectivityChanged;
 
   /// 중복 제출 방지 래퍼
   /// [requestId]: 요청 식별자 (예: 'mission_apply_123')
@@ -601,7 +598,7 @@ class LoadingOverlay {
 
     _overlayEntry = OverlayEntry(
       builder: (context) => Container(
-        color: Colors.black.withOpacity(0.5),
+        color: Colors.black.withValues(alpha: 0.5),
         child: Center(
           child: Container(
             padding: const EdgeInsets.all(24),

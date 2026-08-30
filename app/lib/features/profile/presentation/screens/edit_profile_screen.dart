@@ -5,6 +5,7 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../providers/profile_provider.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -44,24 +45,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('프로필이 수정되었습니다'),
-            backgroundColor: HwahaeColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        AppToast.success(context, '프로필이 수정되었습니다');
         context.pop();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('프로필 수정에 실패했습니다'),
-            backgroundColor: HwahaeColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        AppToast.error(context, '프로필 수정에 실패했습니다');
       }
     }
   }

@@ -55,7 +55,7 @@ class DetectionTest {
     if (remaining.isNegative) return '만료됨';
     final hours = remaining.inHours;
     if (hours >= 24) return '${hours ~/ 24}일 ${hours % 24}시간';
-    return '${hours}시간 ${remaining.inMinutes % 60}분';
+    return '$hours시간 ${remaining.inMinutes % 60}분';
   }
 }
 

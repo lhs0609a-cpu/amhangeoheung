@@ -7,6 +7,7 @@ import '../../../../shared/widgets/hwahae/hwahae_buttons.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../payment/presentation/screens/toss_payment_screen.dart';
 import '../../data/repositories/premium_repository.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 // 요금제 모델
 class PricingPlan {
@@ -225,7 +226,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
                       Text(
                         '더 많은 미션, 더 빠른 정산, 더 높은 수익',
                         style: HwahaeTypography.bodyMedium.copyWith(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                     ],
@@ -378,10 +379,10 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
               padding: const EdgeInsets.only(bottom: 16),
               child: _buildPricingCard(plan, index),
             );
-          }).toList(),
+          }),
           const SizedBox(height: 24),
           _buildGuaranteeSection(),
-          const SizedBox(height: 100),
+          const AppBottomSpacer.plain(),
         ],
       ),
     );
@@ -511,7 +512,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
                   )
                 else ...[
                   Text(
-                    '${_formatCurrency(price)}',
+                    _formatCurrency(price),
                     style: HwahaeTypography.headlineLarge.copyWith(
                       fontWeight: FontWeight.w800,
                       color: plan.gradientColors[0],
@@ -556,7 +557,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
                         width: 20,
                         height: 20,
                         decoration: BoxDecoration(
-                          color: plan.gradientColors[0].withOpacity(0.1),
+                          color: plan.gradientColors[0].withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -667,7 +668,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
           }),
           const SizedBox(height: 24),
           _buildGuaranteeSection(),
-          const SizedBox(height: 100),
+          const AppBottomSpacer.plain(),
         ],
       ),
     );
@@ -707,12 +708,12 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                HwahaeColors.primary.withOpacity(0.1),
-                HwahaeColors.primaryLight.withOpacity(0.05),
+                HwahaeColors.primary.withValues(alpha: 0.1),
+                HwahaeColors.primaryLight.withValues(alpha: 0.05),
               ],
             ),
             borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-            border: Border.all(color: HwahaeColors.primary.withOpacity(0.3)),
+            border: Border.all(color: HwahaeColors.primary.withValues(alpha: 0.3)),
           ),
           child: Column(
             children: [
@@ -819,7 +820,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
         color: HwahaeColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -930,7 +931,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
                         Text(
                           _isYearly ? '연간 구독' : '월간 구독',
                           style: HwahaeTypography.captionMedium.copyWith(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -949,7 +950,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
                       Text(
                         _isYearly ? '/년' : '/월',
                         style: HwahaeTypography.captionSmall.copyWith(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                     ],

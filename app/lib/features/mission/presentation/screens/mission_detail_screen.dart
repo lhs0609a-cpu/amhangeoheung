@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/hwahae_colors.dart';
@@ -16,7 +15,7 @@ import '../../../../shared/widgets/error_view.dart';
 import '../../providers/mission_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../data/models/mission_model.dart';
-import '../../data/repositories/mission_repository.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class MissionDetailScreen extends ConsumerWidget {
   final String missionId;
@@ -157,7 +156,7 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
                         child: _buildWarningContent(),
                       ),
 
-                      const SizedBox(height: 120),
+                      const AppBottomSpacer.plain(),
                     ],
                   ),
                 ),
@@ -386,54 +385,6 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
     );
   }
 
-  Widget _buildStatusBanner() {
-    final statusInfo = _getStatusInfo();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            statusInfo.color.withOpacity(0.15),
-            statusInfo.color.withOpacity(0.05),
-          ],
-        ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: statusInfo.color,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              statusInfo.label,
-              style: HwahaeTypography.labelMedium.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            statusInfo.subtitle,
-            style: HwahaeTypography.bodyMedium.copyWith(
-              color: statusInfo.color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   _StatusInfo _getStatusInfo() {
     switch (mission.status) {
       case 'recruiting':
@@ -613,59 +564,10 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
     );
   }
 
-  Widget _buildWarningSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: HwahaeColors.warningLight,
-        borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.warning, color: HwahaeColors.warning),
-              const SizedBox(width: 8),
-              Text(
-                '주의사항',
-                style: HwahaeTypography.titleSmall.copyWith(
-                  color: HwahaeColors.warning,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '• 업체와 개인 연락 시 계정 정지\n'
-            '• 최소 30분 이상 체류 필수\n'
-            '• 미션 배정 후 3일 이내 방문\n'
-            '• 영수증 미첨부 시 페이백 불가',
-            style: HwahaeTypography.bodySmall.copyWith(
-              height: 1.6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBottomCTA(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: HwahaeColors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: _buildCTAByStatus(context, ref),
-      ),
+    // 홈 인디케이터/제스처 인셋과 키보드 높이는 AppBottomActionBar 가 흡수한다.
+    return AppBottomActionBar(
+      child: _buildCTAByStatus(context, ref),
     );
   }
 
@@ -688,8 +590,8 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
 
   // 모집중 - 신청하기 버튼
   Widget _buildRecruitingCTA(BuildContext context, WidgetRef ref) {
-    final current = mission.currentApplicants ?? 0;
-    final max = mission.maxApplicants ?? 20;
+    final current = mission.currentApplicants;
+    final max = mission.maxApplicants;
 
     return Row(
       children: [
@@ -766,9 +668,9 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
                     Expanded(
                       child: Text(
                         daysUntilDeadline > 0
-                            ? '미션 기한: ${daysUntilDeadline}일 남음 (3일 이내 수행 필수)'
+                            ? '미션 기한: $daysUntilDeadline일 남음 (3일 이내 수행 필수)'
                             : hoursUntilDeadline != null && hoursUntilDeadline > 0
-                                ? '미션 기한: ${hoursUntilDeadline}시간 남음'
+                                ? '미션 기한: $hoursUntilDeadline시간 남음'
                                 : '미션 기한 만료 임박!',
                         style: HwahaeTypography.bodySmall.copyWith(
                           color: HwahaeColors.info,
@@ -901,9 +803,9 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
                     Expanded(
                       child: Text(
                         daysUntilDeadline != null && daysUntilDeadline > 0
-                            ? '방문 마감: ${daysUntilDeadline}일 남음'
+                            ? '방문 마감: $daysUntilDeadline일 남음'
                             : hoursUntilDeadline > 0
-                                ? '방문 마감: ${hoursUntilDeadline}시간 남음'
+                                ? '방문 마감: $hoursUntilDeadline시간 남음'
                                 : '방문 마감 임박!',
                         style: HwahaeTypography.bodySmall.copyWith(
                           color: HwahaeColors.warning,
@@ -1108,44 +1010,15 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
                 if (response.success) {
                   // 미션 상세 새로고침
                   ref.invalidate(missionDetailProvider(mission.id));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        response.stayMinutes != null
+                  AppToast.success(context, response.stayMinutes != null
                             ? '체크아웃 완료! 체류 시간: ${response.stayMinutes}분'
-                            : '체크아웃이 완료되었습니다',
-                      ),
-                      backgroundColor: HwahaeColors.success,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  );
+                            : '체크아웃이 완료되었습니다');
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(response.message ?? '체크아웃에 실패했습니다'),
-                      backgroundColor: HwahaeColors.error,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  );
+                  AppToast.error(context, response.message ?? '체크아웃에 실패했습니다');
                 }
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('체크아웃에 실패했습니다'),
-                    backgroundColor: HwahaeColors.error,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
+                AppToast.error(context, '체크아웃에 실패했습니다');
               }
             },
             child: Text(
@@ -1167,16 +1040,7 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
     final longitude = business?.longitude;
 
     if (latitude == null || longitude == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('업체 위치 정보가 없습니다'),
-          backgroundColor: HwahaeColors.warning,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      );
+      AppToast.warning(context, '업체 위치 정보가 없습니다');
       return;
     }
 
@@ -1228,6 +1092,9 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
               .read(availableMissionsProvider.notifier)
               .applyMission(mission.id);
 
+          // 신청 도중 화면을 벗어났으면 아무것도 하지 않는다.
+          if (!context.mounted) return;
+
           // 로딩 스낵바 제거
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
@@ -1235,27 +1102,9 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
             // 미션 상세 새로고침
             ref.invalidate(missionDetailProvider(mission.id));
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('미션 신청이 완료되었습니다!'),
-                backgroundColor: HwahaeColors.success,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            );
+            AppToast.success(context, '미션 신청이 완료되었습니다!');
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('미션 신청에 실패했습니다. 다시 시도해주세요.'),
-                backgroundColor: HwahaeColors.error,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            );
+            AppToast.error(context, '미션 신청에 실패했습니다. 다시 시도해주세요.');
           }
         },
       ),
@@ -1277,40 +1126,13 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
 
       if (response.success) {
         ref.invalidate(missionDetailProvider(mission.id));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message ?? '미션이 시작되었습니다.'),
-            backgroundColor: HwahaeColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
+        AppToast.success(context, response.message ?? '미션이 시작되었습니다.');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message ?? '미션 시작에 실패했습니다.'),
-            backgroundColor: HwahaeColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
+        AppToast.error(context, response.message ?? '미션 시작에 실패했습니다.');
       }
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('미션 시작에 실패했습니다.'),
-          backgroundColor: HwahaeColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      );
+      AppToast.error(context, '미션 시작에 실패했습니다.');
     }
   }
 
@@ -1326,16 +1148,7 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
           Navigator.pop(sheetContext);
           // Refresh mission detail to reflect check-in
           ref.invalidate(missionDetailProvider(mission.id));
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('체크인 완료! 이제 방문을 시작하세요.'),
-              backgroundColor: HwahaeColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
+          AppToast.success(context, '체크인 완료! 이제 방문을 시작하세요.');
         },
       ),
     );
@@ -1571,7 +1384,9 @@ class _CheckInVerificationSheetState
         ),
         const SizedBox(height: 8),
         Text(
-          '체크인이 성공적으로 완료되었습니다',
+          // 서버가 존별 안내(예: 옐로존 유의사항)를 내려주면 그대로 보여준다.
+          _zoneMessage ?? '체크인이 성공적으로 완료되었습니다',
+          textAlign: TextAlign.center,
           style: HwahaeTypography.bodyMedium.copyWith(
             color: HwahaeColors.textSecondary,
           ),
@@ -1665,7 +1480,7 @@ class _CheckInVerificationSheetState
         Container(
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 52, color: color),
@@ -1687,113 +1502,6 @@ class _CheckInVerificationSheetState
           textAlign: TextAlign.center,
         ),
       ],
-    );
-  }
-
-  Widget _buildInfoCard({
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: HwahaeColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: HwahaeColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: HwahaeColors.primary, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: HwahaeTypography.labelLarge.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: HwahaeTypography.captionLarge,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVerificationStepIndicator(
-    String label,
-    bool isCompleted,
-    bool isActive,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          if (isCompleted)
-            const Icon(Icons.check_circle, color: HwahaeColors.success, size: 20)
-          else if (isActive)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: HwahaeColors.primary,
-              ),
-            )
-          else
-            Icon(Icons.circle_outlined,
-                color: HwahaeColors.border, size: 20),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: HwahaeTypography.bodyMedium.copyWith(
-              color: isCompleted
-                  ? HwahaeColors.success
-                  : isActive
-                      ? HwahaeColors.textPrimary
-                      : HwahaeColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTipCard(String tip) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: HwahaeColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lightbulb_outline,
-              color: HwahaeColors.warning, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              tip,
-              style: HwahaeTypography.captionLarge,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

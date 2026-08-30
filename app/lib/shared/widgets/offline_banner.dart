@@ -38,7 +38,7 @@ class OfflineBanner extends ConsumerWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: HwahaeColors.error.withOpacity(0.3),
+                  color: HwahaeColors.error.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

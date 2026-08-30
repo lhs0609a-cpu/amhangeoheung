@@ -5,7 +5,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
-import '../../../../core/theme/hwahae_theme.dart';
 import '../../data/models/ranking_model.dart';
 import '../../providers/ranking_provider.dart';
 
@@ -84,13 +83,13 @@ class _RegionalRankingScreenState extends ConsumerState<RegionalRankingScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: HwahaeColors.text),
+          icon: const Icon(Icons.arrow_back, color: HwahaeColors.textPrimary),
           onPressed: () => context.pop(),
         ),
         title: Text(
           '지역별 랭킹',
-          style: HwahaeTypography.headline2.copyWith(
-            color: HwahaeColors.text,
+          style: HwahaeTypography.headlineMedium.copyWith(
+            color: HwahaeColors.textPrimary,
           ),
         ),
       ),
@@ -114,8 +113,8 @@ class _RegionalRankingScreenState extends ConsumerState<RegionalRankingScreen> {
               children: [
                 Text(
                   _getHeaderTitle(),
-                  style: HwahaeTypography.headline1.copyWith(
-                    color: HwahaeColors.text,
+                  style: HwahaeTypography.headlineLarge.copyWith(
+                    color: HwahaeColors.textPrimary,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
@@ -123,7 +122,7 @@ class _RegionalRankingScreenState extends ConsumerState<RegionalRankingScreen> {
                 const SizedBox(height: 8),
                 Text(
                   '신뢰할 수 있는 리뷰로 검증된 업체',
-                  style: HwahaeTypography.body2.copyWith(
+                  style: HwahaeTypography.bodySmall.copyWith(
                     color: HwahaeColors.textSecondary,
                   ),
                 ),
@@ -151,7 +150,7 @@ class _RegionalRankingScreenState extends ConsumerState<RegionalRankingScreen> {
                   // Region Filter
                   Text(
                     '지역',
-                    style: HwahaeTypography.caption.copyWith(
+                    style: HwahaeTypography.captionMedium.copyWith(
                       color: HwahaeColors.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -186,7 +185,7 @@ class _RegionalRankingScreenState extends ConsumerState<RegionalRankingScreen> {
                   // Category Filter
                   Text(
                     '카테고리',
-                    style: HwahaeTypography.caption.copyWith(
+                    style: HwahaeTypography.captionMedium.copyWith(
                       color: HwahaeColors.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -281,7 +280,7 @@ class _RegionalRankingScreenState extends ConsumerState<RegionalRankingScreen> {
                         const SizedBox(height: 16),
                         Text(
                           '랭킹 데이터가 없습니다',
-                          style: HwahaeTypography.body1.copyWith(
+                          style: HwahaeTypography.bodyMedium.copyWith(
                             color: HwahaeColors.textSecondary,
                           ),
                         ),
@@ -321,14 +320,14 @@ class _RegionalRankingScreenState extends ConsumerState<RegionalRankingScreen> {
                     const SizedBox(height: 16),
                     Text(
                       '랭킹을 불러올 수 없습니다',
-                      style: HwahaeTypography.body1.copyWith(
+                      style: HwahaeTypography.bodyMedium.copyWith(
                         color: HwahaeColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       error.toString(),
-                      style: HwahaeTypography.caption.copyWith(
+                      style: HwahaeTypography.captionMedium.copyWith(
                         color: HwahaeColors.textTertiary,
                       ),
                       textAlign: TextAlign.center,
@@ -411,8 +410,8 @@ class _FilterChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: HwahaeTypography.body2.copyWith(
-            color: isSelected ? Colors.white : HwahaeColors.text,
+          style: HwahaeTypography.bodySmall.copyWith(
+            color: isSelected ? Colors.white : HwahaeColors.textPrimary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -468,13 +467,13 @@ class _RankingCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: ranking.rank <= 3
-                ? _getRankColor(ranking.rank).withOpacity(0.3)
+                ? _getRankColor(ranking.rank).withValues(alpha: 0.3)
                 : HwahaeColors.border,
             width: ranking.rank <= 3 ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               offset: const Offset(0, 2),
               blurRadius: 8,
             ),
@@ -487,7 +486,7 @@ class _RankingCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _getRankColor(ranking.rank).withOpacity(0.1),
+                color: _getRankColor(ranking.rank).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: _getRankColor(ranking.rank),
@@ -497,7 +496,7 @@ class _RankingCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   '${ranking.rank}',
-                  style: HwahaeTypography.headline2.copyWith(
+                  style: HwahaeTypography.headlineMedium.copyWith(
                     color: _getRankColor(ranking.rank),
                     fontWeight: FontWeight.bold,
                   ),
@@ -515,9 +514,9 @@ class _RankingCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          ranking.businessName,
-                          style: HwahaeTypography.headline3.copyWith(
-                            color: HwahaeColors.text,
+                          ranking.businessName ?? '이름 없음',
+                          style: HwahaeTypography.headlineSmall.copyWith(
+                            color: HwahaeColors.textPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
@@ -543,7 +542,7 @@ class _RankingCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: HwahaeColors.primary.withOpacity(0.1),
+                          color: HwahaeColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Row(
@@ -556,8 +555,8 @@ class _RankingCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '신뢰도 ${ranking.trustScore.toStringAsFixed(1)}',
-                              style: HwahaeTypography.caption.copyWith(
+                              '신뢰도 ${(ranking.trustScore ?? 0).toStringAsFixed(1)}',
+                              style: HwahaeTypography.captionMedium.copyWith(
                                 color: HwahaeColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -576,7 +575,7 @@ class _RankingCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '리뷰 ${ranking.reviewCount}',
-                        style: HwahaeTypography.caption.copyWith(
+                        style: HwahaeTypography.captionMedium.copyWith(
                           color: HwahaeColors.textSecondary,
                         ),
                       ),
@@ -590,8 +589,8 @@ class _RankingCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        ranking.avgRating.toStringAsFixed(1),
-                        style: HwahaeTypography.caption.copyWith(
+                        (ranking.avgRating ?? 0).toStringAsFixed(1),
+                        style: HwahaeTypography.captionMedium.copyWith(
                           color: HwahaeColors.textSecondary,
                         ),
                       ),

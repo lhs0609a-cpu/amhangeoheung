@@ -6,6 +6,7 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../data/repositories/season_repository.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class SeasonDetailScreen extends ConsumerStatefulWidget {
   final String seasonId;
@@ -53,7 +54,7 @@ class _SeasonDetailScreenState extends ConsumerState<SeasonDetailScreen> {
   Widget _buildContent() {
     final missions = _seasonData!['missions'] as List? ?? [];
     final endAt = DateTime.tryParse(_seasonData!['end_at'] ?? '');
-    final remaining = endAt != null ? endAt.difference(DateTime.now()) : null;
+    final remaining = endAt?.difference(DateTime.now());
 
     return CustomScrollView(
       slivers: [
@@ -94,7 +95,7 @@ class _SeasonDetailScreenState extends ConsumerState<SeasonDetailScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -139,7 +140,7 @@ class _SeasonDetailScreenState extends ConsumerState<SeasonDetailScreen> {
             childCount: missions.length,
           ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        const SliverBottomSpacer.plain(),
       ],
     );
   }

@@ -203,7 +203,7 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
         ),
         behavior: SnackBarBehavior.floating,
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: HwahaeColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -319,7 +319,7 @@ class ThemeNotifier extends StateNotifier<ThemeState> {
         ),
         behavior: SnackBarBehavior.floating,
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: DarkThemeColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),

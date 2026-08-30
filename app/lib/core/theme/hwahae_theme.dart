@@ -7,11 +7,11 @@ class HwahaeTheme {
   HwahaeTheme._();
 
   // === Border Radius ===
-  static const double radiusXS = 6.0;
-  static const double radiusSM = 10.0;
-  static const double radiusMD = 14.0;
-  static const double radiusLG = 18.0;
-  static const double radiusXL = 24.0;
+  static const double radiusXS = 8.0;
+  static const double radiusSM = 12.0;
+  static const double radiusMD = 16.0;
+  static const double radiusLG = 20.0;
+  static const double radiusXL = 26.0;
   static const double radiusXXL = 32.0;
   static const double radiusFull = 100.0;
 
@@ -27,7 +27,7 @@ class HwahaeTheme {
   // === Shadow ===
   static List<BoxShadow> shadowSM = [
     BoxShadow(
-      color: HwahaeColors.primary.withOpacity(0.04),
+      color: HwahaeColors.primary.withValues(alpha: 0.04),
       blurRadius: 8,
       offset: const Offset(0, 2),
     ),
@@ -35,7 +35,7 @@ class HwahaeTheme {
 
   static List<BoxShadow> shadowMD = [
     BoxShadow(
-      color: HwahaeColors.primary.withOpacity(0.06),
+      color: HwahaeColors.primary.withValues(alpha: 0.06),
       blurRadius: 16,
       offset: const Offset(0, 4),
     ),
@@ -43,7 +43,7 @@ class HwahaeTheme {
 
   static List<BoxShadow> shadowLG = [
     BoxShadow(
-      color: HwahaeColors.primary.withOpacity(0.08),
+      color: HwahaeColors.primary.withValues(alpha: 0.08),
       blurRadius: 24,
       offset: const Offset(0, 8),
     ),
@@ -51,7 +51,7 @@ class HwahaeTheme {
 
   static List<BoxShadow> shadowXL = [
     BoxShadow(
-      color: HwahaeColors.primary.withOpacity(0.12),
+      color: HwahaeColors.primary.withValues(alpha: 0.12),
       blurRadius: 32,
       offset: const Offset(0, 12),
     ),
@@ -113,7 +113,7 @@ class HwahaeTheme {
       ),
 
       // Card
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: HwahaeColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -172,9 +172,15 @@ class HwahaeTheme {
           borderRadius: BorderRadius.circular(radiusMD),
           borderSide: BorderSide.none,
         ),
+        // 채움색(#F6EAD3)과 페이지 배경(#FDF6E9)의 대비가 1.1:1 이라
+        // 테두리가 없으면 입력창의 경계가 보이지 않는다.
+        // WCAG 1.4.11 은 컨트롤 경계에 3:1 을 요구한다.
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMD),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(
+            color: HwahaeColors.borderStrong,
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMD),
@@ -230,7 +236,7 @@ class HwahaeTheme {
       ),
 
       // Dialog
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: HwahaeColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -252,7 +258,7 @@ class HwahaeTheme {
       ),
 
       // Tab Bar
-      tabBarTheme: TabBarTheme(
+      tabBarTheme: TabBarThemeData(
         labelColor: HwahaeColors.primary,
         unselectedLabelColor: HwahaeColors.textSecondary,
         labelStyle: HwahaeTypography.labelLarge,
@@ -324,7 +330,7 @@ class HwahaeTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(4),
         ),
-        side: const BorderSide(color: HwahaeColors.border, width: 2),
+        side: const BorderSide(color: HwahaeColors.borderStrong, width: 2),
       ),
 
       // Radio
@@ -342,7 +348,7 @@ class HwahaeTheme {
         activeTrackColor: HwahaeColors.primary,
         inactiveTrackColor: HwahaeColors.surfaceVariant,
         thumbColor: HwahaeColors.primary,
-        overlayColor: HwahaeColors.primary.withOpacity(0.12),
+        overlayColor: HwahaeColors.primary.withValues(alpha: 0.12),
         trackHeight: 4,
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
       ),
@@ -387,10 +393,10 @@ class GlassDecoration extends BoxDecoration {
     double radius = HwahaeTheme.radiusLG,
     Color? borderColor,
   }) : super(
-          color: Colors.white.withOpacity(opacity),
+          color: Colors.white.withValues(alpha: opacity),
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(
-            color: borderColor ?? Colors.white.withOpacity(0.2),
+            color: borderColor ?? Colors.white.withValues(alpha: 0.2),
             width: 1,
           ),
         );
