@@ -59,14 +59,18 @@ class AppChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 15,
-                color: selected ? Colors.white : HwahaeColors.textSecondary,
+                color: selected
+                    ? HwahaeColors.onColor(tint)
+                    : HwahaeColors.textSecondary,
               ),
               const SizedBox(width: 5),
             ],
             Text(
               label,
               style: HwahaeTypography.chip.copyWith(
-                color: selected ? Colors.white : HwahaeColors.textSecondary,
+                color: selected
+                    ? HwahaeColors.onColor(tint)
+                    : HwahaeColors.textSecondary,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
@@ -76,7 +80,7 @@ class AppChip extends StatelessWidget {
                 '$count',
                 style: HwahaeTypography.chip.copyWith(
                   color: selected
-                      ? Colors.white.withValues(alpha: 0.8)
+                      ? HwahaeColors.onColor(tint).withValues(alpha: 0.8)
                       : HwahaeColors.textTertiary,
                   fontWeight: FontWeight.w700,
                 ),
@@ -183,7 +187,9 @@ class AppBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = filled ? Colors.white : color;
+    // filled 배지의 배경은 등급·미션 유형 등 밝기가 제각각이라
+    // 흰색을 고정하면 골드 계열에서 읽히지 않는다.
+    final foreground = filled ? HwahaeColors.onColor(color) : color;
 
     return Container(
       padding: EdgeInsets.symmetric(

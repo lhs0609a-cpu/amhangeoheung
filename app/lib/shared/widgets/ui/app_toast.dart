@@ -22,7 +22,7 @@ class AppToast {
       context,
       message: message,
       icon: Icons.check_circle_rounded,
-      accent: HwahaeColors.success,
+      accent: HwahaeColors.accentLight,
       actionLabel: actionLabel,
       onAction: onAction,
     );
@@ -35,7 +35,7 @@ class AppToast {
       context,
       message: message,
       icon: Icons.error_rounded,
-      accent: HwahaeColors.error,
+      accent: HwahaeColors.secondaryLight,
       // 오류는 읽을 시간이 더 필요하다.
       duration: const Duration(seconds: 4),
       actionLabel: actionLabel,
@@ -49,7 +49,7 @@ class AppToast {
       context,
       message: message,
       icon: Icons.info_rounded,
-      accent: HwahaeColors.info,
+      accent: HwahaeColors.surfaceContainer,
       actionLabel: actionLabel,
       onAction: onAction,
     );
@@ -62,7 +62,7 @@ class AppToast {
       context,
       message: message,
       icon: Icons.warning_rounded,
-      accent: HwahaeColors.warning,
+      accent: HwahaeColors.primary,
       duration: const Duration(seconds: 4),
       actionLabel: actionLabel,
       onAction: onAction,
@@ -146,7 +146,7 @@ class _ToastBody extends StatelessWidget {
             child: Text(
               message,
               style: HwahaeTypography.bodySmall.copyWith(
-                color: Colors.white,
+                color: HwahaeColors.textOnDark,
                 height: 1.35,
               ),
               maxLines: 3,

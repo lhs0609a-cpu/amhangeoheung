@@ -175,20 +175,22 @@ class AppButton extends StatelessWidget {
   _ButtonPalette _palette() {
     switch (variant) {
       case AppButtonVariant.primary:
+        // 골드 면 위의 흰 글자는 1.86:1 로 읽히지 않는다. 먹색이면 7.02:1.
         return const _ButtonPalette(
           gradient: HwahaeColors.gradientPrimary,
-          foreground: Colors.white,
+          foreground: HwahaeColors.onPrimary,
           glowColor: HwahaeColors.primary,
         );
       case AppButtonVariant.secondary:
         return const _ButtonPalette(
           background: HwahaeColors.textPrimary,
-          foreground: Colors.white,
+          foreground: HwahaeColors.textOnDark,
         );
       case AppButtonVariant.tonal:
+        // 연한 골드 면에 골드 글자는 1.58:1 이라 사실상 보이지 않는다. 5.03:1.
         return const _ButtonPalette(
           background: HwahaeColors.primaryContainer,
-          foreground: HwahaeColors.primary,
+          foreground: HwahaeColors.onPrimaryContainer,
         );
       case AppButtonVariant.outline:
         return const _ButtonPalette(
@@ -202,9 +204,10 @@ class AppButton extends StatelessWidget {
           foreground: HwahaeColors.textSecondary,
         );
       case AppButtonVariant.danger:
+        // error 면 위의 흰 글자는 4.27:1 로 본문 기준에 모자라 면을 한 단계 내린다.
         return const _ButtonPalette(
-          background: HwahaeColors.error,
-          foreground: Colors.white,
+          background: HwahaeColors.errorStrong,
+          foreground: HwahaeColors.textOnDark,
         );
     }
   }
@@ -383,7 +386,8 @@ class AppIconButton extends StatelessWidget {
                           horizontal: 5, vertical: 1),
                       constraints: const BoxConstraints(minWidth: 16),
                       decoration: BoxDecoration(
-                        color: HwahaeColors.error,
+                        // 작고 굵은 흰 글씨라 error 면(4.27:1)으로는 모자란다.
+                        color: HwahaeColors.errorStrong,
                         borderRadius:
                             BorderRadius.circular(HwahaeTheme.radiusFull),
                         border:
@@ -393,7 +397,7 @@ class AppIconButton extends StatelessWidget {
                         badgeCount > 99 ? '99+' : '$badgeCount',
                         textAlign: TextAlign.center,
                         style: HwahaeTypography.badge
-                            .copyWith(color: Colors.white),
+                            .copyWith(color: HwahaeColors.textOnDark),
                       ),
                     ),
                   ),

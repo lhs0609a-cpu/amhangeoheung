@@ -22,8 +22,13 @@ class HwahaeColors {
   static const Color primaryDark = Color(0xFFD98E1F);
   static const Color primaryContainer = Color(0xFFFDEBC8);
 
-  /// 골드 위의 글자는 흰색이 아니라 먹색이다. 흰색은 대비가 모자란다.
+  /// 골드 위의 글자는 흰색이 아니라 먹색이다.
+  /// 흰색은 1.86:1 로 읽히지 않고, 먹색은 7.02:1 이다.
   static const Color onPrimary = Color(0xFF3D2E1F);
+
+  /// 연한 골드 면(primaryContainer) 위의 글자.
+  /// primary 를 그대로 쓰면 1.58:1 이라 보이지 않는다. 5.03:1.
+  static const Color onPrimaryContainer = Color(0xFF8A5A16);
 
   // === Secondary/Accent - 낙관 붉은색 (감찰 · 지적) ===
   static const Color secondary = Color(0xFFD9482F);
@@ -32,11 +37,19 @@ class HwahaeColors {
   static const Color secondaryContainer = Color(0xFFFCE4DE);
   static const Color onSecondary = Color(0xFFFDF6E9);
 
+  /// 연한 붉은 면(secondaryContainer) 위의 글자.
+  /// secondary 를 그대로 쓰면 3.52:1 로 작은 글씨에서 모자란다. 5.15:1.
+  static const Color onSecondaryContainer = Color(0xFFB0341F);
+
   // === Accent - 풀색 (개선 확인) ===
   static const Color accent = Color(0xFF4E8C5B);
   static const Color accentLight = Color(0xFF7FBE93);
   static const Color accentDark = Color(0xFF3A6B44);
   static const Color accentContainer = Color(0xFFE4F0E4);
+
+  /// 연한 풀색 면(accentContainer) 위의 글자.
+  /// accent 를 그대로 쓰면 3.42:1 이다. 5.31:1.
+  static const Color onAccentContainer = Color(0xFF3A6B44);
 
   // === Background & Surface - 크림 ===
   static const Color background = Color(0xFFFDF6E9);
@@ -46,11 +59,33 @@ class HwahaeColors {
   static const Color surfaceElevated = Color(0xFFFFFFFF);
 
   // === Text Colors - 먹 ===
+  //
+  // 세 단계 모두 크림 배경(#FDF6E9)에서 WCAG AA(4.5:1)를 넘는다.
+  // 크림 배경은 흰 배경보다 밝기가 낮아 회색을 더 진하게 내려야 한다.
+  //   primary 12.14:1 · secondary 6.01:1 · tertiary 4.86:1
   static const Color textPrimary = Color(0xFF3D2E1F);
-  static const Color textSecondary = Color(0xFF7A6A55);
-  static const Color textTertiary = Color(0xFFA89880);
-  static const Color textDisabled = Color(0xFFD8C7A8);
+  static const Color textSecondary = Color(0xFF6B5C49);
+  static const Color textTertiary = Color(0xFF7A6A55);
+  static const Color textDisabled = Color(0xFFC4B69C);
   static const Color textOnDark = Color(0xFFFDF6E9);
+
+  /// 임의의 배경 위에 올릴 글자색을 밝기로 고른다.
+  ///
+  /// 골드(#F2B33D) 위의 흰 글자는 1.86:1 로 사실상 읽히지 않는다. 미션 유형
+  /// 색처럼 밝기가 제각각인 배경을 쓰는 곳에서는 흰색을 고정하지 말고 이걸 쓴다.
+  ///
+  /// 임계값 0.23 은 눈대중이 아니라 두 후보의 대비가 같아지는 지점이다.
+  /// 먹(L=0.031)과 크림(L=0.927)에 대해
+  ///   (L+0.05)/(L먹+0.05) = (L크림+0.05)/(L+0.05)
+  /// 를 풀면 L = sqrt((L크림+0.05)(L먹+0.05)) - 0.05 = 0.2303.
+  /// 흔히 쓰는 0.5 를 쓰면 은색(L=0.32) 같은 중간 밝기에서 어두운 글자 대신
+  /// 밝은 글자를 골라 2.6:1 까지 떨어진다.
+  static const double _onColorCrossover = 0.2303;
+
+  static Color onColor(Color background) =>
+      background.computeLuminance() > _onColorCrossover
+          ? textPrimary
+          : textOnDark;
 
   // === Status Colors ===
   static const Color success = Color(0xFF4E8C5B);
@@ -59,6 +94,11 @@ class HwahaeColors {
   static const Color warningLight = Color(0xFFFDEBC8);
   static const Color error = Color(0xFFD9482F);
   static const Color errorLight = Color(0xFFFCE4DE);
+
+  /// 흰 글자를 얹는 위험 버튼 면. error 위의 흰 글자는 4.27:1 로 모자라
+  /// 버튼 배경만 한 단계 내린다. 6.26:1.
+  static const Color errorStrong = Color(0xFFB0341F);
+  static const Color onErrorContainer = Color(0xFFB0341F);
 
   /// 파란 info 는 쓰지 않는다. 팔레트에서 유일하게 튀는 색이 되기 때문에
   /// 중립 정보는 따뜻한 회갈색으로 처리한다.
