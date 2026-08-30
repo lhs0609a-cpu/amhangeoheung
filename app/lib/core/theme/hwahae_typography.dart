@@ -10,6 +10,19 @@ class HwahaeTypography {
   /// pubspec 에 번들된 유일한 서체다.
   static const String fontFamilyDisplay = 'Jua';
 
+  /// Jua 에 없는 글리프를 시스템 서체로 흘려보낸다.
+  ///
+  /// Jua 는 한글·라틴·숫자는 갖췄지만 가운뎃점(·), 대시(—), 화살표 같은
+  /// 기호가 빠져 있다. 폴백이 없으면 '현장 도착 · 체크인' 의 · 가 두부(□)로
+  /// 찍힌다 — 실제로 버튼 라벨에서 그렇게 나왔다.
+  /// 빈 문자열은 "플랫폼 기본 서체"를 뜻한다.
+  static const List<String> displayFallback = <String>[
+    'Apple SD Gothic Neo',
+    'Malgun Gothic',
+    'Noto Sans KR',
+    'Roboto',
+  ];
+
   /// 본문 서체는 시스템 한글 서체를 그대로 쓴다(null = 플랫폼 기본).
   /// 한글 본문 서체는 웨이트당 5MB 가까이 되어 번들이 감당되지 않고,
   /// 지적사항처럼 또렷해야 하는 곳에는 시스템 서체가 오히려 낫다.
@@ -23,6 +36,7 @@ class HwahaeTypography {
   // === Display - 대형 제목 ===
   static const TextStyle displayLarge = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 40,
     fontWeight: FontWeight.w400,
     height: 1.15,
@@ -32,6 +46,7 @@ class HwahaeTypography {
 
   static const TextStyle displayMedium = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 32,
     fontWeight: FontWeight.w400,
     height: 1.2,
@@ -41,6 +56,7 @@ class HwahaeTypography {
 
   static const TextStyle displaySmall = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 28,
     fontWeight: FontWeight.w400,
     height: 1.25,
@@ -51,6 +67,7 @@ class HwahaeTypography {
   // === Headline - 중형 제목 ===
   static const TextStyle headlineLarge = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 24,
     fontWeight: FontWeight.w400,
     height: 1.3,
@@ -60,6 +77,7 @@ class HwahaeTypography {
 
   static const TextStyle headlineMedium = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 20,
     fontWeight: FontWeight.w400,
     height: 1.35,
@@ -69,6 +87,7 @@ class HwahaeTypography {
 
   static const TextStyle headlineSmall = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 18,
     fontWeight: FontWeight.w400,
     height: 1.4,
@@ -179,6 +198,7 @@ class HwahaeTypography {
   // === Special Styles ===
   static const TextStyle badge = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 10,
     fontWeight: FontWeight.w400,
     height: 1.2,
@@ -188,6 +208,7 @@ class HwahaeTypography {
 
   static const TextStyle button = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 15,
     fontWeight: FontWeight.w400,
     height: 1.2,
@@ -197,6 +218,7 @@ class HwahaeTypography {
 
   static const TextStyle buttonSmall = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.2,
@@ -206,6 +228,7 @@ class HwahaeTypography {
 
   static const TextStyle price = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 20,
     fontWeight: FontWeight.w400,
     height: 1.2,
@@ -215,6 +238,7 @@ class HwahaeTypography {
 
   static const TextStyle priceSmall = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.25,
@@ -224,6 +248,7 @@ class HwahaeTypography {
 
   static const TextStyle bottomNav = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 11,
     fontWeight: FontWeight.w400,
     height: 1.2,
@@ -233,6 +258,7 @@ class HwahaeTypography {
 
   static const TextStyle chip = TextStyle(
     fontFamily: fontFamilyDisplay,
+    fontFamilyFallback: displayFallback,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.3,

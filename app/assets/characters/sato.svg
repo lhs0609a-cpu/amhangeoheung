@@ -1,19 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
   <title>사또 — 감찰관</title>
-  <circle cx="48" cy="60" r="21" fill="#F7DFC0"/>
-  <ellipse cx="30" cy="65" rx="5.6" ry="3.6" fill="#F5896F" opacity="0.55"/>
-  <ellipse cx="66" cy="65" rx="5.6" ry="3.6" fill="#F5896F" opacity="0.55"/>
-  <circle cx="41" cy="58" r="3.9" fill="#3D2E1F"/>
-  <circle cx="55" cy="58" r="3.9" fill="#3D2E1F"/>
-  <circle cx="42.3" cy="56.7" r="1.3" fill="#FDF6E9"/>
-  <circle cx="56.3" cy="56.7" r="1.3" fill="#FDF6E9"/>
-  <path d="M48 63v3" stroke="#3D2E1F" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M47 68.5c-3 0-5.8.9-7.6 2.5" stroke="#3D2E1F" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-  <path d="M49 68.5c3 0 5.8.9 7.6 2.5" stroke="#3D2E1F" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-  <ellipse cx="48" cy="38" rx="36" ry="8" fill="#3D2E1F"/>
-  <path d="M34.5 38V21c0-2.5 2-4.5 4.5-4.5h18c2.5 0 4.5 2 4.5 4.5v17z" fill="#3D2E1F"/>
-  <ellipse cx="48" cy="21" rx="13" ry="3.1" fill="#5A452E"/>
-  <circle cx="74" cy="74" r="12" fill="#F2B33D" stroke="#D98E1F" stroke-width="2"/>
-  <circle cx="74" cy="74" r="7" fill="none" stroke="#D98E1F" stroke-width="1.4"/>
-  <circle cx="74" cy="74" r="2.6" fill="#D98E1F"/>
+  <!--
+    먹색 갓에 크림색 테두리를 둘러, 먹색 배경(MascotMessage dark)에서도
+    실루엣이 사라지지 않게 한다.
+  -->
+  <g>
+    <!-- 얼굴 -->
+    <ellipse cx="48" cy="61" rx="20" ry="20.5" fill="#F7DFC0"/>
+
+    <!-- 볼터치 -->
+    <ellipse cx="31.5" cy="65" rx="5.4" ry="3.4" fill="#F5896F" opacity="0.6"/>
+    <ellipse cx="64.5" cy="65" rx="5.4" ry="3.4" fill="#F5896F" opacity="0.6"/>
+
+    <!-- 눈썹 — 표정을 만든다. 살짝 올려 호기심 있는 얼굴로. -->
+    <path d="M37 51.5c1.8-1.2 4.2-1.2 6 0" stroke="#3D2E1F" stroke-width="2.1" fill="none" stroke-linecap="round"/>
+    <path d="M53 51.5c1.8-1.2 4.2-1.2 6 0" stroke="#3D2E1F" stroke-width="2.1" fill="none" stroke-linecap="round"/>
+
+    <!-- 눈 -->
+    <circle cx="40" cy="58" r="3.9" fill="#3D2E1F"/>
+    <circle cx="56" cy="58" r="3.9" fill="#3D2E1F"/>
+    <circle cx="41.4" cy="56.7" r="1.35" fill="#FDF6E9"/>
+    <circle cx="57.4" cy="56.7" r="1.35" fill="#FDF6E9"/>
+
+    <!-- 수염과 웃는 입 -->
+    <path d="M41.5 66.5c2.2-1.6 4.6-1.6 6.5-.6" stroke="#3D2E1F" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M54.5 66.5c-2.2-1.6-4.6-1.6-6.5-.6" stroke="#3D2E1F" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M42.5 70.5c3 3 8 3 11 0" stroke="#3D2E1F" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+
+    <!-- 갓 -->
+    <ellipse cx="48" cy="40" rx="41" ry="8.4" fill="#3D2E1F" stroke="#FDF6E9" stroke-width="1.1"/>
+    <path d="M35 40V23c0-2.7 2.2-4.9 4.9-4.9h16.2c2.7 0 4.9 2.2 4.9 4.9v17z"
+          fill="#3D2E1F" stroke="#FDF6E9" stroke-width="1.1"/>
+    <ellipse cx="48" cy="23" rx="12.7" ry="2.9" fill="#5A452E"/>
+
+    <!-- 마패 — 얼굴에 붙지 않게 아래로 내리고 끈을 달아 손에 든 물건으로 읽히게 -->
+    <path d="M70 66.5l3.5 8" stroke="#8A5A16" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="76" cy="80" r="11" fill="#F2B33D" stroke="#8A5A16" stroke-width="1.8"/>
+    <circle cx="76" cy="80" r="6.4" fill="none" stroke="#8A5A16" stroke-width="1.2"/>
+    <circle cx="76" cy="80" r="2.4" fill="#8A5A16"/>
+  </g>
 </svg>

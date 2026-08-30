@@ -172,9 +172,15 @@ class HwahaeTheme {
           borderRadius: BorderRadius.circular(radiusMD),
           borderSide: BorderSide.none,
         ),
+        // 채움색(#F6EAD3)과 페이지 배경(#FDF6E9)의 대비가 1.1:1 이라
+        // 테두리가 없으면 입력창의 경계가 보이지 않는다.
+        // WCAG 1.4.11 은 컨트롤 경계에 3:1 을 요구한다.
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMD),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(
+            color: HwahaeColors.borderStrong,
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMD),
@@ -324,7 +330,7 @@ class HwahaeTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(4),
         ),
-        side: const BorderSide(color: HwahaeColors.border, width: 2),
+        side: const BorderSide(color: HwahaeColors.borderStrong, width: 2),
       ),
 
       // Radio

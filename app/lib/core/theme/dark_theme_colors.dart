@@ -39,7 +39,7 @@ class DarkThemeColors {
   static const Color textPrimary = Color(0xFFFDF6E9);
   static const Color textSecondary = Color(0xFFCBBB9E);
   static const Color textTertiary = Color(0xFFA89880);
-  static const Color textDisabled = Color(0xFF6B5540);
+  static const Color textDisabled = Color(0xFF7A6248);
   static const Color textOnDark = Color(0xFFFDF6E9);
 
   // === Status Colors (다크 모드에서 더 밝게) ===
@@ -57,6 +57,10 @@ class DarkThemeColors {
   static const Color border = Color(0xFF54402B);
   static const Color borderLight = Color(0xFF6B5540);
   static const Color borderFocused = Color(0xFFF7C868);
+
+  /// 조작 요소의 테두리. [border] 는 1.79:1 로 카드 윤곽용이고,
+  /// 입력창처럼 테두리가 조작 단서인 곳에는 이걸 쓴다. 3.06:1.
+  static const Color borderStrong = Color(0xFF7A6248);
 
   // === Rating Colors ===
   static const Color ratingStar = Color(0xFFF7C868);

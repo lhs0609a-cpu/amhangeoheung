@@ -156,6 +156,12 @@ class HwahaeColors {
   static const Color borderLight = Color(0xFFF0E2C6);
   static const Color borderFocused = Color(0xFFF2B33D);
 
+  /// 조작 요소의 테두리 — 입력창, outline 버튼처럼 테두리 자체가 조작 단서인 곳.
+  ///
+  /// [border] 는 카드 윤곽용이라 1.30:1 로 부드럽게 두지만, WCAG 1.4.11 은
+  /// 컨트롤 경계에 3:1 을 요구한다. 그 자리에는 이걸 쓴다. 3.12:1.
+  static const Color borderStrong = Color(0xFF9C8A6C);
+
   // === Rating Colors ===
   static const Color ratingStar = Color(0xFFF2B33D);
   static const Color ratingStarEmpty = Color(0xFFE8D9BC);

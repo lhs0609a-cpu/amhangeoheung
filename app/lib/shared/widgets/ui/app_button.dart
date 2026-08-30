@@ -196,7 +196,8 @@ class AppButton extends StatelessWidget {
         return const _ButtonPalette(
           background: Colors.transparent,
           foreground: HwahaeColors.textPrimary,
-          border: HwahaeColors.border,
+          // 테두리가 이 버튼의 유일한 경계라 카드용 border 로는 모자란다.
+          border: HwahaeColors.borderStrong,
         );
       case AppButtonVariant.ghost:
         return const _ButtonPalette(

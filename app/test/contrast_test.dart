@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:amhangeoheung_app/core/theme/dark_theme_colors.dart';
 import 'package:amhangeoheung_app/core/theme/hwahae_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -122,6 +123,79 @@ void main() {
           reason: '$surface 위의 글자 대비가 모자란다',
         );
       }
+    });
+  });
+
+  group('조작 요소 경계 (WCAG 1.4.11)', () {
+    test('라이트 — borderStrong 이 페이지 배경에서 구분된다', () {
+      expect(
+        contrast(HwahaeColors.borderStrong, HwahaeColors.background),
+        greaterThanOrEqualTo(kLargeMin),
+      );
+    });
+
+    test('다크 — borderStrong 이 페이지 배경에서 구분된다', () {
+      expect(
+        contrast(DarkThemeColors.borderStrong, DarkThemeColors.background),
+        greaterThanOrEqualTo(kLargeMin),
+      );
+    });
+
+    test('입력창 채움만으로는 경계가 보이지 않는다', () {
+      // 회귀 방지: 이 값이 3:1 을 넘게 되면 테두리 없이도 되지만,
+      // 지금은 1.11:1 이라 enabledBorder 가 반드시 있어야 한다.
+      expect(
+        contrast(HwahaeColors.surfaceVariant, HwahaeColors.background),
+        lessThan(kLargeMin),
+      );
+    });
+  });
+
+  group('다크 모드', () {
+    const bg = DarkThemeColors.background;
+    const surface = DarkThemeColors.surface;
+
+    test('본문 3단이 배경에서 본문 기준을 넘는다', () {
+      expect(contrast(DarkThemeColors.textPrimary, bg),
+          greaterThanOrEqualTo(kBodyMin));
+      expect(contrast(DarkThemeColors.textSecondary, bg),
+          greaterThanOrEqualTo(kBodyMin));
+      expect(contrast(DarkThemeColors.textTertiary, bg),
+          greaterThanOrEqualTo(kBodyMin));
+    });
+
+    test('본문 3단이 카드면에서도 본문 기준을 넘는다', () {
+      expect(contrast(DarkThemeColors.textPrimary, surface),
+          greaterThanOrEqualTo(kBodyMin));
+      expect(contrast(DarkThemeColors.textSecondary, surface),
+          greaterThanOrEqualTo(kBodyMin));
+      expect(contrast(DarkThemeColors.textTertiary, surface),
+          greaterThanOrEqualTo(kBodyMin));
+    });
+
+    test('브랜드 색이 어두운 배경에서 읽힌다', () {
+      for (final c in <Color>[
+        DarkThemeColors.primary,
+        DarkThemeColors.secondary,
+        DarkThemeColors.accent,
+        DarkThemeColors.warning,
+        DarkThemeColors.error,
+        DarkThemeColors.success,
+      ]) {
+        expect(contrast(c, bg), greaterThanOrEqualTo(kBodyMin),
+            reason: '$c 가 어두운 배경에서 모자란다');
+      }
+    });
+
+    test('골드 면 위의 글자는 어두운 색이다', () {
+      expect(contrast(DarkThemeColors.onPrimary, DarkThemeColors.primary),
+          greaterThanOrEqualTo(kBodyMin));
+    });
+
+    test('다크 배경은 순검정이 아니다', () {
+      // 순검정 위의 금색은 싸구려 금박처럼 보인다.
+      expect(bg, isNot(const Color(0xFF000000)));
+      expect(bg.computeLuminance(), greaterThan(0.0));
     });
   });
 }
