@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
+import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../shared/widgets/ui/ui.dart';
 
@@ -20,6 +21,13 @@ class TrustAnalysisData {
   final List<WeaknessItem> weaknesses;
   final CompetitorComparison competitorComparison;
 
+  /// 감찰관이 실제로 쓴 지적사항. weaknesses 는 카테고리 점수에서 계산한
+  /// 추정치라 개선 여부를 말할 수 없지만, 이쪽은 리뷰를 건너 추적된다.
+  final List<InspectionFinding> findings;
+
+  /// 지적 → 약속 → 재감찰
+  final List<InspectionStep> timeline;
+
   TrustAnalysisData({
     required this.businessName,
     required this.badgeLevel,
@@ -32,6 +40,8 @@ class TrustAnalysisData {
     required this.strengths,
     required this.weaknesses,
     required this.competitorComparison,
+    this.findings = const [],
+    this.timeline = const [],
   });
 }
 
@@ -98,6 +108,62 @@ class CompetitorComparison {
   });
 }
 
+List<InspectionFinding> _parseFindings(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw.map((f) {
+    final count = (f['recurrence_count'] ?? 1) as int;
+    return InspectionFinding(
+      title: f['title']?.toString() ?? '',
+      // 재발한 지적은 "고치겠다고 하고 안 고친" 항목이라 그 사실을 적는다.
+      detail: count > 1 ? '$count차례 연속 지적됨' : f['detail']?.toString(),
+      fixed: f['status'] == 'fixed',
+    );
+  }).where((f) => f.title.isNotEmpty).toList();
+}
+
+InspectionStepKind _stepKind(String? kind) {
+  switch (kind) {
+    case 'promise':
+      return InspectionStepKind.promise;
+    case 'verified':
+      return InspectionStepKind.verified;
+    default:
+      return InspectionStepKind.finding;
+  }
+}
+
+String _stepLabel(InspectionStepKind kind) {
+  switch (kind) {
+    case InspectionStepKind.finding:
+      return '지적';
+    case InspectionStepKind.promise:
+      return '개선 약속';
+    case InspectionStepKind.verified:
+      return '개선 확인';
+  }
+}
+
+String _shortDate(String? iso) {
+  final d = DateTime.tryParse(iso ?? '');
+  if (d == null) return '';
+  final l = d.toLocal();
+  return '${l.year}.${l.month.toString().padLeft(2, '0')}'
+      '.${l.day.toString().padLeft(2, '0')}';
+}
+
+List<InspectionStep> _parseTimeline(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw.map((s) {
+    final kind = _stepKind(s['kind']?.toString());
+    return InspectionStep(
+      kind: kind,
+      label: _stepLabel(kind),
+      date: _shortDate(s['at']?.toString()),
+      detail: s['title']?.toString(),
+    );
+  }).toList();
+}
+
 /// 신뢰도 분석 데이터 Provider (API 연동)
 final trustAnalysisProvider =
     FutureProvider.family<TrustAnalysisData, String>((ref, businessId) async {
@@ -143,6 +209,8 @@ final trustAnalysisProvider =
           suggestion: w['suggestion'] ?? '',
           score: (w['score'] ?? 0).toDouble(),
         )).toList(),
+        findings: _parseFindings(report['findings']),
+        timeline: _parseTimeline(report['timeline']),
         competitorComparison: CompetitorComparison(
           myScore: (comp['myScore'] ?? 0).toDouble(),
           categoryAverage: (comp['categoryAverage'] ?? 0).toDouble(),
@@ -1058,7 +1126,21 @@ class TrustAnalysisScreen extends ConsumerWidget {
   /// 표시한다. 고쳐졌는지 모르는데 고쳤다고 적으면 이 제품의 존재 이유가
   /// 무너지므로, 데이터가 생기기 전까지는 지어내지 않는다.
   Widget _buildFindings(TrustAnalysisData data) {
-    if (data.weaknesses.isEmpty) return const SizedBox.shrink();
+    // 감찰관이 실제로 쓴 지적이 있으면 그것을 쓴다. 없을 때만 카테고리 점수에서
+    // 계산한 추정치(weaknesses)로 대체하며, 그때는 개선 여부를 알 수 없으므로
+    // 전부 미개선으로 둔다 — 모르는데 고쳤다고 적으면 제품이 죽는다.
+    final List<InspectionFinding> findings = data.findings.isNotEmpty
+        ? data.findings
+        : data.weaknesses
+            .map((w) => InspectionFinding(
+                  title: w.title,
+                  detail: w.description.isEmpty ? null : w.description,
+                ))
+            .toList();
+
+    if (findings.isEmpty) return const SizedBox.shrink();
+
+    final int fixed = findings.where((f) => f.fixed).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1072,18 +1154,41 @@ class TrustAnalysisScreen extends ConsumerWidget {
             ),
           ],
         ),
+        if (data.findings.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            '지적된 ${findings.length}건 중 $fixed건을 고쳤어요',
+            style: HwahaeTypography.bodyMedium
+                .copyWith(color: HwahaeColors.textSecondary),
+          ),
+        ],
         const SizedBox(height: 12),
-        ...data.weaknesses.map(
-          (w) => Padding(
+        ...findings.map(
+          (f) => Padding(
             padding: const EdgeInsets.only(bottom: 9),
-            child: FindingCard(
-              finding: InspectionFinding(
-                title: w.title,
-                detail: w.description.isEmpty ? null : w.description,
-              ),
-            ),
+            child: FindingCard(finding: f),
           ),
         ),
+        if (data.timeline.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: HwahaeColors.surface,
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              border: Border.all(color: HwahaeColors.border, width: 2),
+              boxShadow: AppElevation.sticker(3),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('감찰 이력', style: HwahaeTypography.overline),
+                const SizedBox(height: 13),
+                InspectionTimeline(steps: data.timeline),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 20),
       ],
     );
