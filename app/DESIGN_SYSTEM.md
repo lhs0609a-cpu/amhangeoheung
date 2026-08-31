@@ -9,7 +9,96 @@ import '../../../../shared/widgets/ui/ui.dart';   // 이 한 줄이면 전부 �
 
 ---
 
+## 0. 이 시스템이 지키려는 것
+
+제품의 주장은 한 문장이다.
+
+> **업체가 돈을 내지만, 업체가 결과를 못 바꾼다.**
+
+디자인 결정은 전부 이 문장을 지키는지로 판정한다. 아무리 예뻐도 이 문장을
+흐리면 넣지 않는다. 아래 규칙들은 취향이 아니라 이 문장에서 나온 결과다.
+
+**귀여운 껍데기, 정직한 알맹이.** 색과 캐릭터는 따뜻하게 가되 숫자·증거·
+지적사항은 또렷하게 남긴다. 귀엽다고 판정까지 물러지면 제품이 죽는다.
+
+---
+
 ## 1. 토큰
+
+### 색 — `HwahaeColors`
+
+이름이 암행어사 + 어흥이니 색도 호랑이에서 가져온다. 다만 **형광 노랑 + 검정은
+쓰지 않는다** — 그건 경고 테이프 색이고, 신뢰를 파는 제품이 입을 옷이 아니다.
+민화 까치호랑이의 실제 색인 황토·치자색을 쓰고, 그림 귀퉁이의 붉은 낙관을
+지적사항 색으로 삼는다.
+
+| 토큰 | 값 | 쓰는 곳 |
+|---|---|---|
+| `background` | `#FDF6E9` | 크림 — 페이지 바탕 |
+| `surface` | `#FFFFFF` | 카드 |
+| `surfaceVariant` | `#F6EAD3` | 눌린 면, 입력창 채움 |
+| `primary` | `#F2B33D` | 호랭이 털 — 주 동작 |
+| `secondary` | `#D9482F` | 낙관 — **감찰과 지적에만** |
+| `accent` | `#4E8C5B` | 풀색 — 개선이 확인된 항목 |
+| `textPrimary` | `#3D2E1F` | 먹 |
+
+**먹색은 순검정이 아니다.** 순검정은 차갑고, 차가우면 귀엽지 않다. 다크 모드
+바탕도 같은 이유로 `#000` 계열이 아니라 진한 갈색이다 — 순검정 위의 금색은
+싸구려 금박처럼 보인다.
+
+**인주색은 감찰과 지적에만 쓴다.** 화면에서 붉은 것이 보이면 그건 항상
+"감찰"이거나 "고쳐야 할 것"이어야 한다. 장식으로 쓰면 이 약속이 깨진다.
+
+### 대비 — 규칙이 아니라 테스트다
+
+`test/contrast_test.dart` 가 WCAG 대비를 직접 계산해 검사한다. 색을 바꾸면
+테스트가 먼저 깨진다. 눈으로 판단하지 않는다.
+
+**절대 하지 말 것 — 골드 면에 흰 글자.** `#FFFFFF` on `#F2B33D` 는 **1.86:1**
+이다. 팔레트를 보라에서 골드로 바꿀 때 흰 글자를 그대로 뒀다가 주 버튼 라벨이
+사실상 안 보이는 상태로 배포될 뻔했다.
+
+| 상황 | 쓸 토큰 |
+|---|---|
+| 골드 면 위 | `onPrimary` (7.02:1) |
+| 연한 골드 면 위 | `onPrimaryContainer` (5.03:1) |
+| 연한 붉은 면 위 | `onSecondaryContainer` (5.15:1) |
+| 연한 풀색 면 위 | `onAccentContainer` (5.31:1) |
+| 흰 글자를 얹는 위험 버튼 | `errorStrong` (6.26:1) |
+| **밝기가 제각각인 면 위** | `HwahaeColors.onColor(배경)` |
+
+`onColor()` 는 배경 밝기로 먹/크림을 고른다. 임계값 `0.2303` 은 눈대중이 아니라
+두 후보의 대비가 같아지는 지점을 푼 값이다. 흔히 쓰는 0.5 를 넣으면 은색
+(L=0.32) 같은 중간 밝기에서 반대로 골라 2.62:1 까지 떨어진다.
+
+**경계도 대비가 필요하다** (WCAG 1.4.11, 3:1). 카드 윤곽용 `border`(1.30:1)와
+컨트롤 경계용 `borderStrong`(3.12:1)이 따로 있다. 입력창·outline 버튼처럼
+**테두리가 유일한 조작 단서**인 곳에는 반드시 후자를 쓴다. 입력창 채움색과
+페이지 배경의 대비는 1.11:1 이라 테두리 없이는 입력창이 어디 있는지 안 보인다.
+
+### 서체 — `HwahaeTypography`
+
+세 가지를 쓰고, 역할이 다르다.
+
+| 서체 | 쓰는 곳 | 비고 |
+|---|---|---|
+| **주아** (번들, 2MB) | 제목 · 숫자 · 버튼 · 어흥이 말투 | 둥글어서 친근하다 |
+| **시스템 한글 서체** | 본문 · 지적사항 · 증거 | 또렷해야 하는 곳 |
+| **나눔명조** | 인장 안 `監察` 만 | 사극의 무게는 여기서만 |
+
+한글 본문 서체는 웨이트당 5MB 가까워 번들이 감당되지 않는다. 본문은
+`fontFamily: null` — 없는 서체를 선언하느니 플랫폼 기본을 명시한다.
+
+두 가지 함정이 있다.
+
+1. **주아는 단일 웨이트다.** `w500` 이상을 주면 Flutter 가 가짜 볼드를 그려
+   글자가 뭉갠다. 주아 스타일의 굵기는 `w400`.
+2. **주아에 없는 글리프가 있다.** 가운뎃점(`·`), 대시 같은 기호가 빠져 있어
+   폴백이 없으면 `현장 도착 · 체크인` 이 `현장 도착 □ 체크인` 으로 찍힌다.
+   실제로 버튼 라벨에서 그렇게 나왔다. 모든 주아 스타일에 `displayFallback` 을
+   붙인다.
+
+둘 다 `test/typography_test.dart` 가 검사한다.
 
 ### 모션 — `AppMotion`
 
@@ -19,199 +108,139 @@ import '../../../../shared/widgets/ui/ui.dart';   // 이 한 줄이면 전부 �
 | `fast` | 140ms | 아이콘 토글, 체크, 뱃지 |
 | `base` | 220ms | 기본. 카드 확장, 항목 등장 |
 | `slow` | 320ms | 시트/다이얼로그 |
-| `deliberate` | 480ms | 온보딩 히어로 연출 |
 
-커브는 `standard`(기본) / `decelerate`(진입) / `accelerate`(이탈) /
-`emphasized`(오버슈트) / `spring`(눌림 해제).
-
-**300ms 를 넘는 마이크로 인터랙션은 만들지 않는다.** 모바일에서 느리게 느껴진다.
+**300ms 를 넘는 마이크로 인터랙션은 만들지 않는다.**
 
 ### 레이아웃 — `AppLayout`
 
-- `gutter` 16 / `gutterCompact` 12 (360dp 미만 기기) — `AppLayout.gutterOf(context)`
-- `sectionGap` 28 / `headerGap` 12 / `cardGap` 12
+- `gutter` 16 / `gutterCompact` 12 (360dp 미만) — `AppLayout.gutterOf(context)`
 - `minTapTarget` **48** — 모든 탭 가능한 요소가 지켜야 하는 값
-- `maxContentWidth` 560 — 태블릿에서 본문이 늘어지지 않게
+- `maxContentWidth` 560
 
-`BuildContext` 확장으로 짧게 쓸 수 있다:
+### 형태 — `HwahaeTheme`
 
-```dart
-context.gutter          // 화면 폭에 맞는 좌우 여백
-context.isShortHeight   // 세로가 짧은 기기 → 히어로 영역 축소
-context.bottomInset     // 홈 인디케이터 높이
-context.isKeyboardOpen
-```
+모서리 `8 / 12 / 16 / 20 / 26 / 100`. 테두리 **2px**.
 
-### 고도 — `AppElevation`
+**그림자는 흐리지 않는다.** `AppElevation.level1·2` 는 blur 0 에 아래로 2~3px
+떨어지는 단색 면이다. 스티커를 붙여둔 느낌이고, 크림 배경에서 흐린 그림자보다
+또렷하다. 떠 있는 바와 모달(`level3·4`)만 실제 겹침 깊이가 필요해 blur 를 쓴다.
 
-`level1`(칩·리스트 카드) → `level2`(기본 카드) → `level3`(떠 있는 바) →
-`level4`(모달). 모두 **중립 그림자**다.
-브랜드 컬러 그림자는 `AppElevation.glow(color)` 로만 쓰고, **화면당 한 곳**으로 제한한다.
+> **함정**: blur 0 그림자는 단색 도형이다. `decoration` 에 채움색이 없으면
+> 부모 `Material` 이 칠한 흰색을 **그림자가 그대로 덮는다.** 채움은 반드시
+> `decoration` 안에 두고, 잉크 효과가 필요하면 `Material` 을 투명하게 남긴다.
 
 ---
 
 ## 2. 컴포넌트
 
-### 버튼 — `AppButton`
+### 감찰 도메인 — `app_inspection.dart`
+
+제품의 주장을 화면으로 드러내는 것들이다. **여기엔 캐릭터를 쓰지 않는다.**
+
+| 위젯 | 무엇 | 지켜야 할 것 |
+|---|---|---|
+| `FindingCard` | 지적사항 | 고친 것과 안 고친 것을 **같은 목록에 나란히**. 안 고친 것을 접거나 뒤로 미루면 업체가 결과를 바꾼 것과 같다 |
+| `InspectionTimeline` | 지적 → 약속 → 재감찰 | 별점보다 위에 둔다. 이 서사가 이 제품의 유일한 차별점이다 |
+| `BlindMissionCard` | 모집 중인 감찰 | 배정 전엔 업체명 대신 자물쇠. 업체명이 새면 무작위 배정이 무의미해진다 |
+| `StayTimerRing` | 현장 체류 시간 | 남은 시간을 숨기지 않는다 |
+| `SealBadge` | 감찰 인장 | 감찰 끝난 업체에만. 횟수가 함께 새겨진다. **돈으로 살 수 없다** |
+
+### 캐릭터 — `app_mascot.dart`
+
+| | 무엇 |
+|---|---|
+| `AppMascot.eoheung` | 갓 쓴 호랭이. 브랜드이자 안내자 |
+| `AppMascot.sato` | 사람 사또. 감찰관(리뷰어)의 얼굴 |
+| `MascotMessage` | 어흥이 말풍선 카드 |
+
+**쓰는 자리** — 온보딩 · 빈 화면 · 안내 · 축하.
+**안 쓰는 자리** — 감찰 리포트 · 지적사항 · 업체 응답 · 결제 · **오류 상태**.
+
+지적 옆에서 캐릭터가 웃고 있으면 지적이 농담처럼 읽힌다. 오류 화면에서 웃고
+있으면 놀리는 것처럼 보인다. 판정과 사고가 걸린 자리에는 인장과 숫자만 둔다.
+
+캐릭터를 그릴 때는 먹색 요소에 **크림색 테두리**를 두른다. 크림 배경에서는
+보이지 않고, 먹색 배경에서는 실루엣을 살린다 — 안 그러면 어두운 카드에서
+갓이 배경에 묻혀 얼굴만 떠 있다.
+
+### 그 밖
+
+`AppButton` / `AppCard` / `AppChip` / `AppScaffold` / `AppSection` / `AppSheet` /
+`AppEmptyState` / `AppErrorState` / `AppToast`
 
 ```dart
-AppButton.primary(label: '미션 신청', onPressed: _apply)     // 화면당 1개
+AppButton(label: '감찰 리포트 보기', onPressed: _open)   // 화면당 1개
+AppButton.secondary(label: '현장 도착 · 체크인', onPressed: _checkIn)
 AppButton.outline(label: '취소', onPressed: _cancel)
-AppButton.tonal(label: '더보기', onPressed: _more)
-AppButton.ghost(label: '건너뛰기', onPressed: _skip)
-AppButton.danger(label: '해지하기', onPressed: _cancel)
-```
-
-- 크기: `small`(36) / `medium`(48, 기본) / `large`(56, 하단 주 CTA)
-- `isLoading: true` → 스피너로 바뀌지만 **버튼 폭은 유지**된다 (레이아웃 점프 없음)
-- 누르면 자동으로 축소 + 햅틱
-- 글로우는 `primary` + `large` 조합에서만 켜진다
-
-아이콘만 필요하면 `AppIconButton` — 아이콘이 16px 여도 터치 영역은 48dp 다.
-`badgeCount` 로 알림 배지를 붙인다.
-
-### 카드 — `AppCard`
-
-```dart
-AppCard(
-  style: AppCardStyle.elevated,   // elevated | outlined | sunken | gradient | glass
-  onTap: () => context.push('/missions/$id'),   // 주면 눌림 반응 + 햅틱이 자동
-  child: ...,
-)
-```
-
-- `AppStatTile` — 라벨 + 값 + 증감률
-- `AppListRow` — 설정/메뉴 행 (최소 높이 56 보장)
-
-### 섹션 — `AppSection` / `AppSectionHeader`
-
-```dart
-AppSection(
-  title: '오늘의 추천 미션',
-  emoji: '🎯',
-  onAction: () => context.push('/missions'),   // 우측 '전체보기'
-  child: ...,
-)
-```
-
-`AppNotice` / `AppNotice.warning` / `AppNotice.success` — 안내 배너.
-`AppDivider` — 좌우 여백이 들어간 구분선.
-
-### 칩 — `AppChip` / `AppChipBar` / `AppBadge` / `AppProgressBar`
-
-```dart
-AppChipBar(labels: categories, selectedIndex: i, onSelected: (i) => ...)
-AppBadge.missionType('hidden')       // 유형별 색/아이콘 자동
-AppProgressBar(value: 0.7, autoColor: true)   // 마감 임박이면 빨강
-```
-
-### 시트 — 다이얼로그 대신 하단 시트
-
-모바일에서 확인/선택은 화면 중앙 다이얼로그보다 **하단 시트**가 낫다.
-엄지 도달 범위 안이고, 드래그로 닫을 수 있고, 맥락을 덜 가린다.
-
-```dart
-final ok = await showAppConfirm(
-  context: context,
-  title: '구독을 해지할까요?',
-  message: '남은 기간은 그대로 사용할 수 있어요.',
-  confirmLabel: '해지하기',
-  destructive: true,
-);
-
-final picked = await showAppOptionSheet(
-  context: context,
-  title: '은행 선택',
-  options: bankNames,
-  selectedIndex: current,
-);
-```
-
-### 토스트 — `AppToast`
-
-`ScaffoldMessenger.showSnackBar` 를 직접 부르지 않는다.
-
-```dart
-AppToast.success(context, '미션 신청이 완료되었습니다');
-AppToast.error(context, '네트워크 오류가 발생했습니다');   // 4초 + 강한 햅틱
-AppToast.warning(context, '세션이 만료되었습니다');
-AppToast.info(context, '임시 저장되었습니다');
-```
-
-하단 플로팅 네비게이션 위로 띄워지므로 CTA 를 가리지 않는다.
-
-### 상태 — `AppEmptyState` / `AppErrorState` / `AppLoadingOverlay`
-
-빈 상태는 "없음"으로 끝내지 말고 **다음 행동**을 준다.
-
-```dart
-AppEmptyState(
-  icon: Icons.flag_outlined,
-  title: '참여 가능한 미션이 없어요',
-  message: '새 미션이 열리면 알려드릴게요',
-  actionLabel: '알림 켜기',
-  onAction: _enableAlerts,
-)
-
-// 메시지에서 네트워크 오류를 추정해 문구/아이콘을 바꾼다
-AppErrorState.fromMessage(state.error!, onRetry: _reload)
-```
-
-### 화면 셸 — `AppScreen`
-
-새 화면은 이걸로 시작한다. 하단 여백·제스처 인셋·당겨서 새로고침·
-스크롤 반응 앱바·하단 고정 CTA 가 전부 붙어 있다.
-
-```dart
-AppScreen(
-  title: '정산 내역',
-  hasBottomNav: false,          // push 로 연 화면이면 false
-  onRefresh: _reload,
-  slivers: [...],
-  bottomBar: AppBottomActionBar(
-    child: AppButton.primary(label: '정산 신청', onPressed: _request),
-  ),
-)
 ```
 
 ---
 
-## 3. 모바일 규칙
+## 3. 화면을 새로 만들 때 — 45개를 일관되게 만드는 규약
 
-1. **하단 여백은 직접 계산하지 않는다.**
-   `SizedBox(height: 120)` 대신 `AppBottomSpacer()`(탭 화면) /
-   `AppBottomSpacer.plain()`(push 화면), sliver 안에서는 `SliverBottomSpacer`.
-   기기별 홈 인디케이터 높이가 자동 반영된다.
+개별 화면을 다 그리지 않아도, 아래를 지키면 화면끼리 어긋나지 않는다.
 
-2. **탭 가능한 모든 것은 48dp 이상.**
-   시각적으로 작아야 하면 `Pressable` + `constraints: BoxConstraints(minHeight: 48)`.
+1. **색을 직접 쓰지 않는다.** `Color(0xFF...)` 를 화면 코드에 적으면 팔레트가
+   바뀔 때 그 화면만 남는다. 반드시 `HwahaeColors` 를 거친다.
 
-3. **탭에는 반응이 있어야 한다.**
-   `InkWell`/`GestureDetector` 대신 `Pressable` 을 쓰면 축소 애니메이션과
-   햅틱이 함께 붙는다.
+2. **면 위에 글자를 얹을 땐 `on*` 토큰이나 `onColor()` 를 쓴다.**
+   `Colors.white` 를 면 위에 고정하지 않는다.
 
-4. **햅틱은 의미 단위로.**
-   `AppHaptics.tap()`(선택) / `press()`(확정) / `success()` / `error()`.
+3. **하단 여백은 직접 계산하지 않는다.** `SizedBox(height: 120)` 대신
+   `AppBottomSpacer()`(탭 화면) / `AppBottomSpacer.plain()`(push 화면),
+   sliver 안에서는 `SliverBottomSpacer`.
 
-5. **키보드를 가리지 않는다.**
-   하단 고정 바는 `AppBottomActionBar` / `AppStickyBar` 를 쓴다 —
-   키보드가 올라오면 그 위로 따라 붙고, 닫히면 홈 인디케이터를 피한다.
+4. **탭 가능한 모든 것은 48dp 이상.** 시각적으로 작아야 하면 `Pressable` +
+   `constraints: BoxConstraints(minHeight: 48)`.
 
-6. **글자 크기 설정을 존중하되 상한을 둔다.**
-   `main.dart` 에서 텍스트 배율을 0.9~1.3 으로 클램프한다.
-   그 이상에서는 카드 안 2줄 레이아웃이 깨진다.
+5. **탭에는 반응이 있어야 한다.** `InkWell`/`GestureDetector` 대신 `Pressable`.
 
-7. **긴 리스트에 순차 등장 애니메이션을 남용하지 않는다.**
-   `FadeSlideIn.staggered(index: i, ...)` 는 앞의 8개까지만 지연을 준다
-   (`AppMotion.staggerMaxItems`). 스크롤 성능 때문이다.
+6. **화면당 주 동작 하나.** `AppButton` primary 는 한 화면에 하나.
+
+7. **키보드를 가리지 않는다.** 하단 고정 바는 `AppBottomActionBar` /
+   `AppStickyBar`.
+
+8. **빈 화면은 다음 행동을 준다.** `AppEmptyState` 에 `actionLabel` 을 채운다.
+   판정이 없는 화면이면 `showMascot: true`.
+
+9. **숫자를 지어내지 않는다.** 백엔드가 안 주는 값은 비워둔다. 개선 여부를
+   모르는데 "고침" 이라고 적으면 이 제품의 존재 이유가 무너진다.
+
+10. **나누기 전에 0을 확인한다.** `verified / total` 이 리뷰 0건에서 NaN 이 되고
+    `NaN.toInt()` 가 예외를 던져 화면이 죽던 자리가 실제로 있었다.
+
+### 화면을 내보내기 전에
+
+```
+flutter analyze                       # 0건
+flutter test                          # 대비·타이포·위젯 회귀
+flutter test --update-goldens test/golden   # 눈으로 확인할 PNG 생성
+```
+
+골든은 통과/실패를 다투는 것이 목적이 아니라 **사람이 눈으로 보기 위한 것**이다.
+계산으로는 "안 보이는 글자"는 잡아도 "화난 곰처럼 보이는 마스코트"는 못 잡는다.
+실제로 렌더링해보고서야 캐릭터가 찡그리고 있고, 카드가 탄색이고, 버튼에 두부가
+찍히는 걸 발견했다.
 
 ---
 
-## 4. 레거시
+## 4. 아직 안 된 것
+
+정직하게 남겨둔다.
+
+- **화면 레이아웃 이식**: 색·서체·부품은 전 화면에 적용됐지만, 목업의 구성이
+  실제로 들어간 건 신뢰도 화면뿐이다. 나머지는 예전 구성에 새 옷을 입은 상태다.
+- **백엔드 공백**: 개선 확인 여부와 감찰 이력 필드가 없어 `InspectionTimeline`
+  이 실제 화면에서 아직 못 쓰인다.
+- **결제·정산 화면**: 별도 설계가 필요하다. 규약만으로는 부족한 유일한 영역.
+- **태블릿·가로**: `maxContentWidth` 만 있고 레이아웃 대응은 없다.
+
+---
+
+## 5. 레거시
 
 `HwahaePrimaryButton` / `HwahaeSecondaryButton` / `HwahaeTextButton` 은
-`AppButton` 의 얇은 래퍼로 남아 있다. 기존 호출부를 고치지 않고도 새 인터랙션을
-물려받게 하기 위한 것이다. **새 코드에서는 `AppButton` 을 직접 쓴다.**
+`AppButton` 의 얇은 래퍼로 남아 있다. **새 코드에서는 `AppButton` 을 직접 쓴다.**
 
-`HwahaeMissionCard` / `HwahaeInfoCard` / `HwahaeStatCard` 는 그대로 쓰되,
-새로 만드는 카드는 `AppCard` 를 조합한다.
+`gradient*` 토큰은 새 시스템에서 쓰지 않는다. 남은 호출부가 깨지지 않도록 값만
+남기고 두 색 차이를 좁혀 사실상 평면으로 보이게 했다. 새로 쓰지 않는다.
