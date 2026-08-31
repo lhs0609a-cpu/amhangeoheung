@@ -231,6 +231,10 @@ class TrustAnalysisScreen extends ConsumerWidget {
                 _buildOverallScoreCard(data),
                 const SizedBox(height: 20),
 
+                // 지적사항 — 이 화면의 주인공이라 차트보다 위에 둔다.
+                // 별점은 어디에나 있지만 "무엇이 잘못됐는지"는 감찰에서만 나온다.
+                _buildFindings(data),
+
                 // 카테고리별 점수
                 _buildCategoryScores(data),
                 const SizedBox(height: 20),
@@ -1045,6 +1049,43 @@ class TrustAnalysisScreen extends ConsumerWidget {
           )),
         ],
       ),
+    );
+  }
+
+  /// 지적사항 목록.
+  ///
+  /// 백엔드가 아직 "개선 확인 여부"를 내려주지 않으므로 전부 미개선으로
+  /// 표시한다. 고쳐졌는지 모르는데 고쳤다고 적으면 이 제품의 존재 이유가
+  /// 무너지므로, 데이터가 생기기 전까지는 지어내지 않는다.
+  Widget _buildFindings(TrustAnalysisData data) {
+    if (data.weaknesses.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('지적하고, 고쳤나', style: HwahaeTypography.headlineSmall),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Container(height: 2, color: HwahaeColors.border),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...data.weaknesses.map(
+          (w) => Padding(
+            padding: const EdgeInsets.only(bottom: 9),
+            child: FindingCard(
+              finding: InspectionFinding(
+                title: w.title,
+                detail: w.description.isEmpty ? null : w.description,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
     );
   }
 

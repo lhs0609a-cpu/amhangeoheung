@@ -351,4 +351,109 @@ void main() {
       ),
     );
   });
+
+  testWidgets('06 감찰 도메인 — 지적·이력·블라인드 미션', (tester) async {
+    await _shoot(
+      tester,
+      '06_inspection',
+      Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            const FindingCard(
+              finding: InspectionFinding(
+                title: '웨이팅 안내가 없음',
+                detail: '대기 알림 도입 → 2차에서 확인',
+                fixed: true,
+              ),
+            ),
+            const SizedBox(height: 9),
+            const FindingCard(
+              finding: InspectionFinding(
+                title: '점심 시간대 응대 지연',
+                detail: '2차에서도 똑같이 지적됨',
+              ),
+            ),
+            const SizedBox(height: 22),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: HwahaeColors.surface,
+                borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+                border: Border.all(color: HwahaeColors.border, width: 2),
+                boxShadow: AppElevation.sticker(3),
+              ),
+              child: const InspectionTimeline(
+                steps: [
+                  InspectionStep(
+                    kind: InspectionStepKind.finding,
+                    label: '1차 감찰',
+                    date: '2026.03.12',
+                    detail: '지적 3건 — 대기 안내, 화장실 청결, 응대 지연',
+                  ),
+                  InspectionStep(
+                    kind: InspectionStepKind.promise,
+                    label: '개선 약속',
+                    date: '2026.03.15',
+                    detail: '대기 알림 도입, 청소 주기 2시간',
+                  ),
+                  InspectionStep(
+                    kind: InspectionStepKind.verified,
+                    label: '2차 감찰',
+                    date: '2026.06.20',
+                    detail: '2건 개선 확인 · 1건 미개선',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 22),
+            const BlindMissionCard(
+              category: '일식',
+              region: '강남구',
+              schedule: '점심 방문 · 최소 체류 40분',
+              fee: 54000,
+              applicants: 6,
+              deadline: '마감까지 2일',
+            ),
+            const SizedBox(height: 10),
+            const BlindMissionCard(
+              category: '한식',
+              region: '강남구',
+              schedule: '저녁 방문 · 최소 체류 50분',
+              fee: 61000,
+              blockedReason: '6개월 내 감찰 이력이 있어 지원할 수 없습니다',
+            ),
+          ],
+        ),
+      ),
+    );
+  });
+
+  testWidgets('07 현장 체류 타이머', (tester) async {
+    await _shoot(
+      tester,
+      '07_stay_timer',
+      background: HwahaeColors.textPrimary,
+      Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            const StayTimerRing(
+              elapsed: Duration(minutes: 31, seconds: 4),
+              required: Duration(minutes: 40),
+            ),
+            const SizedBox(height: 40),
+            const StayTimerRing(
+              elapsed: Duration(minutes: 42),
+              required: Duration(minutes: 40),
+              size: 160,
+            ),
+          ],
+        ),
+      ),
+    );
+  });
 }

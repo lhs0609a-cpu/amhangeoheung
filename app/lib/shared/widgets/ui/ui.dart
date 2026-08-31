@@ -10,6 +10,7 @@ export '../../../core/theme/app_motion.dart';
 export 'app_button.dart';
 export 'app_card.dart';
 export 'app_chip.dart';
+export 'app_inspection.dart';
 export 'app_mascot.dart';
 export 'app_scaffold.dart';
 export 'app_section.dart';

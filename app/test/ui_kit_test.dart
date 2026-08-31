@@ -358,4 +358,159 @@ void main() {
       expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
     });
   });
+
+  group('FindingCard', () {
+    testWidgets('개선된 항목과 안 된 항목을 다르게 표시한다', (tester) async {
+      await pumpInApp(
+        tester,
+        const Column(
+          children: [
+            FindingCard(
+              finding: InspectionFinding(title: '웨이팅 안내', fixed: true),
+            ),
+            FindingCard(finding: InspectionFinding(title: '응대 지연')),
+          ],
+        ),
+      );
+
+      expect(find.text('고침'), findsOneWidget);
+      expect(find.text('아직'), findsOneWidget);
+    });
+
+    testWidgets('스크린리더에 개선 여부를 읽어준다', (tester) async {
+      await pumpInApp(
+        tester,
+        const FindingCard(
+          finding: InspectionFinding(title: '응대 지연'),
+        ),
+      );
+
+      expect(
+        find.bySemanticsLabel(RegExp('아직 개선되지 않음')),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('InspectionTimeline', () {
+    testWidgets('단계를 순서대로 보여준다', (tester) async {
+      await pumpInApp(
+        tester,
+        const InspectionTimeline(
+          steps: [
+            InspectionStep(
+              kind: InspectionStepKind.finding,
+              label: '1차 감찰',
+              date: '2026.03.12',
+            ),
+            InspectionStep(
+              kind: InspectionStepKind.verified,
+              label: '2차 감찰',
+              date: '2026.06.20',
+            ),
+          ],
+        ),
+      );
+
+      expect(find.textContaining('1차 감찰'), findsOneWidget);
+      expect(find.textContaining('2차 감찰'), findsOneWidget);
+    });
+
+    testWidgets('이력이 없으면 아무것도 그리지 않는다', (tester) async {
+      await pumpInApp(tester, const InspectionTimeline(steps: []));
+      expect(find.byType(IntrinsicHeight), findsNothing);
+    });
+  });
+
+  group('BlindMissionCard', () {
+    testWidgets('배정 전에는 업체명을 보여주지 않는다', (tester) async {
+      await pumpInApp(
+        tester,
+        const BlindMissionCard(
+          category: '일식',
+          region: '강남구',
+          schedule: '점심 방문',
+          fee: 54000,
+          applicants: 6,
+        ),
+      );
+
+      // 카테고리와 지역까지만. 업체명이 새어나가면 무작위 배정이 무의미해진다.
+      expect(find.text('일식 · 강남구'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
+    });
+
+    testWidgets('보수에 천 단위 구분을 넣는다', (tester) async {
+      await pumpInApp(
+        tester,
+        const BlindMissionCard(
+          category: '카페',
+          region: '성동구',
+          schedule: '오후 방문',
+          fee: 1234567,
+        ),
+      );
+
+      expect(find.text('1,234,567'), findsOneWidget);
+    });
+
+    testWidgets('담합 차단된 미션은 탭이 막힌다', (tester) async {
+      var tapped = false;
+      await pumpInApp(
+        tester,
+        BlindMissionCard(
+          category: '한식',
+          region: '강남구',
+          schedule: '저녁 방문',
+          fee: 61000,
+          blockedReason: '6개월 내 감찰 이력',
+          onTap: () => tapped = true,
+        ),
+      );
+
+      await tester.tap(find.byType(BlindMissionCard));
+      await tester.pump();
+      expect(tapped, isFalse);
+      expect(find.text('6개월 내 감찰 이력'), findsOneWidget);
+    });
+  });
+
+  group('StayTimerRing', () {
+    testWidgets('경과 시간을 분:초로 보여준다', (tester) async {
+      await pumpInApp(
+        tester,
+        const StayTimerRing(
+          elapsed: Duration(minutes: 31, seconds: 4),
+          required: Duration(minutes: 40),
+        ),
+      );
+
+      expect(find.text('31:04'), findsOneWidget);
+      expect(find.text('최소 40분 중'), findsOneWidget);
+    });
+
+    testWidgets('최소 시간을 채우면 문구가 바뀐다', (tester) async {
+      await pumpInApp(
+        tester,
+        const StayTimerRing(
+          elapsed: Duration(minutes: 42),
+          required: Duration(minutes: 40),
+        ),
+      );
+
+      expect(find.text('최소 시간 충족'), findsOneWidget);
+    });
+
+    testWidgets('최소 시간이 0이어도 나누기 오류가 나지 않는다', (tester) async {
+      await pumpInApp(
+        tester,
+        const StayTimerRing(
+          elapsed: Duration(minutes: 5),
+          required: Duration.zero,
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+    });
+  });
 }
