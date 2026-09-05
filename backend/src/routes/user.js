@@ -23,6 +23,9 @@ router.post('/me/avatar', authenticate, validateAvatarUpload, userController.upl
 // 비밀번호 변경
 router.put('/me/password', authenticate, changePasswordValidation, userController.changePassword);
 
+// 알림 설정 조회
+router.get('/me/notifications', authenticate, userController.getNotificationSettings);
+
 // 알림 설정 변경
 router.put('/me/notifications', authenticate, updateNotificationValidation, userController.updateNotificationSettings);
 

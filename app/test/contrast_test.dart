@@ -1,46 +1,30 @@
-import 'dart:math' as math;
-
 import 'package:amhangeoheung_app/core/theme/dark_theme_colors.dart';
 import 'package:amhangeoheung_app/core/theme/hwahae_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// WCAG 2.1 상대 명도 대비.
-///
-/// 팔레트를 보라에서 호랭이 털색으로 바꿀 때, 흰 글자를 그대로 둔 자리가 있어
-/// 주 버튼 라벨이 1.86:1 까지 떨어졌었다. 색은 언제든 다시 조정되므로
-/// 눈으로 보는 대신 숫자로 잠가둔다.
-double contrast(Color a, Color b) {
-  final double la = a.computeLuminance();
-  final double lb = b.computeLuminance();
-  final double hi = math.max(la, lb);
-  final double lo = math.min(la, lb);
-  return (hi + 0.05) / (lo + 0.05);
-}
+import 'support/contrast.dart';
 
-/// 본문 크기 글자 기준
-const double kBodyMin = 4.5;
-
-/// 큰 글씨(18.66px 굵게 / 24px 이상)와 아이콘 등 비텍스트 요소 기준
-const double kLargeMin = 3.0;
+/// 이 파일은 토큰만 검사한다. 위젯이 그 토큰을 실제로 쓰는지는
+/// `ui_kit_test.dart` 가 렌더링된 색을 꺼내서 검사한다.
 
 void main() {
   group('본문 3단 램프', () {
     const bg = HwahaeColors.background;
 
     test('세 단계 모두 크림 배경에서 본문 기준을 넘는다', () {
-      expect(contrast(HwahaeColors.textPrimary, bg),
+      expect(contrastRatio(HwahaeColors.textPrimary, bg),
           greaterThanOrEqualTo(kBodyMin));
-      expect(contrast(HwahaeColors.textSecondary, bg),
+      expect(contrastRatio(HwahaeColors.textSecondary, bg),
           greaterThanOrEqualTo(kBodyMin));
-      expect(contrast(HwahaeColors.textTertiary, bg),
+      expect(contrastRatio(HwahaeColors.textTertiary, bg),
           greaterThanOrEqualTo(kBodyMin));
     });
 
     test('단계가 실제로 구분된다', () {
-      final p = contrast(HwahaeColors.textPrimary, bg);
-      final s = contrast(HwahaeColors.textSecondary, bg);
-      final t = contrast(HwahaeColors.textTertiary, bg);
+      final p = contrastRatio(HwahaeColors.textPrimary, bg);
+      final s = contrastRatio(HwahaeColors.textSecondary, bg);
+      final t = contrastRatio(HwahaeColors.textTertiary, bg);
       expect(p, greaterThan(s));
       expect(s, greaterThan(t));
     });
@@ -48,25 +32,25 @@ void main() {
 
   group('면 위의 글자', () {
     test('골드 면 — onPrimary', () {
-      expect(contrast(HwahaeColors.onPrimary, HwahaeColors.primary),
+      expect(contrastRatio(HwahaeColors.onPrimary, HwahaeColors.primary),
           greaterThanOrEqualTo(kBodyMin));
     });
 
     test('골드 면에 흰 글자를 쓰면 안 된다', () {
       // 회귀 방지: 이 조합이 실제로 배포될 뻔했다.
-      expect(contrast(Colors.white, HwahaeColors.primary), lessThan(kLargeMin));
+      expect(contrastRatio(Colors.white, HwahaeColors.primary), lessThan(kLargeMin));
     });
 
     test('연한 골드 면 — onPrimaryContainer', () {
       expect(
-        contrast(HwahaeColors.onPrimaryContainer, HwahaeColors.primaryContainer),
+        contrastRatio(HwahaeColors.onPrimaryContainer, HwahaeColors.primaryContainer),
         greaterThanOrEqualTo(kBodyMin),
       );
     });
 
     test('연한 붉은 면 — onSecondaryContainer', () {
       expect(
-        contrast(
+        contrastRatio(
             HwahaeColors.onSecondaryContainer, HwahaeColors.secondaryContainer),
         greaterThanOrEqualTo(kBodyMin),
       );
@@ -74,18 +58,18 @@ void main() {
 
     test('연한 풀색 면 — onAccentContainer', () {
       expect(
-        contrast(HwahaeColors.onAccentContainer, HwahaeColors.accentContainer),
+        contrastRatio(HwahaeColors.onAccentContainer, HwahaeColors.accentContainer),
         greaterThanOrEqualTo(kBodyMin),
       );
     });
 
     test('위험 버튼 — errorStrong 위의 크림 글자', () {
-      expect(contrast(HwahaeColors.textOnDark, HwahaeColors.errorStrong),
+      expect(contrastRatio(HwahaeColors.textOnDark, HwahaeColors.errorStrong),
           greaterThanOrEqualTo(kBodyMin));
     });
 
     test('먹 면 — 토스트 본문', () {
-      expect(contrast(HwahaeColors.textOnDark, HwahaeColors.textPrimary),
+      expect(contrastRatio(HwahaeColors.textOnDark, HwahaeColors.textPrimary),
           greaterThanOrEqualTo(kBodyMin));
     });
   });
@@ -118,7 +102,7 @@ void main() {
       ];
       for (final surface in surfaces) {
         expect(
-          contrast(HwahaeColors.onColor(surface), surface),
+          contrastRatio(HwahaeColors.onColor(surface), surface),
           greaterThanOrEqualTo(kLargeMin),
           reason: '$surface 위의 글자 대비가 모자란다',
         );
@@ -129,14 +113,14 @@ void main() {
   group('조작 요소 경계 (WCAG 1.4.11)', () {
     test('라이트 — borderStrong 이 페이지 배경에서 구분된다', () {
       expect(
-        contrast(HwahaeColors.borderStrong, HwahaeColors.background),
+        contrastRatio(HwahaeColors.borderStrong, HwahaeColors.background),
         greaterThanOrEqualTo(kLargeMin),
       );
     });
 
     test('다크 — borderStrong 이 페이지 배경에서 구분된다', () {
       expect(
-        contrast(DarkThemeColors.borderStrong, DarkThemeColors.background),
+        contrastRatio(DarkThemeColors.borderStrong, DarkThemeColors.background),
         greaterThanOrEqualTo(kLargeMin),
       );
     });
@@ -145,7 +129,7 @@ void main() {
       // 회귀 방지: 이 값이 3:1 을 넘게 되면 테두리 없이도 되지만,
       // 지금은 1.11:1 이라 enabledBorder 가 반드시 있어야 한다.
       expect(
-        contrast(HwahaeColors.surfaceVariant, HwahaeColors.background),
+        contrastRatio(HwahaeColors.surfaceVariant, HwahaeColors.background),
         lessThan(kLargeMin),
       );
     });
@@ -156,20 +140,20 @@ void main() {
     const surface = DarkThemeColors.surface;
 
     test('본문 3단이 배경에서 본문 기준을 넘는다', () {
-      expect(contrast(DarkThemeColors.textPrimary, bg),
+      expect(contrastRatio(DarkThemeColors.textPrimary, bg),
           greaterThanOrEqualTo(kBodyMin));
-      expect(contrast(DarkThemeColors.textSecondary, bg),
+      expect(contrastRatio(DarkThemeColors.textSecondary, bg),
           greaterThanOrEqualTo(kBodyMin));
-      expect(contrast(DarkThemeColors.textTertiary, bg),
+      expect(contrastRatio(DarkThemeColors.textTertiary, bg),
           greaterThanOrEqualTo(kBodyMin));
     });
 
     test('본문 3단이 카드면에서도 본문 기준을 넘는다', () {
-      expect(contrast(DarkThemeColors.textPrimary, surface),
+      expect(contrastRatio(DarkThemeColors.textPrimary, surface),
           greaterThanOrEqualTo(kBodyMin));
-      expect(contrast(DarkThemeColors.textSecondary, surface),
+      expect(contrastRatio(DarkThemeColors.textSecondary, surface),
           greaterThanOrEqualTo(kBodyMin));
-      expect(contrast(DarkThemeColors.textTertiary, surface),
+      expect(contrastRatio(DarkThemeColors.textTertiary, surface),
           greaterThanOrEqualTo(kBodyMin));
     });
 
@@ -182,13 +166,13 @@ void main() {
         DarkThemeColors.error,
         DarkThemeColors.success,
       ]) {
-        expect(contrast(c, bg), greaterThanOrEqualTo(kBodyMin),
+        expect(contrastRatio(c, bg), greaterThanOrEqualTo(kBodyMin),
             reason: '$c 가 어두운 배경에서 모자란다');
       }
     });
 
     test('골드 면 위의 글자는 어두운 색이다', () {
-      expect(contrast(DarkThemeColors.onPrimary, DarkThemeColors.primary),
+      expect(contrastRatio(DarkThemeColors.onPrimary, DarkThemeColors.primary),
           greaterThanOrEqualTo(kBodyMin));
     });
 

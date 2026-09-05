@@ -49,10 +49,21 @@ const changePasswordValidation = [
     .withMessage('새 비밀번호는 최소 8자 이상이어야 합니다.')
 ];
 
+// 알림 설정. 채널(push/email/sms)이 아니라 종류로 받는다 — 이 앱이 실제로
+// 보내는 것은 FCM 푸시뿐이라, 없는 채널을 받아두면 거짓말이 된다.
 const updateNotificationValidation = [
-  body('push').optional().isBoolean().withMessage('push는 boolean이어야 합니다.'),
-  body('email').optional().isBoolean().withMessage('email은 boolean이어야 합니다.'),
-  body('sms').optional().isBoolean().withMessage('sms는 boolean이어야 합니다.')
+  body('notification_push').optional().isBoolean()
+    .withMessage('notification_push는 boolean이어야 합니다.'),
+  body('notify_mission').optional().isBoolean()
+    .withMessage('notify_mission은 boolean이어야 합니다.'),
+  body('notify_review').optional().isBoolean()
+    .withMessage('notify_review는 boolean이어야 합니다.'),
+  body('notify_settlement').optional().isBoolean()
+    .withMessage('notify_settlement은 boolean이어야 합니다.'),
+  body('notify_marketing').optional().isBoolean()
+    .withMessage('notify_marketing은 boolean이어야 합니다.'),
+  body('notify_night').optional().isBoolean()
+    .withMessage('notify_night은 boolean이어야 합니다.')
 ];
 
 const updateBankAccountValidation = [

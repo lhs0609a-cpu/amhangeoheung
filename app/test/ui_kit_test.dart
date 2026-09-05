@@ -1,7 +1,10 @@
+import 'package:amhangeoheung_app/core/theme/hwahae_colors.dart';
 import 'package:amhangeoheung_app/core/theme/hwahae_theme.dart';
 import 'package:amhangeoheung_app/shared/widgets/ui/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/contrast.dart';
 
 /// 위젯 하나를 앱 테마 안에서 띄운다.
 Future<void> pumpInApp(
@@ -178,6 +181,50 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(selected, 2);
+    });
+  });
+
+  group('AppBadge 도메인 배지', () {
+    /// 배지가 실제로 그린 글자색을 꺼낸다.
+    Color labelColor(WidgetTester tester, String text) {
+      return tester.widget<Text>(find.text(text)).style!.color!;
+    }
+
+    testWidgets('등급 배지는 등급마다 읽히는 글자색을 고른다', (tester) async {
+      // 골드가 핵심이다. 예전 배지는 여기에 흰 글자를 얹어 1.86:1 이었다.
+      const grades = {
+        'gold': '골드',
+        'diamond': '다이아몬드',
+        'platinum': '플래티넘',
+        'silver': '실버',
+        'bronze': '브론즈',
+        'rookie': '루키',
+      };
+
+      for (final entry in grades.entries) {
+        await pumpInApp(tester, AppBadge.grade(entry.key));
+        await tester.pumpAndSettle();
+
+        final fg = labelColor(tester, entry.value);
+        final bg = HwahaeColors.getGradeColor(entry.key);
+        expect(
+          contrastRatio(fg, bg),
+          greaterThanOrEqualTo(3.0),
+          reason: '${entry.key} 등급 배지의 글자가 배경에 묻힌다',
+        );
+        expect(fg, isNot(Colors.white),
+            reason: '${entry.key} 등급 배지에 흰 글자를 고정하면 안 된다');
+      }
+    });
+
+    testWidgets('평점 배지는 높은 평점에 인주색을 쓰지 않는다', (tester) async {
+      // 붉은 것은 늘 "지적"이어야 한다. 최고 평점이 붉으면 약속이 깨진다.
+      await pumpInApp(tester, AppBadge.rating(4.8));
+      await tester.pumpAndSettle();
+
+      expect(find.text('4.8'), findsOneWidget);
+      expect(HwahaeColors.getRatingColor(4.8), HwahaeColors.accent);
+      expect(HwahaeColors.getRatingColor(2.0), HwahaeColors.ratingPoor);
     });
   });
 

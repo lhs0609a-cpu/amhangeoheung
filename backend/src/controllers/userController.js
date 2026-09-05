@@ -3,6 +3,19 @@ const supabase = require('../config/supabase');
 const { confirmPayment, cancelPayment, safeRollback, PAYMENT_STATUS } = require('../utils/tossPayments');
 const { createErrorResponse, createPaymentErrorResponse } = require('../utils/errorMessages');
 const { GRADE_BENEFITS, GRADE_PROMOTION } = require('../config/constants');
+const { DEFAULTS: NOTIFICATION_DEFAULTS } = require('../utils/notificationPreferences');
+
+/** 클라이언트가 켜고 끌 수 있는 알림 설정 컬럼 */
+const NOTIFICATION_SETTING_KEYS = Object.keys(NOTIFICATION_DEFAULTS);
+
+/** 사용자 레코드에서 알림 설정만 추려낸다 (기본값으로 빈 칸을 메운다) */
+function pickNotificationSettings(user = {}) {
+  const settings = {};
+  for (const key of NOTIFICATION_SETTING_KEYS) {
+    settings[key] = user[key] ?? NOTIFICATION_DEFAULTS[key];
+  }
+  return settings;
+}
 
 // 내 프로필 조회
 exports.getMyProfile = async (req, res, next) => {
@@ -141,31 +154,62 @@ exports.changePassword = async (req, res, next) => {
   }
 };
 
+// 알림 설정 조회
+exports.getNotificationSettings = async (req, res, next) => {
+  try {
+    res.json({
+      success: true,
+      data: { settings: pickNotificationSettings(req.user) }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // 알림 설정 변경
+//
+// 예전 구현은 push/email/sms 를 UPDATE 했는데 그 컬럼들이 스키마에 없어
+// 호출하면 그대로 실패했다. 이 앱이 실제로 보내는 것은 FCM 푸시뿐이므로
+// 채널이 아니라 알림 종류로 모델링한다.
 exports.updateNotificationSettings = async (req, res, next) => {
   try {
-    const { push, email, sms } = req.body;
+    const patch = {};
+    for (const key of NOTIFICATION_SETTING_KEYS) {
+      if (typeof req.body[key] === 'boolean') {
+        patch[key] = req.body[key];
+      }
+    }
 
-    const notifications = {
-      push: push ?? req.user.notification_push ?? true,
-      email: email ?? req.user.notification_email ?? true,
-      sms: sms ?? req.user.notification_sms ?? true
-    };
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'NO_SETTINGS_GIVEN',
+          message: '변경할 알림 설정이 없습니다.'
+        }
+      });
+    }
 
-    const { error } = await supabase
+    // 광고성 정보 수신 동의는 받은 시점을 남겨야 증빙이 된다
+    // (정보통신망법 제50조). 켤 때만 기록하고, 끄면 지운다.
+    if (patch.notify_marketing === true && req.user.notify_marketing !== true) {
+      patch.marketing_agreed_at = new Date().toISOString();
+    } else if (patch.notify_marketing === false) {
+      patch.marketing_agreed_at = null;
+    }
+
+    const { data, error } = await supabase
       .from('users')
-      .update({
-        notification_push: notifications.push,
-        notification_email: notifications.email,
-        notification_sms: notifications.sms
-      })
-      .eq('id', req.user.id);
+      .update(patch)
+      .eq('id', req.user.id)
+      .select()
+      .single();
 
     if (error) throw error;
 
     res.json({
       success: true,
-      data: { notifications }
+      data: { settings: pickNotificationSettings(data) }
     });
   } catch (error) {
     next(error);

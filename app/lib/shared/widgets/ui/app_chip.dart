@@ -185,6 +185,54 @@ class AppBadge extends StatelessWidget {
     );
   }
 
+  /// 리뷰어 등급 배지.
+  ///
+  /// 예전 `HwahaeGradeBadge` 는 등급색 그라디언트 위에 **흰 글자**를 얹었다.
+  /// 골드 등급(#F2B33D)에서 1.86:1 이라 배지가 사실상 안 읽혔다. 밝기가
+  /// 등급마다 다르므로 글자색을 고정하면 안 되고 [HwahaeColors.onColor] 로
+  /// 골라야 한다 — [AppBadge] 가 이미 그렇게 한다.
+  factory AppBadge.grade(String grade, {bool compact = true}) {
+    final key = grade.toLowerCase();
+    final label = switch (key) {
+      'diamond' => '다이아몬드',
+      'platinum' => '플래티넘',
+      'gold' => '골드',
+      'silver' => '실버',
+      'bronze' => '브론즈',
+      _ => '루키',
+    };
+    final icon = switch (key) {
+      'diamond' => Icons.diamond_rounded,
+      'platinum' => Icons.workspace_premium_rounded,
+      'gold' => Icons.emoji_events_rounded,
+      'silver' => Icons.military_tech_rounded,
+      'bronze' => Icons.stars_rounded,
+      _ => Icons.person_rounded,
+    };
+    return AppBadge(
+      label: label,
+      color: HwahaeColors.getGradeColor(grade),
+      icon: icon,
+      filled: true,
+      compact: compact,
+    );
+  }
+
+  /// 평점 배지.
+  ///
+  /// 색은 [HwahaeColors.getRatingColor] 를 따른다. 예전 배지는 4.5 이상에
+  /// 인주색을 썼는데, 붉은 것은 늘 "지적"이어야 한다는 팔레트 약속을 깨서
+  /// 최고 평점이 경고처럼 보였다.
+  factory AppBadge.rating(double rating, {bool compact = true}) {
+    return AppBadge(
+      label: rating.toStringAsFixed(1),
+      color: HwahaeColors.getRatingColor(rating),
+      icon: Icons.star_rounded,
+      filled: true,
+      compact: compact,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // filled 배지의 배경은 등급·미션 유형 등 밝기가 제각각이라
