@@ -5,8 +5,28 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 import '../../data/models/ranking_model.dart';
 import '../../providers/ranking_provider.dart';
+
+/// 업종 필터. 예전에는 같은 칩 코드가 다섯 번 복사돼 있어서, 업종을 하나
+/// 늘리려면 다섯 번째 복사본을 만들어야 했다.
+const _categories = <({String? value, String label})>[
+  (value: null, label: '전체'),
+  (value: 'restaurant', label: '맛집'),
+  (value: 'cafe', label: '카페'),
+  (value: 'beauty', label: '뷰티'),
+  (value: 'retail', label: '소매점'),
+  (value: 'service', label: '서비스'),
+];
+
+String _categoryLabel(String? value) =>
+    _categories
+        .firstWhere(
+          (c) => c.value == value,
+          orElse: () => (value: value, label: value ?? '전체'),
+        )
+        .label;
 
 class RegionalRankingScreen extends ConsumerStatefulWidget {
   final String? initialRegion;
@@ -34,348 +54,314 @@ class _RegionalRankingScreenState extends ConsumerState<RegionalRankingScreen> {
     selectedCategory = widget.initialCategory;
   }
 
-  String _getHeaderTitle() {
+  String get _headerTitle {
     final region = selectedRegion ?? '전국';
-    final category = _getCategoryDisplayName(selectedCategory);
-    return '$region $category 신뢰도 TOP 10';
-  }
-
-  String _getCategoryDisplayName(String? category) {
-    if (category == null) return '전체';
-    switch (category) {
-      case 'restaurant':
-        return '맛집';
-      case 'cafe':
-        return '카페';
-      case 'beauty':
-        return '뷰티';
-      case 'retail':
-        return '소매점';
-      case 'service':
-        return '서비스';
-      default:
-        return category;
-    }
+    return '$region ${_categoryLabel(selectedCategory)} 신뢰도 TOP 10';
   }
 
   void _shareRanking() {
-    final region = selectedRegion ?? '전국';
-    final category = _getCategoryDisplayName(selectedCategory);
-    final title = '$region $category 신뢰도 TOP 10';
-
     Share.share(
-      '암행어흥에서 확인한 $title\n\n신뢰할 수 있는 업체 리뷰를 확인해보세요!\n\n암행어흥 앱에서 더 많은 정보를 확인하세요.',
-      subject: title,
+      '암행어흥에서 확인한 $_headerTitle\n\n'
+      '실제로 다녀온 감찰관이 남긴 리뷰로 매긴 순위입니다.\n'
+      '업체가 돈을 내도 이 순위는 바꿀 수 없습니다.',
+      subject: _headerTitle,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final rankingAsync = ref.watch(regionalRankingProvider({
-      'region': selectedRegion,
-      'category': selectedCategory,
-    }));
+    final filter = {'region': selectedRegion, 'category': selectedCategory};
+    final rankingAsync = ref.watch(regionalRankingProvider(filter));
     final regionsAsync = ref.watch(availableRegionsProvider);
 
-    return Scaffold(
-      backgroundColor: HwahaeColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: HwahaeColors.textPrimary),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          '지역별 랭킹',
-          style: HwahaeTypography.headlineMedium.copyWith(
-            color: HwahaeColors.textPrimary,
-          ),
+    return AppScreen(
+      title: '지역별 랭킹',
+      bottomBar: AppBottomActionBar(
+        child: AppButton.outline(
+          label: '이 랭킹 공유',
+          icon: Icons.share_outlined,
+          onPressed: _shareRanking,
         ),
       ),
-      body: Column(
+      onRefresh: () async {
+        ref.invalidate(regionalRankingProvider(filter));
+        ref.invalidate(availableRegionsProvider);
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Section
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                bottom: BorderSide(
-                  color: HwahaeColors.border,
-                  width: 1,
+          const SizedBox(height: 8),
+          Text(
+            _headerTitle,
+            style: HwahaeTypography.headlineMedium.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '실제로 다녀온 감찰관의 리뷰로만 매깁니다',
+            style: HwahaeTypography.bodySmall.copyWith(
+              color: HwahaeColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _FilterGroup(
+            label: '지역',
+            child: regionsAsync.when(
+              data: (regionsMap) => _ChipRow(
+                labels: ['전국', ...regionsMap.keys],
+                selectedIndex: selectedRegion == null
+                    ? 0
+                    : regionsMap.keys.toList().indexOf(selectedRegion!) + 1,
+                onSelected: (index) => setState(() {
+                  selectedRegion =
+                      index == 0 ? null : regionsMap.keys.elementAt(index - 1);
+                }),
+              ),
+              loading: () => const _ChipRowSkeleton(),
+              // 지역 목록을 못 불러오면 조용히 사라지고 있었다. 필터가
+              // 아예 없는 화면과 구분되지 않는다.
+              error: (_, __) => Text(
+                '지역 목록을 불러오지 못했습니다',
+                style: HwahaeTypography.captionMedium.copyWith(
+                  color: HwahaeColors.textTertiary,
                 ),
               ),
             ),
+          ),
+          const SizedBox(height: 14),
+          _FilterGroup(
+            label: '업종',
+            child: _ChipRow(
+              labels: [for (final c in _categories) c.label],
+              selectedIndex:
+                  _categories.indexWhere((c) => c.value == selectedCategory),
+              onSelected: (index) => setState(
+                () => selectedCategory = _categories[index].value,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          rankingAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.only(top: 60),
+              child: Center(
+                child: CircularProgressIndicator(color: HwahaeColors.primary),
+              ),
+            ),
+            error: (error, _) => AppErrorState(
+              message: '랭킹을 불러올 수 없습니다',
+              onRetry: () => ref.invalidate(regionalRankingProvider(filter)),
+            ),
+            data: (rankings) {
+              if (rankings.isEmpty) {
+                return const AppEmptyState(
+                  icon: Icons.leaderboard_outlined,
+                  title: '아직 순위가 없네',
+                  message: '이 조건에 감찰이 끝난 가게가 없어',
+                  showMascot: true,
+                );
+              }
+              return Column(
+                children: [
+                  for (final ranking in rankings)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppLayout.cardGap),
+                      child: _RankingCard(
+                        ranking: ranking,
+                        onTap: () =>
+                            context.push('/trust/${ranking.businessId}'),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const AppBottomSpacer.plain(),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterGroup extends StatelessWidget {
+  const _FilterGroup({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: HwahaeTypography.labelMedium.copyWith(
+            color: HwahaeColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+class _ChipRow extends StatelessWidget {
+  const _ChipRow({
+    required this.labels,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final List<String> labels;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (var i = 0; i < labels.length; i++)
+          AppChip(
+            label: labels[i],
+            selected: i == selectedIndex,
+            onTap: () => onSelected(i),
+          ),
+      ],
+    );
+  }
+}
+
+class _ChipRowSkeleton extends StatelessWidget {
+  const _ChipRowSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final width in const [52.0, 68.0, 60.0, 74.0])
+          Container(
+            width: width,
+            height: 34,
+            decoration: BoxDecoration(
+              color: HwahaeColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(17),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _RankingCard extends StatelessWidget {
+  const _RankingCard({required this.ranking, required this.onTap});
+
+  final RegionalRankingModel ranking;
+  final VoidCallback onTap;
+
+  /// 1~3위 색. 예전에는 순금색(#FFD700)을 썼는데 흰 바탕에서 1.4:1 이라
+  /// 정작 등수 숫자가 보이지 않았다. 팔레트의 등급색을 쓰고, 숫자는 면을
+  /// 채운 뒤 [HwahaeColors.onColor] 로 고른다.
+  Color get _rankColor => switch (ranking.rank) {
+        1 => HwahaeColors.gradeGold,
+        2 => HwahaeColors.gradeSilver,
+        3 => HwahaeColors.gradeBronze,
+        _ => HwahaeColors.surfaceContainer,
+      };
+
+  bool get _isPodium => ranking.rank <= 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _rankColor;
+    final level = ranking.badgeLevel;
+    final badge = (level == null || level.isEmpty || level == 'none')
+        ? null
+        : level;
+
+    return AppCard(
+      style: AppCardStyle.outlined,
+      onTap: onTap,
+      borderColor: _isPodium ? color : null,
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            child: Center(
+              child: Text(
+                '${ranking.rank}',
+                style: HwahaeTypography.headlineSmall.copyWith(
+                  color: _isPodium
+                      ? HwahaeColors.onColor(color)
+                      : HwahaeColors.textSecondary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _getHeaderTitle(),
-                  style: HwahaeTypography.headlineLarge.copyWith(
-                    color: HwahaeColors.textPrimary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        ranking.businessName ?? '이름 없음',
+                        style: HwahaeTypography.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // 신뢰 배지는 등수와 다른 것이다. 등수는 이 목록 안의
+                    // 순서고, 배지는 감찰 이력으로 얻은 등급이라 목록을
+                    // 벗어나도 따라다닌다.
+                    if (badge != null) ...[
+                      const SizedBox(width: 6),
+                      AppBadge.grade(badge),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  '신뢰할 수 있는 리뷰로 검증된 업체',
-                  style: HwahaeTypography.bodySmall.copyWith(
-                    color: HwahaeColors.textSecondary,
-                  ),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    AppBadge(
+                      label: '신뢰도 '
+                          '${(ranking.trustScore ?? 0).toStringAsFixed(1)}',
+                      color: HwahaeColors.accent,
+                      icon: Icons.verified_rounded,
+                      compact: true,
+                    ),
+                    _MetaText(
+                      icon: Icons.rate_review_outlined,
+                      text: '리뷰 ${ranking.reviewCount}',
+                    ),
+                    _MetaText(
+                      icon: Icons.star_rounded,
+                      text: (ranking.avgRating ?? 0).toStringAsFixed(1),
+                      color: HwahaeColors.primaryDark,
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-
-          // Filter Section
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                bottom: BorderSide(
-                  color: HwahaeColors.border,
-                  width: 1,
-                ),
-              ),
-            ),
-            child: regionsAsync.when(
-              data: (regionsMap) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Region Filter
-                  Text(
-                    '지역',
-                    style: HwahaeTypography.captionMedium.copyWith(
-                      color: HwahaeColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _FilterChip(
-                        label: '전국',
-                        isSelected: selectedRegion == null,
-                        onTap: () {
-                          setState(() {
-                            selectedRegion = null;
-                          });
-                        },
-                      ),
-                      ...regionsMap.keys.map((region) => _FilterChip(
-                            label: region,
-                            isSelected: selectedRegion == region,
-                            onTap: () {
-                              setState(() {
-                                selectedRegion = region;
-                              });
-                            },
-                          )),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Category Filter
-                  Text(
-                    '카테고리',
-                    style: HwahaeTypography.captionMedium.copyWith(
-                      color: HwahaeColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _FilterChip(
-                        label: '전체',
-                        isSelected: selectedCategory == null,
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = null;
-                          });
-                        },
-                      ),
-                      _FilterChip(
-                        label: '맛집',
-                        isSelected: selectedCategory == 'restaurant',
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = 'restaurant';
-                          });
-                        },
-                      ),
-                      _FilterChip(
-                        label: '카페',
-                        isSelected: selectedCategory == 'cafe',
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = 'cafe';
-                          });
-                        },
-                      ),
-                      _FilterChip(
-                        label: '뷰티',
-                        isSelected: selectedCategory == 'beauty',
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = 'beauty';
-                          });
-                        },
-                      ),
-                      _FilterChip(
-                        label: '소매점',
-                        isSelected: selectedCategory == 'retail',
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = 'retail';
-                          });
-                        },
-                      ),
-                      _FilterChip(
-                        label: '서비스',
-                        isSelected: selectedCategory == 'service',
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = 'service';
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(color: HwahaeColors.primary),
-                ),
-              ),
-              error: (error, stack) => const SizedBox.shrink(),
-            ),
-          ),
-
-          // Ranking List
-          Expanded(
-            child: rankingAsync.when(
-              data: (rankings) {
-                if (rankings.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inbox_outlined,
-                          size: 64,
-                          color: HwahaeColors.textTertiary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          '랭킹 데이터가 없습니다',
-                          style: HwahaeTypography.bodyMedium.copyWith(
-                            color: HwahaeColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: rankings.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final ranking = rankings[index];
-                    return _RankingCard(
-                      ranking: ranking,
-                      onTap: () {
-                        context.push('/trust/${ranking.businessId}');
-                      },
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: HwahaeColors.primary),
-              ),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: HwahaeColors.error,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '랭킹을 불러올 수 없습니다',
-                      style: HwahaeTypography.bodyMedium.copyWith(
-                        color: HwahaeColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      error.toString(),
-                      style: HwahaeTypography.captionMedium.copyWith(
-                        color: HwahaeColors.textTertiary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Share Button
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                top: BorderSide(
-                  color: HwahaeColors.border,
-                  width: 1,
-                ),
-              ),
-            ),
-            child: ElevatedButton(
-              onPressed: _shareRanking,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: HwahaeColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.share, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    '이 랭킹 공유',
-                    style: HwahaeTypography.button.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          const SizedBox(width: 6),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 20,
+            color: HwahaeColors.textTertiary,
           ),
         ],
       ),
@@ -383,232 +369,27 @@ class _RegionalRankingScreenState extends ConsumerState<RegionalRankingScreen> {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
+class _MetaText extends StatelessWidget {
+  const _MetaText({required this.icon, required this.text, this.color});
 
-  const _FilterChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
+  final IconData icon;
+  final String text;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? HwahaeColors.primary : Colors.white,
-          border: Border.all(
-            color: isSelected ? HwahaeColors.primary : HwahaeColors.border,
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: HwahaeTypography.bodySmall.copyWith(
-            color: isSelected ? Colors.white : HwahaeColors.textPrimary,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color ?? HwahaeColors.textSecondary),
+        const SizedBox(width: 3),
+        Text(
+          text,
+          style: HwahaeTypography.captionMedium.copyWith(
+            color: HwahaeColors.textSecondary,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _RankingCard extends StatelessWidget {
-  final RegionalRankingModel ranking;
-  final VoidCallback onTap;
-
-  const _RankingCard({
-    required this.ranking,
-    required this.onTap,
-  });
-
-  Color _getRankColor(int rank) {
-    switch (rank) {
-      case 1:
-        return const Color(0xFFFFD700); // Gold
-      case 2:
-        return const Color(0xFFC0C0C0); // Silver
-      case 3:
-        return const Color(0xFFCD7F32); // Bronze
-      default:
-        return HwahaeColors.textSecondary;
-    }
-  }
-
-  String _getBadgeEmoji(String? badgeLevel) {
-    if (badgeLevel == null) return '';
-    switch (badgeLevel.toLowerCase()) {
-      case 'gold':
-        return '🥇';
-      case 'silver':
-        return '🥈';
-      case 'bronze':
-        return '🥉';
-      default:
-        return '';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: ranking.rank <= 3
-                ? _getRankColor(ranking.rank).withValues(alpha: 0.3)
-                : HwahaeColors.border,
-            width: ranking.rank <= 3 ? 2 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              offset: const Offset(0, 2),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Rank Badge
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: _getRankColor(ranking.rank).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: _getRankColor(ranking.rank),
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  '${ranking.rank}',
-                  style: HwahaeTypography.headlineMedium.copyWith(
-                    color: _getRankColor(ranking.rank),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-
-            // Business Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          ranking.businessName ?? '이름 없음',
-                          style: HwahaeTypography.headlineSmall.copyWith(
-                            color: HwahaeColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (ranking.badgeLevel != null) ...[
-                        const SizedBox(width: 4),
-                        Text(
-                          _getBadgeEmoji(ranking.badgeLevel),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      // Trust Score
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: HwahaeColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.verified,
-                              size: 14,
-                              color: HwahaeColors.primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '신뢰도 ${(ranking.trustScore ?? 0).toStringAsFixed(1)}',
-                              style: HwahaeTypography.captionMedium.copyWith(
-                                color: HwahaeColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Review Count
-                      Icon(
-                        Icons.rate_review,
-                        size: 14,
-                        color: HwahaeColors.textSecondary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '리뷰 ${ranking.reviewCount}',
-                        style: HwahaeTypography.captionMedium.copyWith(
-                          color: HwahaeColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Avg Rating
-                      Icon(
-                        Icons.star,
-                        size: 14,
-                        color: HwahaeColors.warning,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        (ranking.avgRating ?? 0).toStringAsFixed(1),
-                        style: HwahaeTypography.captionMedium.copyWith(
-                          color: HwahaeColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Arrow Icon
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: HwahaeColors.textTertiary,
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }
