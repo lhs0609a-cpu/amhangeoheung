@@ -189,13 +189,17 @@ Future<bool> showAppConfirm({
           const SizedBox(height: 24),
           Row(
             children: [
-              Expanded(
-                child: AppButton.outline(
-                  label: cancelLabel,
-                  onPressed: () => Navigator.of(sheetContext).pop(false),
+              // 알리기만 하는 시트는 취소가 없다. 빈 라벨을 넘기면 예전에는
+              // 글자 없는 버튼이 절반을 차지한 채 눌리기까지 했다.
+              if (cancelLabel.isNotEmpty) ...[
+                Expanded(
+                  child: AppButton.outline(
+                    label: cancelLabel,
+                    onPressed: () => Navigator.of(sheetContext).pop(false),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 child: destructive
                     ? AppButton.danger(
