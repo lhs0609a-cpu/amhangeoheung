@@ -16,13 +16,38 @@ import '../../../core/theme/hwahae_typography.dart';
 /// 그런 화면에는 [SealBadge] 와 숫자만 둔다.
 enum MascotKind {
   /// 갓 쓴 호랭이 — 브랜드
-  eoheung('assets/characters/eoheung.svg'),
+  eoheung(
+    svg: 'assets/characters/eoheung.svg',
+    png: 'assets/characters/eoheung.png',
+    pngOnDark: 'assets/characters/eoheung_dark.png',
+    label: '어흥이',
+  ),
 
   /// 사또 — 감찰관
-  sato('assets/characters/sato.svg');
+  sato(
+    svg: 'assets/characters/sato.svg',
+    png: 'assets/characters/sato.png',
+    pngOnDark: 'assets/characters/sato_dark.png',
+    label: '사또',
+  );
 
-  const MascotKind(this.asset);
-  final String asset;
+  const MascotKind({
+    required this.svg,
+    required this.png,
+    required this.pngOnDark,
+    required this.label,
+  });
+
+  /// 작은 크기용 벡터. 탭바·목록 아바타처럼 40px 미만에서 쓴다.
+  final String svg;
+
+  /// 큰 크기용 그림. 밝은 배경에 올릴 때.
+  final String png;
+
+  /// 먹색 배경용. 갓 실루엣에 크림색 테두리가 둘러져 있어 배경에 묻히지 않는다.
+  final String pngOnDark;
+
+  final String label;
 }
 
 class AppMascot extends StatelessWidget {
@@ -30,27 +55,60 @@ class AppMascot extends StatelessWidget {
     this.kind, {
     super.key,
     this.size = 48,
+    this.onDark = false,
     this.semanticLabel,
   });
 
-  const AppMascot.eoheung({super.key, this.size = 48, this.semanticLabel})
-      : kind = MascotKind.eoheung;
+  const AppMascot.eoheung({
+    super.key,
+    this.size = 48,
+    this.onDark = false,
+    this.semanticLabel,
+  }) : kind = MascotKind.eoheung;
 
-  const AppMascot.sato({super.key, this.size = 48, this.semanticLabel})
-      : kind = MascotKind.sato;
+  const AppMascot.sato({
+    super.key,
+    this.size = 48,
+    this.onDark = false,
+    this.semanticLabel,
+  }) : kind = MascotKind.sato;
 
   final MascotKind kind;
   final double size;
+
+  /// 먹색 배경 위에 올리는지. 켜면 갓에 크림색 테두리가 둘러진 그림을 쓴다.
+  /// 끄면 어두운 카드에서 갓이 배경에 묻혀 얼굴만 떠 있게 된다.
+  final bool onDark;
+
   final String? semanticLabel;
+
+  /// 이 크기 미만에서는 벡터를 쓴다.
+  ///
+  /// 그림은 512px 원본이라 큰 자리에서는 벡터보다 표정이 살지만, 탭바(26px)나
+  /// 목록 아바타(34px)처럼 작은 자리에서는 축소하면서 수염·줄무늬가 뭉갠다.
+  /// 그 크기에서는 디테일을 덜어낸 SVG 가 오히려 또렷하다.
+  static const double rasterThreshold = 44;
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      kind.asset,
+    final String label = semanticLabel ?? kind.label;
+
+    if (size < rasterThreshold) {
+      return SvgPicture.asset(
+        kind.svg,
+        width: size,
+        height: size,
+        semanticsLabel: label,
+      );
+    }
+
+    return Image.asset(
+      onDark ? kind.pngOnDark : kind.png,
       width: size,
       height: size,
-      semanticsLabel: semanticLabel ??
-          (kind == MascotKind.eoheung ? '어흥이' : '사또'),
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
+      semanticLabel: label,
     );
   }
 }
@@ -94,7 +152,7 @@ class MascotMessage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           child: Row(
             children: [
-              AppMascot(kind, size: 54),
+              AppMascot(kind, size: 54, onDark: dark),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

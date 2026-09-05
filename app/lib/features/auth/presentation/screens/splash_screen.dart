@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/theme/hwahae_colors.dart';
+import '../../../../core/theme/hwahae_typography.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 import '../../providers/auth_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -66,57 +68,44 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       }
     });
 
+    // 바탕은 크림이다. 골드로 깔면 그 위에 올릴 글자가 마땅치 않다 —
+    // 흰 글자는 1.86:1 이라 안 보이고, 먹 글자는 첫인상이 탁해진다.
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: HwahaeColors.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 로고 아이콘
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.verified_user,
-                size: 60,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // 앱 이름
-            const Text(
+            const AppMascot.eoheung(size: 140),
+            const SizedBox(height: 20),
+            Text(
               '암행어흥',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              style: HwahaeTypography.displayMedium.copyWith(
+                color: HwahaeColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               '리뷰 신뢰 플랫폼',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white.withValues(alpha: 0.8),
+              style: HwahaeTypography.bodyMedium.copyWith(
+                color: HwahaeColors.textSecondary,
               ),
             ),
-            const SizedBox(height: 48),
-            if (_isCheckingOnboarding || authState.isLoading)
-              const CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 3,
-              ),
+            const SizedBox(height: 44),
+            // 자리를 늘 차지하게 둔다. 로딩이 끝날 때 글자가 위로 튀지 않는다.
+            SizedBox(
+              height: 28,
+              child: (_isCheckingOnboarding || authState.isLoading)
+                  ? const SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: CircularProgressIndicator(
+                        color: HwahaeColors.primaryDark,
+                        strokeWidth: 3,
+                      ),
+                    )
+                  : null,
+            ),
           ],
         ),
       ),

@@ -33,6 +33,24 @@ Future<void> _loadJua() async {
   await fallback.load();
 }
 
+/// 골든에 그림이 실제로 찍히게 한다.
+///
+/// 위젯 테스트의 시계는 가짜라서 `Image.asset` 의 디코딩이 끝나지 않는다.
+/// `pumpAndSettle` 만으로는 마스코트 자리가 통째로 비어 나오고, 그 상태로
+/// 골든을 갱신하면 "캐릭터가 사라진 그림"이 정답으로 박제된다.
+/// (SVG 는 동기 디코딩이라 이 문제가 없었다 — PNG 로 바꾸면서 생긴 일이다.)
+///
+/// `runAsync` 안에서만 진짜 비동기가 돌아가므로, 거기서 미리 디코딩해 둔다.
+Future<void> _decodeImages(WidgetTester tester) async {
+  await tester.runAsync(() async {
+    for (final element in find.byType(Image).evaluate()) {
+      final Image image = element.widget as Image;
+      await precacheImage(image.image, element);
+    }
+  });
+  await tester.pumpAndSettle();
+}
+
 Future<void> _shoot(
   WidgetTester tester,
   String name,
@@ -62,6 +80,7 @@ Future<void> _shoot(
     ),
   );
   await tester.pumpAndSettle(const Duration(seconds: 1));
+  await _decodeImages(tester);
 
   await expectLater(
     find.byType(MaterialApp),

@@ -41,3 +41,9 @@ uploads/
 
 # Windows: accidental redirects to the NUL device create a literal `nul` file
 nul
+
+# 제미나이 원본 (장당 5MB · 2048px). 가공본은 app/assets/characters/ 에 있다.
+캐릭터이미지/
+
+# 골든 테스트 실패 시 Flutter 가 떨어뜨리는 비교 이미지 (기대/실제/차분)
+app/test/golden/failures/
