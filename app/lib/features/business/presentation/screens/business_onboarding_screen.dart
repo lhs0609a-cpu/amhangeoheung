@@ -5,56 +5,86 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
-import '../../../../core/theme/hwahae_theme.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
+/// 업체가 처음 들어왔을 때 보는 다섯 장.
+///
+/// 파는 것은 "리뷰를 좋게 만들어주는 서비스"가 아니라 **결과를 못 바꾸는
+/// 감찰**이다. 그래서 여기서 약속하는 것도 좋은 평점이 아니라 시간(72시간
+/// 선공개)과 진짜 리뷰다. 이 순서를 흐리면 나중에 환불 분쟁이 된다.
 class BusinessOnboardingScreen extends StatefulWidget {
   const BusinessOnboardingScreen({super.key});
 
   @override
-  State<BusinessOnboardingScreen> createState() => _BusinessOnboardingScreenState();
+  State<BusinessOnboardingScreen> createState() =>
+      _BusinessOnboardingScreenState();
 }
+
+class _Slide {
+  const _Slide({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String description;
+  final Color color;
+}
+
+const _slides = <_Slide>[
+  _Slide(
+    icon: Icons.verified_user_rounded,
+    title: '왜 찐 후기가 중요한가',
+    subtitle: '진짜 후기는 진짜 고객을 부릅니다',
+    description: '가짜 리뷰를 본 고객은 한 번 오고 끝이지만,\n'
+        '찐 리뷰를 보고 온 고객은 신뢰하고 재방문합니다.',
+    color: HwahaeColors.primary,
+  ),
+  _Slide(
+    icon: Icons.trending_up_rounded,
+    title: '나쁜 후기도 기회입니다',
+    subtitle: '고치면 그 사실까지 함께 남습니다',
+    description: '지적을 받으면 그 지적이 사라지지 않고 추적됩니다.\n'
+        '대신 고쳤다는 것이 확인되면 그 사실도 같이 남습니다.\n'
+        '지운 리뷰보다 고친 기록이 더 설득력이 있습니다.',
+    color: HwahaeColors.accent,
+  ),
+  _Slide(
+    icon: Icons.schedule_rounded,
+    title: '72시간 선공개',
+    subtitle: '답변할 시간을 먼저 드립니다',
+    description: '모든 리뷰는 공개 전 72시간 동안 업체에 먼저 보입니다.\n'
+        '답변을 남기거나 개선 약속을 쓸 시간이 있습니다.\n'
+        '다만 내용을 바꾸거나 내릴 수는 없습니다.',
+    color: HwahaeColors.primaryDark,
+  ),
+  _Slide(
+    icon: Icons.security_rounded,
+    title: '담합 없는 진짜 리뷰',
+    subtitle: '감찰관도 검증합니다',
+    description: '3일 교육 인증, 담합 감지 엔진, 익명화로\n'
+        '실제로 다녀온 사람의 리뷰만 남습니다.\n'
+        '업체가 감찰관을 고를 수 없고, 감찰관도 업체를 못 고릅니다.',
+    color: HwahaeColors.info,
+  ),
+  _Slide(
+    icon: Icons.rocket_launch_rounded,
+    title: '지금 시작하세요',
+    subtitle: '14일 무료 체험',
+    description: '14일 무료 체험으로 부담 없이 시작하세요.\n'
+        '진짜 고객의 솔직한 피드백을 받아보세요.',
+    color: HwahaeColors.primary,
+  ),
+];
 
 class _BusinessOnboardingScreenState extends State<BusinessOnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-
-  final List<_SlideData> _slides = [
-    _SlideData(
-      icon: Icons.verified_user,
-      title: '왜 찐 후기가 중요한가',
-      subtitle: '진짜 후기는 진짜 고객을 부릅니다',
-      description: '가짜 리뷰를 본 고객은 한 번 오고 끝이지만,\n찐 리뷰를 보고 온 고객은 신뢰하고 재방문합니다.',
-      gradient: HwahaeColors.gradientPrimary,
-    ),
-    _SlideData(
-      icon: Icons.trending_up,
-      title: '나쁜 후기도 기회입니다',
-      subtitle: '개선하면 오히려 신뢰도가 상승합니다',
-      description: '부정적 리뷰를 받아도 어떻게 개선하느냐에 따라\n고객 반응이 달라집니다.\n개선 약속을 남기고 실천하면 오히려 신뢰도가 상승합니다.',
-      gradient: HwahaeColors.gradientAccent,
-    ),
-    _SlideData(
-      icon: Icons.schedule,
-      title: '72시간 선공개로 안심',
-      subtitle: '답변할 시간이 충분합니다',
-      description: '모든 리뷰는 공개 전 72시간 동안\n업체에 먼저 보여집니다.\n답변을 남기거나 개선 약속을 작성할 시간이 충분합니다.',
-      gradient: HwahaeColors.gradientCool,
-    ),
-    _SlideData(
-      icon: Icons.security,
-      title: '담합 없는 진짜 리뷰',
-      subtitle: '100% 진짜 리뷰만 게재',
-      description: '3일 교육 인증, AI 담합 감지, 익명화 시스템으로\n100% 진짜 리뷰만 게재됩니다.\n가짜 리뷰 걱정 없이 신뢰할 수 있는 리뷰를 받습니다.',
-      gradient: HwahaeColors.gradientWarm,
-    ),
-    _SlideData(
-      icon: Icons.rocket_launch,
-      title: '지금 시작하세요',
-      subtitle: '14일 무료 체험으로 부담 없이',
-      description: '14일 무료 체험으로 부담 없이 시작하세요.\n진짜 고객의 솔직한 피드백을 받아보세요.',
-      gradient: HwahaeColors.gradientPrimary,
-    ),
-  ];
 
   @override
   void dispose() {
@@ -83,8 +113,8 @@ class _BusinessOnboardingScreenState extends State<BusinessOnboardingScreen> {
   void _nextPage() {
     if (_currentPage < _slides.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
+        duration: AppMotion.slow,
+        curve: AppMotion.decelerate,
       );
     } else {
       _completeOnboarding();
@@ -94,136 +124,147 @@ class _BusinessOnboardingScreenState extends State<BusinessOnboardingScreen> {
   void _previousPage() {
     if (_currentPage > 0) {
       _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
+        duration: AppMotion.slow,
+        curve: AppMotion.decelerate,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLast = _currentPage == _slides.length - 1;
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          color: HwahaeColors.background,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header with skip button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (_currentPage > 0)
-                      GestureDetector(
-                        onTap: _previousPage,
-                        child: const Icon(Icons.arrow_back_ios, size: 20, color: HwahaeColors.textSecondary),
-                      )
-                    else
-                      const SizedBox(width: 20),
-                    Text(
-                      '${_currentPage + 1} / ${_slides.length}',
-                      style: HwahaeTypography.labelMedium.copyWith(
-                        color: HwahaeColors.textSecondary,
-                      ),
+      backgroundColor: HwahaeColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // 터치 영역이 아이콘 크기(20px)밖에 안 됐다. 손가락이
+                  // 닿는 크기는 48pt 다.
+                  SizedBox(
+                    width: AppLayout.iconButtonSize,
+                    child: _currentPage > 0
+                        ? AppIconButton(
+                            icon: Icons.arrow_back_rounded,
+                            tooltip: '이전',
+                            onPressed: _previousPage,
+                          )
+                        : null,
+                  ),
+                  Text(
+                    '${_currentPage + 1} / ${_slides.length}',
+                    style: HwahaeTypography.labelMedium.copyWith(
+                      color: HwahaeColors.textSecondary,
                     ),
-                    TextButton(
-                      onPressed: _completeOnboarding,
-                      style: TextButton.styleFrom(
-                        foregroundColor: HwahaeColors.textSecondary,
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(60, 36),
-                      ),
-                      child: const Text('건너뛰기'),
-                    ),
-                  ],
-                ),
+                  ),
+                  AppButton.ghost(
+                    label: '건너뛰기',
+                    size: AppButtonSize.small,
+                    onPressed: _completeOnboarding,
+                  ),
+                ],
               ),
-
-              // Dot indicators
-              _buildDotIndicators(),
-              const SizedBox(height: 16),
-
-              // Page content
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _slides.length,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                    });
-                  },
-                  itemBuilder: (context, index) {
-                    return _buildSlide(_slides[index]);
-                  },
-                ),
+            ),
+            _DotIndicators(
+              count: _slides.length,
+              current: _currentPage,
+              color: _slides[_currentPage].color,
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _slides.length,
+                onPageChanged: (index) =>
+                    setState(() => _currentPage = index),
+                itemBuilder: (context, index) =>
+                    _SlideView(slide: _slides[index]),
               ),
-
-              // Bottom button
-              _buildBottomButton(),
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: AppButton(
+                label: isLast ? '구독 플랜 보기' : '다음',
+                icon: Icons.arrow_forward_rounded,
+                trailingIcon: true,
+                size: AppButtonSize.large,
+                onPressed: _nextPage,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildDotIndicators() {
+class _DotIndicators extends StatelessWidget {
+  const _DotIndicators({
+    required this.count,
+    required this.current,
+    required this.color,
+  });
+
+  final int count;
+  final int current;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_slides.length, (index) {
-        final isActive = index == _currentPage;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: isActive ? 28 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            gradient: isActive
-                ? LinearGradient(colors: _slides[_currentPage].gradient)
-                : null,
-            color: isActive ? null : HwahaeColors.surfaceContainer,
-            borderRadius: BorderRadius.circular(4),
+      children: [
+        for (var index = 0; index < count; index++)
+          AnimatedContainer(
+            duration: AppMotion.slow,
+            curve: AppMotion.decelerate,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: index == current ? 28 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: index == current ? color : HwahaeColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
-        );
-      }),
+      ],
     );
   }
+}
 
-  Widget _buildSlide(_SlideData slide) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+class _SlideView extends StatelessWidget {
+  const _SlideView({required this.slide});
+
+  final _Slide slide;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon container
           Container(
-            width: 120,
-            height: 120,
+            width: 112,
+            height: 112,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: slide.gradient,
-              ),
-              borderRadius: BorderRadius.circular(32),
-              boxShadow: [
-                BoxShadow(
-                  color: slide.gradient[0].withValues(alpha: 0.3),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+              color: slide.color,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: AppElevation.sticker(4, color: slide.color),
             ),
-            child: Icon(slide.icon, size: 56, color: Colors.white),
+            child: Icon(
+              slide.icon,
+              size: 52,
+              // 슬라이드마다 배경 밝기가 다르다. 흰색을 고정하면 골드
+              // 슬라이드에서 아이콘이 1.86:1 로 사라진다.
+              color: HwahaeColors.onColor(slide.color),
+            ),
           ),
-          const SizedBox(height: 40),
-
-          // Title
+          const SizedBox(height: 32),
           Text(
             slide.title,
             style: HwahaeTypography.headlineMedium.copyWith(
@@ -232,30 +273,13 @@ class _BusinessOnboardingScreenState extends State<BusinessOnboardingScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-
-          // Subtitle
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: slide.gradient[0].withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              slide.subtitle,
-              style: HwahaeTypography.labelMedium.copyWith(
-                color: slide.gradient[0],
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Description
+          AppBadge(label: slide.subtitle, color: slide.color),
+          const SizedBox(height: 22),
           Text(
             slide.description,
             style: HwahaeTypography.bodyLarge.copyWith(
               color: HwahaeColors.textSecondary,
-              height: 1.6,
+              height: 1.7,
             ),
             textAlign: TextAlign.center,
           ),
@@ -263,77 +287,4 @@ class _BusinessOnboardingScreenState extends State<BusinessOnboardingScreen> {
       ),
     );
   }
-
-  Widget _buildBottomButton() {
-    final isLastSlide = _currentPage == _slides.length - 1;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            height: 56,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isLastSlide
-                    ? HwahaeColors.gradientWarm
-                    : HwahaeColors.gradientPrimary,
-              ),
-              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-              boxShadow: [
-                BoxShadow(
-                  color: (isLastSlide ? HwahaeColors.warning : HwahaeColors.primary)
-                      .withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: _nextPage,
-                borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      isLastSlide ? '구독 플랜 보기' : '다음',
-                      style: HwahaeTypography.button.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      isLastSlide ? Icons.arrow_forward : Icons.arrow_forward_ios,
-                      size: 18,
-                      color: Colors.white,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SlideData {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String description;
-  final List<Color> gradient;
-
-  _SlideData({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.description,
-    required this.gradient,
-  });
 }

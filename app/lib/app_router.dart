@@ -167,7 +167,8 @@ class AppRouter {
           GoRoute(
             path: '/my-activity',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: MyReviewsScreen(),
+              // 탭으로 열릴 때만 하단 네비게이션 여백을 둔다.
+              child: MyReviewsScreen(isTab: true),
             ),
           ),
           // 업체 유형: 분석 (센터 FAB)

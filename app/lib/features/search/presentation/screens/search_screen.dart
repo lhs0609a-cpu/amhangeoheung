@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
-import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../shared/widgets/ui/ui.dart';
 
@@ -196,51 +195,21 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return AppTextField(
       controller: controller,
       autofocus: true,
       onChanged: onChanged,
       textInputAction: TextInputAction.search,
-      style: HwahaeTypography.bodyMedium,
-      decoration: InputDecoration(
-        hintText: '업체 이름으로 찾기',
-        hintStyle: HwahaeTypography.bodyMedium.copyWith(
-          color: HwahaeColors.textTertiary,
-        ),
-        prefixIcon: const Icon(
-          Icons.search_rounded,
-          size: 20,
-          color: HwahaeColors.textSecondary,
-        ),
-        suffixIcon: onClear == null
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.cancel_rounded, size: 18),
-                color: HwahaeColors.textTertiary,
-                tooltip: '지우기',
-                onPressed: onClear,
-              ),
-        filled: true,
-        fillColor: HwahaeColors.surface,
-        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-        // 입력창 채움색과 페이지 배경의 대비는 1.11:1 이라, 테두리가 없으면
-        // 입력창이 어디 있는지 보이지 않는다 (WCAG 1.4.11).
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-          borderSide: const BorderSide(color: HwahaeColors.borderStrong),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-          borderSide: const BorderSide(color: HwahaeColors.borderStrong),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-          borderSide: const BorderSide(
-            color: HwahaeColors.borderFocused,
-            width: 2,
-          ),
-        ),
-      ),
+      hint: '업체 이름으로 찾기',
+      prefixIcon: Icons.search_rounded,
+      suffixIcon: onClear == null
+          ? null
+          : IconButton(
+              icon: const Icon(Icons.cancel_rounded, size: 18),
+              color: HwahaeColors.textTertiary,
+              tooltip: '지우기',
+              onPressed: onClear,
+            ),
     );
   }
 }
