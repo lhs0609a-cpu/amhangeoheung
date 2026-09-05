@@ -199,14 +199,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Text(
                             '안녕하세요!',
                             style: HwahaeTypography.bodyMedium.copyWith(
-                              color: Colors.white.withValues(alpha: 0.9),
+                              color: HwahaeColors.onPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '오늘의 비즈니스 현황입니다',
                             style: HwahaeTypography.headlineSmall.copyWith(
-                              color: Colors.white,
+                              color: HwahaeColors.onPrimary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -219,12 +219,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               title: Text(
                 '대시보드',
                 style: HwahaeTypography.titleMedium.copyWith(
-                  color: Colors.white,
+                  color: HwahaeColors.onPrimary,
                 ),
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                  icon: const Icon(Icons.notifications_outlined, color: HwahaeColors.onPrimary),
                   onPressed: () => context.push('/notifications'),
                 ),
                 IconButton(

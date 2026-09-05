@@ -10,7 +10,6 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../core/utils/map_launcher.dart';
-import '../../../../shared/widgets/hwahae/hwahae_buttons.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../providers/mission_provider.dart';
 import '../../providers/location_provider.dart';
@@ -615,8 +614,8 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
         ),
         Expanded(
           flex: 2,
-          child: HwahaePrimaryButton(
-            text: '미션 신청',
+          child: AppButton(
+            label: '미션 신청',
             onPressed: () => _showApplyDialog(context, ref),
           ),
         ),
@@ -704,8 +703,8 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
           Row(
             children: [
               Expanded(
-                child: HwahaeSecondaryButton(
-                  text: '위치 보기',
+                child: AppButton.outline(
+                  label: '위치 보기',
                   icon: Icons.map,
                   onPressed: () => _openMapLocation(context),
                 ),
@@ -713,8 +712,8 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child: HwahaePrimaryButton(
-                  text: '체크인 하기',
+                child: AppButton(
+                  label: '체크인 하기',
                   icon: Icons.location_on,
                   onPressed: () => _showCheckInWithVerification(context, ref),
                 ),
@@ -726,8 +725,8 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
           Row(
             children: [
               Expanded(
-                child: HwahaeSecondaryButton(
-                  text: '위치 보기',
+                child: AppButton.outline(
+                  label: '위치 보기',
                   icon: Icons.map,
                   onPressed: () => _openMapLocation(context),
                 ),
@@ -735,8 +734,8 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child: HwahaePrimaryButton(
-                  text: '미션 시작',
+                child: AppButton(
+                  label: '미션 시작',
                   icon: Icons.play_arrow,
                   onPressed: () => _startMissionWithoutGps(context, ref),
                 ),
@@ -747,8 +746,8 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
         else
           SizedBox(
             width: double.infinity,
-            child: HwahaePrimaryButton(
-              text: '미션 시작',
+            child: AppButton(
+              label: '미션 시작',
               icon: Icons.play_arrow,
               onPressed: () => _startMissionWithoutGps(context, ref),
             ),
@@ -821,16 +820,16 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
         Row(
           children: [
             Expanded(
-              child: HwahaeSecondaryButton(
-                text: '체크아웃',
+              child: AppButton.outline(
+                label: '체크아웃',
                 onPressed: () => _handleCheckout(context),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               flex: 2,
-              child: HwahaePrimaryButton(
-                text: '리뷰 작성하기',
+              child: AppButton(
+                label: '리뷰 작성하기',
                 icon: Icons.edit,
                 onPressed: () => context.push('/write-review/${mission.id}'),
               ),
@@ -1510,8 +1509,8 @@ class _CheckInVerificationSheetState
       case _CheckInStep.initial:
         return SizedBox(
           width: double.infinity,
-          child: HwahaePrimaryButton(
-            text: '내 위치 확인하기',
+          child: AppButton(
+            label: '내 위치 확인하기',
             icon: Icons.gps_fixed,
             onPressed: _startLocationVerification,
           ),
@@ -1522,8 +1521,8 @@ class _CheckInVerificationSheetState
       case _CheckInStep.mockDetected:
         return SizedBox(
           width: double.infinity,
-          child: HwahaeSecondaryButton(
-            text: '닫기',
+          child: AppButton.outline(
+            label: '닫기',
             onPressed: () => Navigator.pop(context),
           ),
         );
@@ -1531,8 +1530,8 @@ class _CheckInVerificationSheetState
       case _CheckInStep.outOfRange:
         return SizedBox(
           width: double.infinity,
-          child: HwahaePrimaryButton(
-            text: '다시 시도',
+          child: AppButton(
+            label: '다시 시도',
             icon: Icons.refresh,
             onPressed: _startLocationVerification,
           ),
@@ -1541,8 +1540,8 @@ class _CheckInVerificationSheetState
         // Yellow zone: check-in already succeeded, just confirm
         return SizedBox(
           width: double.infinity,
-          child: HwahaePrimaryButton(
-            text: '확인',
+          child: AppButton(
+            label: '확인',
             onPressed: widget.onCheckInSuccess,
           ),
         );
@@ -1550,8 +1549,8 @@ class _CheckInVerificationSheetState
         // Orange zone: need to take a photo
         return SizedBox(
           width: double.infinity,
-          child: HwahaePrimaryButton(
-            text: '사진 촬영하기',
+          child: AppButton(
+            label: '사진 촬영하기',
             icon: Icons.camera_alt,
             onPressed: _captureVerificationPhoto,
           ),
@@ -1562,8 +1561,8 @@ class _CheckInVerificationSheetState
             if (_capturedPhoto != null) ...[
               SizedBox(
                 width: double.infinity,
-                child: HwahaePrimaryButton(
-                  text: '이 사진으로 인증',
+                child: AppButton(
+                  label: '이 사진으로 인증',
                   icon: Icons.check,
                   onPressed: _submitPhotoVerification,
                 ),
@@ -1571,8 +1570,8 @@ class _CheckInVerificationSheetState
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
-                child: HwahaeSecondaryButton(
-                  text: '다시 촬영',
+                child: AppButton.outline(
+                  label: '다시 촬영',
                   icon: Icons.refresh,
                   onPressed: _captureVerificationPhoto,
                 ),
@@ -1580,8 +1579,8 @@ class _CheckInVerificationSheetState
             ] else ...[
               SizedBox(
                 width: double.infinity,
-                child: HwahaePrimaryButton(
-                  text: '사진 촬영',
+                child: AppButton(
+                  label: '사진 촬영',
                   icon: Icons.camera_alt,
                   onPressed: _captureVerificationPhoto,
                 ),
@@ -1592,8 +1591,8 @@ class _CheckInVerificationSheetState
       case _CheckInStep.success:
         return SizedBox(
           width: double.infinity,
-          child: HwahaePrimaryButton(
-            text: '체크인 완료',
+          child: AppButton(
+            label: '체크인 완료',
             onPressed: widget.onCheckInSuccess,
           ),
         );

@@ -69,12 +69,12 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       ),
       child: Column(
         children: [
-          const Icon(Icons.card_giftcard_rounded, size: 48, color: Colors.white),
+          const Icon(Icons.card_giftcard_rounded, size: 48, color: HwahaeColors.onPrimary),
           const SizedBox(height: 16),
           Text(
             '친구를 초대하고\n10,000원씩 받으세요!',
             style: HwahaeTypography.headlineSmall.copyWith(
-              color: Colors.white,
+              color: HwahaeColors.onPrimary,
               fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
@@ -92,7 +92,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
                 Text(
                   code ?? '...',
                   style: HwahaeTypography.headlineMedium.copyWith(
-                    color: Colors.white,
+                    color: HwahaeColors.onPrimary,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 4,
                   ),

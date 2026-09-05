@@ -207,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen>
           child: const Icon(
             Icons.verified_user_rounded,
             size: 44,
-            color: Colors.white,
+            color: HwahaeColors.onPrimary,
           ),
         ),
         const SizedBox(height: 20),
@@ -218,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen>
           child: Text(
             '암행어흥',
             style: HwahaeTypography.displaySmall.copyWith(
-              color: Colors.white,
+              color: HwahaeColors.onPrimary,
               fontWeight: FontWeight.w800,
             ),
           ),

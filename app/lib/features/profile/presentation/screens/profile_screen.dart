@@ -5,7 +5,6 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../core/network/api_client.dart';
-import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
 import '../../../../shared/widgets/grade_progress_widget.dart';
 import '../../../../shared/widgets/ui/ui.dart';
 import '../../providers/profile_provider.dart';
@@ -319,7 +318,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        HwahaeGradeBadge(grade: grade, showLabel: true),
+                        AppBadge.grade(grade),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -563,7 +562,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             child: const Icon(
               Icons.account_balance_wallet,
-              color: Colors.white,
+              color: HwahaeColors.onPrimary,
               size: 28,
             ),
           ),
@@ -575,7 +574,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text(
                   '정산 대기 금액',
                   style: HwahaeTypography.captionMedium.copyWith(
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: HwahaeColors.onPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),

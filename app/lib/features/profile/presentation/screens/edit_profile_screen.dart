@@ -110,14 +110,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                 errorBuilder: (_, __, ___) => const Icon(
                                   Icons.person,
                                   size: 48,
-                                  color: Colors.white,
+                                  color: HwahaeColors.onPrimary,
                                 ),
                               ),
                             )
                           : const Icon(
                               Icons.person,
                               size: 48,
-                              color: Colors.white,
+                              color: HwahaeColors.onPrimary,
                             ),
                     ),
                     Positioned(
@@ -134,7 +134,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         child: const Icon(
                           Icons.camera_alt,
                           size: 16,
-                          color: Colors.white,
+                          color: HwahaeColors.onPrimary,
                         ),
                       ),
                     ),

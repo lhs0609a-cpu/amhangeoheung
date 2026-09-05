@@ -8,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
-import '../../../../shared/widgets/hwahae/hwahae_buttons.dart';
 import '../../../mission/providers/mission_provider.dart';
 import '../../providers/receipt_provider.dart';
 import '../../providers/review_provider.dart';
@@ -231,8 +230,8 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
               const SizedBox(height: 16),
               Text(_missionError!, style: HwahaeTypography.bodyMedium),
               const SizedBox(height: 24),
-              HwahaePrimaryButton(
-                text: '다시 시도',
+              AppButton(
+                label: '다시 시도',
                 onPressed: _loadMissionData,
               ),
             ],
@@ -933,8 +932,8 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
               child: isLastStep
                   ? SizedBox(
                       width: double.infinity,
-                      child: HwahaePrimaryButton(
-                        text: _isSubmitting ? '제출 중...' : '리뷰 제출하기',
+                      child: AppButton(
+                        label: _isSubmitting ? '제출 중...' : '리뷰 제출하기',
                         onPressed: _isSubmitting ? null : _submitReview,
                       ),
                     )

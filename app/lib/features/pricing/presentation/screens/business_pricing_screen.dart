@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
-import '../../../../shared/widgets/hwahae/hwahae_buttons.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../business/data/repositories/subscription_repository.dart';
 import '../../../payment/presentation/screens/toss_payment_screen.dart';
@@ -820,8 +819,8 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
               flex: 2,
               child: _isProcessingPayment
                   ? const Center(child: CircularProgressIndicator(color: HwahaeColors.primary))
-                  : HwahaePrimaryButton(
-                      text: '구독 시작하기',
+                  : AppButton(
+                      label: '구독 시작하기',
                       onPressed: () => _showPaymentSheet(selectedPlan),
                     ),
             ),

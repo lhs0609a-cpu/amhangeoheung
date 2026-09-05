@@ -9,6 +9,7 @@ const {
 } = require('../utils/errorMessages');
 const { processReferralReward } = require('./referralController');
 const NOTIFICATION_TYPES = require('../config/notificationTypes');
+const { blindRecruitingMissions } = require('../utils/missionBlinding');
 const { checkCollusionRisk } = require('./collusionController');
 const { generateBlindedAddress } = require('../utils/anonymizer');
 const { COLLUSION_REPEAT_BLOCK_MONTHS, GPS_ZONES, REWARD_TYPES, PLAN_DETAILS } = require('../config/constants');
@@ -1333,7 +1334,7 @@ exports.getAllMissions = async (req, res, next) => {
       .from('missions')
       .select(`
         *,
-        business:businesses(id, name, category, address_city)
+        business:businesses(id, owner_id, name, category, address_city)
       `, { count: 'exact' });
 
     if (status) {
@@ -1348,10 +1349,12 @@ exports.getAllMissions = async (req, res, next) => {
 
     if (error) throw error;
 
+    const blinded = blindRecruitingMissions(missions || [], req.user?.id);
+
     res.json({
       success: true,
       data: {
-        missions: missions || [],
+        missions: blinded,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

@@ -8,7 +8,6 @@ import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../core/providers/user_type_provider.dart';
 import '../../../review/data/models/review_model.dart';
 import '../../providers/home_provider.dart';
-import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
 import '../../../../shared/widgets/skeleton_widgets.dart';
 import '../../../ranking/data/models/ranking_model.dart';
 import '../../../../shared/widgets/ui/ui.dart';
@@ -131,7 +130,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.explore_rounded, color: Colors.white, size: 24),
+                child: const Icon(Icons.explore_rounded, color: HwahaeColors.onPrimary, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -141,7 +140,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Text(
                       '새로운 미션을 찾아보세요',
                       style: HwahaeTypography.titleSmall.copyWith(
-                        color: Colors.white,
+                        color: HwahaeColors.onPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -149,7 +148,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Text(
                       '내 주변 미션을 확인해보세요',
                       style: HwahaeTypography.captionLarge.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: HwahaeColors.onPrimary,
                       ),
                     ),
                   ],
@@ -203,7 +202,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.flag_rounded, color: Colors.white, size: 24),
+                child: const Icon(Icons.flag_rounded, color: HwahaeColors.onPrimary, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -213,14 +212,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Text(
                       '진행 중 미션',
                       style: HwahaeTypography.labelSmall.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: HwahaeColors.onPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       mission.business?.name ?? mission.category ?? '미션',
                       style: HwahaeTypography.titleSmall.copyWith(
-                        color: Colors.white,
+                        color: HwahaeColors.onPrimary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -228,7 +227,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Text(
                         'D-${mission.daysUntilDeadline}',
                         style: HwahaeTypography.captionLarge.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: HwahaeColors.onPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -507,7 +506,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             child: const Icon(
               Icons.verified_user_rounded,
-              color: Colors.white,
+              color: HwahaeColors.onPrimary,
               size: 20,
             ),
           ),
@@ -519,7 +518,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Text(
               '암행어흥',
               style: HwahaeTypography.headlineSmall.copyWith(
-                color: Colors.white,
+                color: HwahaeColors.onPrimary,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -560,7 +559,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             child: const Icon(
               Icons.verified_user_rounded,
-              color: Colors.white,
+              color: HwahaeColors.onPrimary,
               size: 20,
             ),
           ),
@@ -572,7 +571,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Text(
               '암행어흥',
               style: HwahaeTypography.headlineSmall.copyWith(
-                color: Colors.white,
+                color: HwahaeColors.onPrimary,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -1163,18 +1162,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final mission = missions[index];
-              return HwahaeMissionCard(
-                title: mission.business?.name ?? mission.category ?? '미션',
-                category: mission.category ?? '',
-                region: mission.region,
-                rewardAmount: mission.reviewerFee,
-                daysRemaining: mission.daysUntilDeadline,
-                isUrgent: (mission.daysUntilDeadline ?? 99) <= 3,
-                currentParticipants: mission.currentApplicants,
-                maxParticipants: mission.maxApplicants,
-                onTap: () {
-                  context.push('/missions/${mission.id}');
-                },
+              final days = mission.daysUntilDeadline;
+              // 모집 중인 미션에는 업체명을 올리지 않는다. 예전 카드는
+              // 업체명을 제목으로 썼는데, 서버가 이름을 내려주기 시작하면
+              // 그대로 노출돼 무작위 배정이 의미를 잃는다.
+              return BlindMissionCard(
+                category: mission.category ?? '미션',
+                region: mission.region ?? '지역 미정',
+                schedule: mission.gpsRequired ? '방문 감찰' : '비방문 감찰',
+                fee: mission.reviewerFee,
+                applicants: mission.currentApplicants,
+                deadline: days == null
+                    ? null
+                    : days <= 0
+                        ? '오늘 마감'
+                        : '마감까지 $days일',
+                onTap: () => context.push('/missions/${mission.id}'),
               );
             },
           ),
@@ -1276,7 +1279,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Text(
                     authorName.isNotEmpty ? authorName[0] : '?',
                     style: HwahaeTypography.titleSmall.copyWith(
-                      color: Colors.white,
+                      color: HwahaeColors.onPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1301,7 +1304,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ],
                   ),
                 ),
-                HwahaeRatingBadge(rating: review.totalScore),
+                AppBadge.rating(review.totalScore),
               ],
             ),
             const SizedBox(height: 14),

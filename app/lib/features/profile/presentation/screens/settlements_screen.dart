@@ -107,7 +107,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                 ),
                 child: const Icon(
                   Icons.account_balance_wallet,
-                  color: Colors.white,
+                  color: HwahaeColors.onPrimary,
                   size: 24,
                 ),
               ),
@@ -115,7 +115,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
               Text(
                 '정산 대기 금액',
                 style: HwahaeTypography.titleSmall.copyWith(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: HwahaeColors.onPrimary,
                 ),
               ),
             ],

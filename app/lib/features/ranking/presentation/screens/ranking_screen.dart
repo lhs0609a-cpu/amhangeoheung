@@ -5,7 +5,6 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
-import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
 import '../../../../shared/widgets/ui/ui.dart';
 
 /// 업체 랭킹 모델
@@ -235,7 +234,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
                     ),
                     child: const Icon(
                       Icons.leaderboard_rounded,
-                      color: Colors.white,
+                      color: HwahaeColors.onPrimary,
                       size: 24,
                     ),
                   ),
@@ -243,7 +242,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
                   Text(
                     '랭킹',
                     style: HwahaeTypography.headlineMedium.copyWith(
-                      color: Colors.white,
+                      color: HwahaeColors.onPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -255,7 +254,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
               Text(
                 '신뢰도 높은 업체와 우수 리뷰어를 확인하세요',
                 style: HwahaeTypography.bodyMedium.copyWith(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: HwahaeColors.onPrimary,
                 ),
               ),
             ],
@@ -463,7 +462,7 @@ class _BusinessRankingTab extends ConsumerWidget {
                   gradient: const LinearGradient(colors: HwahaeColors.gradientWarm),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.emoji_events_rounded, color: Colors.white, size: 20),
+                child: const Icon(Icons.emoji_events_rounded, color: HwahaeColors.onPrimary, size: 20),
               ),
               const SizedBox(width: 10),
               Text(
@@ -976,7 +975,7 @@ class _ReviewerRankingTab extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             // 등급 배지
-            HwahaeGradeBadge(grade: ranking.grade, showLabel: true),
+            AppBadge.grade(ranking.grade),
             SizedBox(height: isFirst ? 10 : 6),
             // 완료 미션
             Text(
@@ -1145,7 +1144,7 @@ class _ReviewerRankingCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      HwahaeGradeBadge(grade: ranking.grade, showLabel: false),
+                      AppBadge.grade(ranking.grade),
                     ],
                   ),
                   const SizedBox(height: 4),

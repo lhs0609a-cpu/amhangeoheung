@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
-import '../../../../shared/widgets/hwahae/hwahae_buttons.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../payment/presentation/screens/toss_payment_screen.dart';
 import '../../data/repositories/premium_repository.dart';
@@ -212,13 +211,13 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
                       const Icon(
                         Icons.workspace_premium_rounded,
                         size: 48,
-                        color: Colors.white,
+                        color: HwahaeColors.onPrimary,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         '암행어흥 Premium',
                         style: HwahaeTypography.headlineMedium.copyWith(
-                          color: Colors.white,
+                          color: HwahaeColors.onPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -226,7 +225,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
                       Text(
                         '더 많은 미션, 더 빠른 정산, 더 높은 수익',
                         style: HwahaeTypography.bodyMedium.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: HwahaeColors.onPrimary,
                         ),
                       ),
                     ],
@@ -235,7 +234,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
               ),
             ),
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              icon: const Icon(Icons.arrow_back, color: HwahaeColors.onPrimary),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -860,8 +859,8 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
             ),
             Expanded(
               flex: 2,
-              child: HwahaePrimaryButton(
-                text: price == 0 ? '현재 플랜' : '구독 시작하기',
+              child: AppButton(
+                label: price == 0 ? '현재 플랜' : '구독 시작하기',
                 onPressed: price == 0 ? null : () => _showPaymentSheet(selectedPlan),
               ),
             ),

@@ -51,7 +51,7 @@ class ReviewShareCard extends StatelessWidget {
                   gradient: const LinearGradient(colors: HwahaeColors.gradientPrimary),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.verified_user_rounded, color: Colors.white, size: 20),
+                child: const Icon(Icons.verified_user_rounded, color: HwahaeColors.onPrimary, size: 20),
               ),
               const SizedBox(width: 10),
               Text('암행어흥', style: HwahaeTypography.labelMedium.copyWith(
@@ -67,7 +67,7 @@ class ReviewShareCard extends StatelessWidget {
                 child: Text(
                   '${score.toStringAsFixed(1)}점',
                   style: HwahaeTypography.labelMedium.copyWith(
-                    color: Colors.white, fontWeight: FontWeight.w700,
+                    color: HwahaeColors.onPrimary, fontWeight: FontWeight.w700,
                   ),
                 ),
               ),

@@ -404,7 +404,7 @@ class _CenterTab extends StatelessWidget {
               strength: selected ? 1.0 : 0.6,
             ),
           ),
-          child: Icon(config.icon, size: 25, color: Colors.white),
+          child: Icon(config.icon, size: 25, color: HwahaeColors.onPrimary),
         ),
       ),
     );
