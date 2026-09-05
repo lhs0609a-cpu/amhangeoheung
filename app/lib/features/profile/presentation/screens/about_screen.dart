@@ -1,324 +1,215 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../../../core/config/company_info.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
-import '../../../../core/theme/hwahae_theme.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
+  static const String _site = 'https://amhangeoheung.com';
+  static const String _kakao = 'https://pf.kakao.com/amhangeoheung';
+  static const String _instagram = 'https://instagram.com/amhangeoheung';
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: HwahaeColors.background,
-      appBar: AppBar(
-        backgroundColor: HwahaeColors.surface,
-        title: Text('앱 정보', style: HwahaeTypography.titleMedium),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-
-            // 앱 로고 및 버전
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: HwahaeColors.gradientPrimary,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: HwahaeColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.verified_user,
-                size: 48,
-                color: Colors.white,
-              ),
+    return AppScreen(
+      title: '앱 정보',
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          const AppMascot.eoheung(size: 116),
+          const SizedBox(height: 12),
+          Text('암행어흥', style: HwahaeTypography.headlineMedium),
+          const SizedBox(height: 4),
+          Text(
+            '버전 ${CompanyInfo.appVersion}',
+            style: HwahaeTypography.bodyMedium.copyWith(
+              color: HwahaeColors.textSecondary,
             ),
-            const SizedBox(height: 16),
-            Text(
-              '암행어흥',
-              style: HwahaeTypography.headlineMedium.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '버전 ${CompanyInfo.appVersion}',
+          ),
+          const SizedBox(height: 24),
+          AppCard(
+            style: AppCardStyle.outlined,
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              '업체가 돈을 내지만, 업체가 결과를 못 바꿉니다.\n'
+              '실제로 다녀온 감찰관이 본 대로 적고, 지적한 것이 고쳐졌는지까지 '
+              '따라갑니다.',
               style: HwahaeTypography.bodyMedium.copyWith(
                 color: HwahaeColors.textSecondary,
+                height: 1.7,
               ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
-
-            // 앱 소개
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: HwahaeColors.surface,
-                  borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-                  border: Border.all(color: HwahaeColors.border),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '암행어흥은 신뢰할 수 있는 리뷰 플랫폼입니다.\n'
-                      '실제 방문 경험을 바탕으로 진솔한 리뷰를 작성하고,\n'
-                      '합당한 보상을 받으세요.',
-                      style: HwahaeTypography.bodyMedium.copyWith(
-                        color: HwahaeColors.textSecondary,
-                        height: 1.6,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // 메뉴 리스트
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: HwahaeColors.surface,
-                  borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-                  border: Border.all(color: HwahaeColors.border),
-                ),
-                child: Column(
-                  children: [
-                    _buildMenuItem(
-                      icon: Icons.description_outlined,
-                      title: '이용약관',
-                      onTap: () => _launchUrl('https://amhangeoheung.com/terms'),
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _buildMenuItem(
-                      icon: Icons.privacy_tip_outlined,
-                      title: '개인정보 처리방침',
-                      onTap: () => _launchUrl('https://amhangeoheung.com/privacy'),
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _buildMenuItem(
-                      icon: Icons.gavel_outlined,
-                      title: '오픈소스 라이선스',
-                      onTap: () => _showLicenses(context),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: HwahaeColors.surface,
-                  borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-                  border: Border.all(color: HwahaeColors.border),
-                ),
-                child: Column(
-                  children: [
-                    _buildMenuItem(
-                      icon: Icons.star_outline,
-                      title: '앱 평가하기',
-                      onTap: () => _launchStore(),
-                    ),
-                    const Divider(height: 1, indent: 56),
-                    _buildMenuItem(
-                      icon: Icons.share_outlined,
-                      title: '친구에게 공유하기',
-                      onTap: () => _shareApp(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // 회사 정보
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  Text(
-                    CompanyInfo.companyName,
-                    style: HwahaeTypography.labelMedium.copyWith(
-                      color: HwahaeColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '사업자등록번호: ${CompanyInfo.businessRegistrationNumber}\n'
-                    '대표: ${CompanyInfo.ceoName}\n'
-                    '주소: ${CompanyInfo.address}\n'
-                    '고객센터: ${CompanyInfo.customerServicePhone}',
-                    style: HwahaeTypography.captionMedium.copyWith(
-                      color: HwahaeColors.textTertiary,
-                      height: 1.6,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // 소셜 링크
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          ),
+          const SizedBox(height: AppLayout.sectionGap),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
               children: [
-                _buildSocialButton(
-                  icon: Icons.language,
-                  onTap: () => _launchUrl('https://amhangeoheung.com'),
+                AppListRow(
+                  icon: Icons.description_outlined,
+                  title: '이용약관',
+                  // 앱 안에 약관 화면이 있는데 브라우저로 내보내고 있었다.
+                  onTap: () => context.push('/terms'),
                 ),
-                const SizedBox(width: 16),
-                _buildSocialButton(
-                  icon: Icons.chat_bubble,
-                  onTap: () => _launchUrl('https://pf.kakao.com/amhangeoheung'),
+                const AppDivider(indent: 56),
+                AppListRow(
+                  icon: Icons.privacy_tip_outlined,
+                  title: '개인정보 처리방침',
+                  onTap: () => context.push('/privacy'),
                 ),
-                const SizedBox(width: 16),
-                _buildSocialButton(
-                  icon: Icons.camera_alt,
-                  onTap: () => _launchUrl('https://instagram.com/amhangeoheung'),
+                const AppDivider(indent: 56),
+                AppListRow(
+                  icon: Icons.gavel_outlined,
+                  title: '오픈소스 라이선스',
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: '암행어흥',
+                    applicationVersion: CompanyInfo.appVersion,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-
-            // 저작권
-            Text(
-              '© 2024 암행어흥. All rights reserved.',
-              style: HwahaeTypography.captionMedium.copyWith(
-                color: HwahaeColors.textTertiary,
+          ),
+          const SizedBox(height: AppLayout.cardGap),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                AppListRow(
+                  icon: Icons.star_outline_rounded,
+                  title: '앱 평가하기',
+                  onTap: () => _launchStore(context),
+                ),
+                const AppDivider(indent: 56),
+                AppListRow(
+                  icon: Icons.share_outlined,
+                  title: '친구에게 공유하기',
+                  onTap: _shareApp,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppLayout.sectionGap),
+          Text(
+            CompanyInfo.companyName,
+            style: HwahaeTypography.labelMedium.copyWith(
+              color: HwahaeColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '사업자등록번호: ${CompanyInfo.businessRegistrationNumber}\n'
+            '대표: ${CompanyInfo.ceoName}\n'
+            '주소: ${CompanyInfo.address}\n'
+            '고객센터: ${CompanyInfo.customerServicePhone}',
+            style: HwahaeTypography.captionMedium.copyWith(
+              color: HwahaeColors.textTertiary,
+              height: 1.6,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 22),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _SocialButton(
+                icon: Icons.language_rounded,
+                tooltip: '공식 웹사이트',
+                onTap: () => _launch(context, _site),
               ),
+              const SizedBox(width: 14),
+              _SocialButton(
+                icon: Icons.chat_bubble_outline_rounded,
+                tooltip: '카카오톡 채널',
+                onTap: () => _launch(context, _kakao),
+              ),
+              const SizedBox(width: 14),
+              _SocialButton(
+                icon: Icons.camera_alt_outlined,
+                tooltip: '인스타그램',
+                onTap: () => _launch(context, _instagram),
+              ),
+            ],
+          ),
+          const SizedBox(height: 26),
+          Text(
+            // 연도를 손으로 적어두면 해가 바뀔 때마다 낡는다.
+            '© ${DateTime.now().year} ${CompanyInfo.companyName}. '
+            'All rights reserved.',
+            style: HwahaeTypography.captionMedium.copyWith(
+              color: HwahaeColors.textTertiary,
             ),
-            const SizedBox(height: 32),
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+          const AppBottomSpacer.plain(extra: 12),
+        ],
       ),
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: HwahaeColors.textSecondary),
-      title: Text(title, style: HwahaeTypography.bodyMedium),
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: HwahaeColors.textTertiary,
-      ),
-      onTap: onTap,
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: HwahaeColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: HwahaeColors.textSecondary,
-          size: 24,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _launchUrl(String url) async {
+  Future<void> _launch(BuildContext context, String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    final opened = await canLaunchUrl(uri) &&
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!opened && context.mounted) {
+      AppToast.error(context, '링크를 열 수 없습니다');
     }
   }
 
-  void _showLicenses(BuildContext context) {
-    showLicensePage(
-      context: context,
-      applicationName: '암행어흥',
-      applicationVersion: '1.0.0',
-      applicationIcon: Container(
-        padding: const EdgeInsets.all(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: HwahaeColors.gradientPrimary,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(
-            Icons.verified_user,
-            size: 32,
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _launchStore() async {
-    // 스토어 ID는 CompanyInfo에서 관리. 출시 후 실제 ID로 교체.
-    final playStoreUrl =
-        'https://play.google.com/store/apps/details?id=${CompanyInfo.androidPackageId}';
-    final appStoreUrl = 'https://apps.apple.com/app/${CompanyInfo.iosAppId}';
-
-    // 플랫폼에 따라 적절한 스토어로 이동
-    if (!kIsWeb && Platform.isIOS) {
-      await _launchUrl(appStoreUrl);
-    } else {
-      await _launchUrl(playStoreUrl);
-    }
+  Future<void> _launchStore(BuildContext context) {
+    final url = !kIsWeb && Platform.isIOS
+        ? 'https://apps.apple.com/app/${CompanyInfo.iosAppId}'
+        : 'https://play.google.com/store/apps/details'
+            '?id=${CompanyInfo.androidPackageId}';
+    return _launch(context, url);
   }
 
   Future<void> _shareApp() async {
-    const shareText = '''
-암행어흥 - 신뢰할 수 있는 리뷰 플랫폼
+    // 스토어 주소를 손으로 또 적지 않는다. 예전에는 패키지 ID 가 여기에만
+    // 하드코딩돼 있어서 CompanyInfo 를 바꿔도 공유 문구는 옛 주소를 가리켰다.
+    final text = '''
+암행어흥 — 업체가 돈을 내지만, 업체가 결과를 못 바꾸는 리뷰 플랫폼
 
-실제 방문 경험을 바탕으로 진솔한 리뷰를 작성하고, 합당한 보상을 받으세요!
+Android: https://play.google.com/store/apps/details?id=${CompanyInfo.androidPackageId}
+iOS: https://apps.apple.com/app/${CompanyInfo.iosAppId}
 
-다운로드:
-Android: https://play.google.com/store/apps/details?id=com.amhangeoheung.app
-iOS: https://apps.apple.com/app/amhangeoheung
-
-공식 웹사이트: https://amhangeoheung.com
+공식 웹사이트: $_site
 ''';
 
-    await Share.share(
-      shareText,
-      subject: '암행어흥 앱을 추천합니다!',
+    await Share.share(text, subject: '암행어흥 앱을 추천합니다!');
+  }
+}
+
+class _SocialButton extends StatelessWidget {
+  const _SocialButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppIconButton(
+      icon: icon,
+      tooltip: tooltip,
+      onPressed: onTap,
+      background: HwahaeColors.surfaceVariant,
+      color: HwahaeColors.textSecondary,
     );
   }
 }

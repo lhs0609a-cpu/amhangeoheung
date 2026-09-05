@@ -24,7 +24,10 @@ class NotificationModel {
       id: json['id'] ?? '',
       type: json['type'] ?? 'general',
       title: json['title'] ?? '',
-      body: json['body'] ?? '',
+      // 서버 컬럼은 `message` 다. `body` 로만 읽다가 본문이 늘 비어 있었다 —
+      // 테이블 정의가 두 곳에 서로 다르게 적혀 있었고 그중 안 쓰이는 쪽을
+      // 보고 짰다. 둘 다 받아둬서 어느 쪽 스키마든 본문이 나오게 한다.
+      body: json['message'] ?? json['body'] ?? '',
       isRead: json['is_read'] ?? false,
       readAt: json['read_at'] != null ? DateTime.parse(json['read_at']) : null,
       data: json['data'] is Map<String, dynamic>

@@ -117,23 +117,8 @@ exports.deleteNotification = async (req, res, next) => {
 };
 
 // 알림 생성 유틸리티 (내부 사용)
-exports.createNotification = async ({ userId, type, title, body, data = {} }) => {
-  try {
-    const { error } = await supabase
-      .from('notifications')
-      .insert({
-        user_id: userId,
-        type,
-        title,
-        body,
-        data,
-        is_read: false
-      });
-
-    if (error) {
-      console.error('Failed to create notification:', error);
-    }
-  } catch (err) {
-    console.error('Notification creation error:', err);
-  }
-};
+// 알림 생성은 utils/notificationService.js 하나만 쓴다.
+//
+// 여기에도 createNotification 이 있었지만 아무도 호출하지 않았고, 게다가
+// 존재하지 않는 컬럼(body)에 INSERT 하고 있었다. 발송 경로가 둘이면
+// 수신 설정 게이트를 한쪽에만 달게 되고, 그 순간 설정이 거짓말이 된다.
