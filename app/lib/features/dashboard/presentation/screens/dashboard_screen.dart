@@ -414,7 +414,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               child: const Icon(
                 Icons.card_giftcard_rounded,
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
                 size: 26,
               ),
             ),
@@ -427,7 +427,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     '첫 미션 무료로 시작하기',
                     style: HwahaeTypography.titleSmall.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: HwahaeColors.primary,
+                      color: HwahaeColors.onPrimaryContainer,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -440,7 +440,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: HwahaeColors.primary),
+            const Icon(Icons.chevron_right_rounded, color: HwahaeColors.onPrimaryContainer),
           ],
         ),
       ),
@@ -895,7 +895,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               Row(
                 children: [
-                  _buildChartLegend('미션', HwahaeColors.primary),
+                  _buildChartLegend('미션', HwahaeColors.onPrimaryContainer),
                   const SizedBox(width: 16),
                   _buildChartLegend('리뷰', HwahaeColors.secondary),
                 ],
@@ -1059,7 +1059,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: Text(
                   '전체보기',
                   style: HwahaeTypography.labelMedium.copyWith(
-                    color: HwahaeColors.primary,
+                    color: HwahaeColors.onPrimaryContainer,
                   ),
                 ),
               ),

@@ -180,7 +180,11 @@ class MascotMessage extends StatelessWidget {
                 Icon(
                   Icons.chevron_right_rounded,
                   size: 22,
-                  color: dark ? HwahaeColors.primary : HwahaeColors.textTertiary,
+                  // 먹색 카드 위에서는 골드가 맞다(5.7:1). 밝은 면에 쓰는
+                  // onPrimaryContainer 를 여기 넣으면 어둠 위의 어둠이 된다.
+                  color: dark
+                      ? HwahaeColors.primary
+                      : HwahaeColors.textTertiary,
                 ),
               ],
             ],

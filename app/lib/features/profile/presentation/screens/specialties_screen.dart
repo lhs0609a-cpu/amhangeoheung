@@ -85,7 +85,7 @@ class _SpecialtiesScreenState extends ConsumerState<SpecialtiesScreen> {
                 : Text(
                     '저장',
                     style: HwahaeTypography.labelLarge.copyWith(
-                      color: HwahaeColors.primary,
+                      color: HwahaeColors.onPrimaryContainer,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -101,13 +101,13 @@ class _SpecialtiesScreenState extends ConsumerState<SpecialtiesScreen> {
             color: HwahaeColors.primaryContainer,
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: HwahaeColors.primary, size: 20),
+                const Icon(Icons.info_outline, color: HwahaeColors.onPrimaryContainer, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     '전문 카테고리를 설정하면 관련 미션이 우선 배정됩니다',
                     style: HwahaeTypography.bodySmall.copyWith(
-                      color: HwahaeColors.primary,
+                      color: HwahaeColors.onPrimaryContainer,
                     ),
                   ),
                 ),

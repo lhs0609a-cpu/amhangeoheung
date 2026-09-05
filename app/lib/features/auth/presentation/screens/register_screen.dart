@@ -454,7 +454,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Text(
                   linkText,
                   style: HwahaeTypography.labelSmall.copyWith(
-                    color: HwahaeColors.primary,
+                    color: HwahaeColors.onPrimaryContainer,
                   ),
                 ),
               ),

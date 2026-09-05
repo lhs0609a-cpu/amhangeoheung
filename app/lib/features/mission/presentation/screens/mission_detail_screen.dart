@@ -295,7 +295,7 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
                 steps[stepIndex],
                 style: HwahaeTypography.captionSmall.copyWith(
                   color: isActive
-                      ? HwahaeColors.primary
+                      ? HwahaeColors.onPrimaryContainer
                       : isCompleted
                           ? HwahaeColors.success
                           : HwahaeColors.textTertiary,
@@ -330,7 +330,7 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
           initiallyExpanded: initiallyExpanded,
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          leading: Icon(icon, color: HwahaeColors.primary, size: 22),
+          leading: Icon(icon, color: HwahaeColors.onPrimaryContainer, size: 22),
           title: Text(
             title,
             style: HwahaeTypography.titleSmall.copyWith(
@@ -543,7 +543,7 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: HwahaeColors.primary, size: 20),
+          const Icon(Icons.check_circle, color: HwahaeColors.onPrimaryContainer, size: 20),
           const SizedBox(width: 8),
           Text(
             title,
@@ -950,7 +950,7 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
         ),
         title: Row(
           children: [
-            Icon(Icons.logout, color: HwahaeColors.primary),
+            Icon(Icons.logout, color: HwahaeColors.onPrimaryContainer),
             const SizedBox(width: 8),
             Text('체크아웃', style: HwahaeTypography.titleMedium),
           ],
@@ -1023,7 +1023,7 @@ class _MissionDetailContentState extends ConsumerState<_MissionDetailContent> {
             child: Text(
               '체크아웃',
               style: HwahaeTypography.labelLarge.copyWith(
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1306,7 +1306,7 @@ class _CheckInVerificationSheetState
           child: const Icon(
             Icons.location_searching,
             size: 52,
-            color: HwahaeColors.primary,
+            color: HwahaeColors.onPrimaryContainer,
           ),
         ),
         const SizedBox(height: 24),
@@ -1855,7 +1855,7 @@ class _MissionApplyDialog extends StatelessWidget {
           child: Text(
             '신청하기',
             style: HwahaeTypography.labelLarge.copyWith(
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
               fontWeight: FontWeight.w600,
             ),
           ),

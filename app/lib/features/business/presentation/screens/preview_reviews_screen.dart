@@ -200,7 +200,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                 ),
                 child: Icon(
                   Icons.visibility_outlined,
-                  color: HwahaeColors.primary,
+                  color: HwahaeColors.onPrimaryContainer,
                   size: 20,
                 ),
               ),
@@ -278,7 +278,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                         size: 18,
                         color: step.isHighlighted
                             ? Colors.white
-                            : HwahaeColors.primary,
+                            : HwahaeColors.onPrimaryContainer,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -289,7 +289,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                             ? FontWeight.w700
                             : FontWeight.w500,
                         color: step.isHighlighted
-                            ? HwahaeColors.primary
+                            ? HwahaeColors.onPrimaryContainer
                             : HwahaeColors.textSecondary,
                       ),
                       textAlign: TextAlign.center,
@@ -713,7 +713,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
           children: [
             Icon(
               Icons.info_outline,
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
             ),
             const SizedBox(width: 8),
             Text(
@@ -761,7 +761,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
             child: Text(
               '확인',
               style: HwahaeTypography.labelLarge.copyWith(
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
               ),
             ),
           ),
@@ -783,7 +783,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
           Icon(
             icon,
             size: 18,
-            color: HwahaeColors.primary,
+            color: HwahaeColors.onPrimaryContainer,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -971,7 +971,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                           child: Text(
                             reviewerName[0],
                             style: HwahaeTypography.titleSmall.copyWith(
-                              color: HwahaeColors.primary,
+                              color: HwahaeColors.onPrimaryContainer,
                             ),
                           ),
                         ),
@@ -1107,7 +1107,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
         ),
         title: Row(
           children: [
-            Icon(Icons.reply, color: HwahaeColors.primary),
+            Icon(Icons.reply, color: HwahaeColors.onPrimaryContainer),
             const SizedBox(width: 8),
             Text('답변 작성', style: HwahaeTypography.titleMedium),
           ],
@@ -1187,7 +1187,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
             child: Text(
               '등록',
               style: HwahaeTypography.labelLarge.copyWith(
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
                 fontWeight: FontWeight.w600,
               ),
             ),

@@ -520,7 +520,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
           Icon(
             Icons.schedule,
             size: 18,
-            color: HwahaeColors.primary,
+            color: HwahaeColors.onPrimaryContainer,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -536,7 +536,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
                 Text(
                   '${_formatDate(estimatedDate)} ${daysLeft > 0 ? '($daysLeft일 후)' : '(오늘)'}',
                   style: HwahaeTypography.labelMedium.copyWith(
-                    color: HwahaeColors.primary,
+                    color: HwahaeColors.onPrimaryContainer,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -575,7 +575,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
             child: Text(
               '재시도',
               style: HwahaeTypography.labelLarge.copyWith(
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -703,7 +703,7 @@ class _SettlementsScreenState extends ConsumerState<SettlementsScreen> {
             child: Text(
               '신청하기',
               style: HwahaeTypography.labelLarge.copyWith(
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
                 fontWeight: FontWeight.w600,
               ),
             ),

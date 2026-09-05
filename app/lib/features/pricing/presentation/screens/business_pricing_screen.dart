@@ -579,7 +579,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
                         style: HwahaeTypography.labelMedium.copyWith(
                           fontWeight: FontWeight.w600,
                           color: name == 'Growth'
-                              ? HwahaeColors.primary
+                              ? HwahaeColors.onPrimaryContainer
                               : HwahaeColors.textPrimary,
                         ),
                       ),
@@ -647,7 +647,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
     if (value == 'O') {
       return Icon(
         Icons.check_circle,
-        color: isHighlighted ? HwahaeColors.primary : HwahaeColors.success,
+        color: isHighlighted ? HwahaeColors.onPrimaryContainer : HwahaeColors.success,
         size: 20,
       );
     }
@@ -662,7 +662,7 @@ class _BusinessPricingScreenState extends ConsumerState<BusinessPricingScreen>
       value,
       textAlign: TextAlign.center,
       style: HwahaeTypography.captionMedium.copyWith(
-        color: isHighlighted ? HwahaeColors.primary : null,
+        color: isHighlighted ? HwahaeColors.onPrimaryContainer : null,
         fontWeight: isHighlighted ? FontWeight.w600 : null,
       ),
     );

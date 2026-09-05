@@ -810,13 +810,13 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.store, size: 18, color: HwahaeColors.primary),
+              const Icon(Icons.store, size: 18, color: HwahaeColors.onPrimaryContainer),
               const SizedBox(width: 8),
               Text(
                 '업체 측 답변',
                 style: HwahaeTypography.labelMedium.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: HwahaeColors.primary,
+                  color: HwahaeColors.onPrimaryContainer,
                 ),
               ),
               const Spacer(),
@@ -920,13 +920,13 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
                     Icon(
                       _isHelpful ? Icons.thumb_up : Icons.thumb_up_outlined,
                       size: 18,
-                      color: _isHelpful ? HwahaeColors.primary : HwahaeColors.textSecondary,
+                      color: _isHelpful ? HwahaeColors.onPrimaryContainer : HwahaeColors.textSecondary,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '도움됨 $_helpfulCount',
                       style: HwahaeTypography.labelSmall.copyWith(
-                        color: _isHelpful ? HwahaeColors.primary : HwahaeColors.textSecondary,
+                        color: _isHelpful ? HwahaeColors.onPrimaryContainer : HwahaeColors.textSecondary,
                         fontWeight: _isHelpful ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
@@ -1252,7 +1252,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.thumb_up_alt, color: HwahaeColors.primary, size: 20),
+              const Icon(Icons.thumb_up_alt, color: HwahaeColors.onPrimaryContainer, size: 20),
               const SizedBox(width: 8),
               Text('더 나은 대안', style: HwahaeTypography.titleSmall),
             ],
@@ -1282,7 +1282,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
                           color: HwahaeColors.primaryContainer,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.store, color: HwahaeColors.primary, size: 20),
+                        child: const Icon(Icons.store, color: HwahaeColors.onPrimaryContainer, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

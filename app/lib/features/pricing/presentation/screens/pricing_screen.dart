@@ -610,7 +610,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
                         style: HwahaeTypography.labelMedium.copyWith(
                           fontWeight: FontWeight.w600,
                           color: name == 'Pro'
-                              ? HwahaeColors.primary
+                              ? HwahaeColors.onPrimaryContainer
                               : HwahaeColors.textPrimary,
                         ),
                       ),
@@ -677,7 +677,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
     if (value == 'O') {
       return Icon(
         Icons.check_circle,
-        color: isPro ? HwahaeColors.primary : HwahaeColors.success,
+        color: isPro ? HwahaeColors.onPrimaryContainer : HwahaeColors.success,
         size: 20,
       );
     }
@@ -692,7 +692,7 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
       value,
       textAlign: TextAlign.center,
       style: HwahaeTypography.captionMedium.copyWith(
-        color: isPro ? HwahaeColors.primary : null,
+        color: isPro ? HwahaeColors.onPrimaryContainer : null,
         fontWeight: isPro ? FontWeight.w600 : null,
       ),
     );
@@ -719,12 +719,12 @@ class _PricingScreenState extends ConsumerState<PricingScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.verified, color: HwahaeColors.primary),
+                  const Icon(Icons.verified, color: HwahaeColors.onPrimaryContainer),
                   const SizedBox(width: 8),
                   Text(
                     '미션 보장제',
                     style: HwahaeTypography.titleMedium.copyWith(
-                      color: HwahaeColors.primary,
+                      color: HwahaeColors.onPrimaryContainer,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

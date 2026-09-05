@@ -189,7 +189,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
                     ),
                     unselectedLabelColor: HwahaeColors.textSecondary,
                     unselectedLabelStyle: HwahaeTypography.labelMedium,
-                    indicatorColor: HwahaeColors.primary,
+                    indicatorColor: HwahaeColors.onPrimaryContainer,
                     indicatorWeight: 3,
                     indicatorSize: TabBarIndicatorSize.label,
                   ),
@@ -315,7 +315,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
       child: Row(
         children: [
           if (_selectedPeriod == value)
-            const Icon(Icons.check, size: 18, color: HwahaeColors.primary)
+            const Icon(Icons.check, size: 18, color: HwahaeColors.onPrimaryContainer)
           else
             const SizedBox(width: 18),
           const SizedBox(width: 8),
@@ -558,7 +558,7 @@ class _BusinessRankingTab extends ConsumerWidget {
               ),
               child: Icon(
                 _getCategoryIcon(ranking.category),
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
                 size: isFirst ? 28 : 22,
               ),
             ),
@@ -652,7 +652,7 @@ class _BusinessRankingCard extends StatelessWidget {
                     '${ranking.rank}',
                     style: HwahaeTypography.titleMedium.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: HwahaeColors.primary,
+                      color: HwahaeColors.onPrimaryContainer,
                     ),
                   ),
                   if (ranking.rankChange != 0)
@@ -725,7 +725,7 @@ class _BusinessRankingCard extends StatelessWidget {
                         child: Text(
                           '리뷰 ${ranking.reviewCount}',
                           style: HwahaeTypography.captionSmall.copyWith(
-                            color: HwahaeColors.primary,
+                            color: HwahaeColors.onPrimaryContainer,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1014,7 +1014,7 @@ class _ReviewerRankingTab extends ConsumerWidget {
             ),
             child: const Icon(
               Icons.info_outline_rounded,
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
               size: 20,
             ),
           ),
@@ -1027,7 +1027,7 @@ class _ReviewerRankingTab extends ConsumerWidget {
                   '리뷰어 등급 시스템',
                   style: HwahaeTypography.labelMedium.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: HwahaeColors.primary,
+                    color: HwahaeColors.onPrimaryContainer,
                   ),
                 ),
                 Text(
@@ -1080,7 +1080,7 @@ class _ReviewerRankingCard extends StatelessWidget {
                     '${ranking.rank}',
                     style: HwahaeTypography.titleMedium.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: HwahaeColors.primary,
+                      color: HwahaeColors.onPrimaryContainer,
                     ),
                   ),
                   if (ranking.rankChange != 0)

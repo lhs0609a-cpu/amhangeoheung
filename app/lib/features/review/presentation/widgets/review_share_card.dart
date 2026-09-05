@@ -55,7 +55,7 @@ class ReviewShareCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text('암행어흥', style: HwahaeTypography.labelMedium.copyWith(
-                color: HwahaeColors.primary, fontWeight: FontWeight.w700,
+                color: HwahaeColors.onPrimaryContainer, fontWeight: FontWeight.w700,
               )),
               const Spacer(),
               Container(

@@ -165,7 +165,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Text(
                     '미션 찾기',
                     style: HwahaeTypography.labelSmall.copyWith(
-                      color: HwahaeColors.primary,
+                      color: HwahaeColors.onPrimaryContainer,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -920,7 +920,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: 20),
             _buildUserTypeOption(UserType.reviewer, '리뷰어', '미션 수행 및 보상', Icons.rate_review_rounded, HwahaeColors.warning),
             _buildUserTypeOption(UserType.business, '업체', '신뢰도 관리 및 미션 등록', Icons.storefront_rounded, HwahaeColors.accent),
-            _buildUserTypeOption(UserType.consumer, '소비자', '리뷰 탐색 및 업체 검색', Icons.person_rounded, HwahaeColors.primary),
+            _buildUserTypeOption(UserType.consumer, '소비자', '리뷰 탐색 및 업체 검색', Icons.person_rounded, HwahaeColors.onPrimaryContainer),
             const SizedBox(height: 16),
           ],
         ),

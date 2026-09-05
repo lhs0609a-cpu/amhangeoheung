@@ -364,7 +364,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
                         _stepLabels[index],
                         style: HwahaeTypography.captionMedium.copyWith(
                           color: isActive
-                              ? HwahaeColors.primary
+                              ? HwahaeColors.onPrimaryContainer
                               : isCompleted
                                   ? HwahaeColors.success
                                   : HwahaeColors.textSecondary,
@@ -446,7 +446,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
           Text(
             '평균 ${average.toStringAsFixed(1)}점',
             style: HwahaeTypography.titleSmall.copyWith(
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -454,7 +454,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
           Text(
             '($filledCount/${_scores.length} 항목 평가됨)',
             style: HwahaeTypography.captionLarge.copyWith(
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
             ),
           ),
         ],
@@ -673,7 +673,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
                   Text(
                     '${average.toStringAsFixed(1)}점',
                     style: HwahaeTypography.labelLarge.copyWith(
-                      color: HwahaeColors.primary,
+                      color: HwahaeColors.onPrimaryContainer,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1034,7 +1034,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
             ),
             child: Icon(
               categoryIcon,
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
             ),
           ),
           const SizedBox(width: 12),
@@ -1151,7 +1151,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
                 '${_scores[label] ?? 0}',
                 style: HwahaeTypography.labelLarge.copyWith(
                   color: (_scores[label] ?? 0) > 0
-                      ? HwahaeColors.primary
+                      ? HwahaeColors.onPrimaryContainer
                       : HwahaeColors.textSecondary,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1293,14 +1293,14 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
           children: [
             const Icon(
               Icons.add_photo_alternate,
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
               size: 32,
             ),
             const SizedBox(height: 4),
             Text(
               '${_photos.length}/10',
               style: HwahaeTypography.captionMedium.copyWith(
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
               ),
             ),
           ],
@@ -1409,14 +1409,14 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
         children: [
           Icon(
             Icons.receipt_long,
-            color: HwahaeColors.primary,
+            color: HwahaeColors.onPrimaryContainer,
             size: 48,
           ),
           SizedBox(height: 12),
           Text(
             '영수증 촬영하기',
             style: TextStyle(
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1898,7 +1898,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
             child: Text(
               '제출하기',
               style: HwahaeTypography.labelLarge.copyWith(
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
                 fontWeight: FontWeight.w600,
               ),
             ),

@@ -547,7 +547,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: HwahaeColors.primary),
+        Icon(icon, size: 16, color: HwahaeColors.onPrimaryContainer),
         const SizedBox(width: 4),
         Text(
           value,
@@ -930,7 +930,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                 child: Text(
                   '상위 ${((comparison.rankInCategory / comparison.totalInCategory) * 100).toInt()}%',
                   style: HwahaeTypography.labelSmall.copyWith(
-                    color: HwahaeColors.primary,
+                    color: HwahaeColors.onPrimaryContainer,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

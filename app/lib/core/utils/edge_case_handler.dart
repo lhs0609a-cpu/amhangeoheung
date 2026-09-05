@@ -357,7 +357,7 @@ class ErrorDialogHelper {
           child: Text(
             '다시 시도',
             style: HwahaeTypography.labelLarge.copyWith(
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -375,7 +375,7 @@ class ErrorDialogHelper {
           child: Text(
             '로그인',
             style: HwahaeTypography.labelLarge.copyWith(
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
               fontWeight: FontWeight.w600,
             ),
           ),

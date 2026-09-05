@@ -194,7 +194,7 @@ class _MissionListScreenState extends ConsumerState<MissionListScreen>
               Icons.filter_list_rounded,
               size: 16,
               color: _selectedMissionType != null
-                  ? HwahaeColors.primary
+                  ? HwahaeColors.onPrimaryContainer
                   : HwahaeColors.textSecondary,
             ),
             const SizedBox(width: 4),
@@ -202,7 +202,7 @@ class _MissionListScreenState extends ConsumerState<MissionListScreen>
               types.firstWhere((e) => e.key == _selectedMissionType).value,
               style: HwahaeTypography.labelSmall.copyWith(
                 color: _selectedMissionType != null
-                    ? HwahaeColors.primary
+                    ? HwahaeColors.onPrimaryContainer
                     : HwahaeColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
@@ -216,7 +216,7 @@ class _MissionListScreenState extends ConsumerState<MissionListScreen>
           child: Row(
             children: [
               if (entry.key == _selectedMissionType)
-                const Icon(Icons.check, size: 16, color: HwahaeColors.primary)
+                const Icon(Icons.check, size: 16, color: HwahaeColors.onPrimaryContainer)
               else
                 const SizedBox(width: 16),
               const SizedBox(width: 8),
@@ -536,7 +536,7 @@ class _HiddenMissionsSection extends StatelessWidget {
                           Text(
                             mission.rewardDisplayText,
                             style: HwahaeTypography.captionMedium.copyWith(
-                              color: HwahaeColors.primary,
+                              color: HwahaeColors.onPrimaryContainer,
                               fontWeight: FontWeight.w600,
                             ),
                             maxLines: 1,
@@ -833,7 +833,7 @@ class _MissionCard extends StatelessWidget {
                       mission.rewardDisplayText,
                       style: HwahaeTypography.labelMedium.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: HwahaeColors.primary,
+                        color: HwahaeColors.onPrimaryContainer,
                       ),
                     ),
                   ],
@@ -894,7 +894,7 @@ class _MissionCard extends StatelessWidget {
         child: Text(
           '리뷰 작성',
           style: HwahaeTypography.labelMedium.copyWith(
-            color: HwahaeColors.primary,
+            color: HwahaeColors.onPrimaryContainer,
             fontWeight: FontWeight.w600,
           ),
         ),

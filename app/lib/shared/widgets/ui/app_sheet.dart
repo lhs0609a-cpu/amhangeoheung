@@ -162,7 +162,7 @@ Future<bool> showAppConfirm({
                   icon,
                   size: 26,
                   color:
-                      destructive ? HwahaeColors.error : HwahaeColors.primary,
+                      destructive ? HwahaeColors.error : HwahaeColors.onPrimaryContainer,
                 ),
               ),
             ),
@@ -269,7 +269,7 @@ Future<int?> showAppOptionSheet({
                     icons[index],
                     size: 20,
                     color: isSelected
-                        ? HwahaeColors.primary
+                        ? HwahaeColors.onPrimaryContainer
                         : HwahaeColors.textSecondary,
                   ),
                   const SizedBox(width: 12),
@@ -279,7 +279,7 @@ Future<int?> showAppOptionSheet({
                     options[index],
                     style: HwahaeTypography.titleSmall.copyWith(
                       color: isSelected
-                          ? HwahaeColors.primary
+                          ? HwahaeColors.onPrimaryContainer
                           : HwahaeColors.textPrimary,
                       fontWeight:
                           isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -290,7 +290,7 @@ Future<int?> showAppOptionSheet({
                   const Icon(
                     Icons.check_rounded,
                     size: 20,
-                    color: HwahaeColors.primary,
+                    color: HwahaeColors.onPrimaryContainer,
                   ),
               ],
             ),

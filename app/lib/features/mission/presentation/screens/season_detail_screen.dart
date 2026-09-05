@@ -130,7 +130,7 @@ class _SeasonDetailScreenState extends ConsumerState<SeasonDetailScreen> {
                 trailing: Text(
                   '${mission['reviewer_fee'] ?? 0}원',
                   style: HwahaeTypography.labelMedium.copyWith(
-                    color: HwahaeColors.primary,
+                    color: HwahaeColors.onPrimaryContainer,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

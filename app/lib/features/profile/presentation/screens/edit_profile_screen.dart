@@ -75,7 +75,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 : Text(
                     '저장',
                     style: HwahaeTypography.labelLarge.copyWith(
-                      color: HwahaeColors.primary,
+                      color: HwahaeColors.onPrimaryContainer,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

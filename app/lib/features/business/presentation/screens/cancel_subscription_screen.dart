@@ -222,7 +222,7 @@ class _CancelSubscriptionScreenState extends ConsumerState<CancelSubscriptionScr
             ),
             child: Column(
               children: [
-                const Icon(Icons.pause_circle_rounded, size: 40, color: HwahaeColors.primary),
+                const Icon(Icons.pause_circle_rounded, size: 40, color: HwahaeColors.onPrimaryContainer),
                 const SizedBox(height: 12),
                 Text('1개월 일시정지', style: HwahaeTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),

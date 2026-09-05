@@ -74,6 +74,60 @@ void main() {
     });
   });
 
+  group('밝은 면 위의 브랜드 색', () {
+    // 골드를 글자·아이콘 색으로 쓰면 흰 바탕에서 1.86:1 이다. 화면 100여
+    // 곳이 그렇게 돼 있었다. 밝은 면 위의 브랜드 강조는 onPrimaryContainer
+    // 를 쓴다.
+    test('골드를 밝은 면의 글자색으로 쓰면 안 된다', () {
+      expect(contrastRatio(HwahaeColors.primary, HwahaeColors.surface),
+          lessThan(kLargeMin));
+      expect(contrastRatio(HwahaeColors.primary, HwahaeColors.background),
+          lessThan(kLargeMin));
+    });
+
+    test('onPrimaryContainer 는 흰 면과 크림 면 모두에서 본문 기준을 넘는다', () {
+      expect(
+          contrastRatio(
+              HwahaeColors.onPrimaryContainer, HwahaeColors.surface),
+          greaterThanOrEqualTo(kBodyMin));
+      expect(
+          contrastRatio(
+              HwahaeColors.onPrimaryContainer, HwahaeColors.background),
+          greaterThanOrEqualTo(kBodyMin));
+    });
+
+    test('골드는 먹색 면 위에서는 오히려 잘 읽힌다', () {
+      // 다크 카드에서 골드를 금지하면 안 된다 — 거기서는 맞는 선택이다.
+      expect(contrastRatio(HwahaeColors.primary, HwahaeColors.textPrimary),
+          greaterThanOrEqualTo(kBodyMin));
+    });
+  });
+
+  group('골드 면 위의 글자', () {
+    // 그라디언트는 양 끝 색이 다르다. 한쪽 끝에서만 읽히면 반쪽짜리다.
+    test('onPrimary 는 브랜드 그라디언트 전 구간에서 읽힌다', () {
+      for (final stop in [
+        ...HwahaeColors.gradientPrimary,
+        ...HwahaeColors.gradientWarm,
+      ]) {
+        expect(
+          contrastRatio(HwahaeColors.onPrimary, stop),
+          greaterThanOrEqualTo(kBodyMin),
+          reason: '$stop 위에서 onPrimary 가 모자란다',
+        );
+      }
+    });
+
+    test('흰 글자는 그라디언트 어느 구간에서도 기준에 못 미친다', () {
+      for (final stop in [
+        ...HwahaeColors.gradientPrimary,
+        ...HwahaeColors.gradientWarm,
+      ]) {
+        expect(contrastRatio(Colors.white, stop), lessThan(kBodyMin));
+      }
+    });
+  });
+
   group('onColor 자동 선택', () {
     test('밝은 면에는 먹색, 어두운 면에는 크림색을 고른다', () {
       expect(HwahaeColors.onColor(HwahaeColors.primary),

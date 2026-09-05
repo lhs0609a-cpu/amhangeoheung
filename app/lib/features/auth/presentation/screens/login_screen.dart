@@ -276,7 +276,7 @@ class _LoginScreenState extends State<LoginScreen>
               child: const Icon(
                 Icons.email_outlined,
                 size: 20,
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
               ),
             ),
           ),
@@ -322,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen>
               child: const Icon(
                 Icons.lock_outline_rounded,
                 size: 20,
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
               ),
             ),
             suffixIcon: IconButton(
@@ -366,7 +366,7 @@ class _LoginScreenState extends State<LoginScreen>
           child: Text(
             '비밀번호를 잊으셨나요?',
             style: HwahaeTypography.labelMedium.copyWith(
-              color: HwahaeColors.primary,
+              color: HwahaeColors.onPrimaryContainer,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -470,7 +470,7 @@ class _LoginScreenState extends State<LoginScreen>
               child: Text(
                 '회원가입',
                 style: HwahaeTypography.labelLarge.copyWith(
-                  color: HwahaeColors.primary,
+                  color: HwahaeColors.onPrimaryContainer,
                   fontWeight: FontWeight.w600,
                 ),
               ),

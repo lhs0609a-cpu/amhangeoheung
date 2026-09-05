@@ -441,7 +441,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Row(
               children: [
                 Icon(Icons.verified_user,
-                    color: HwahaeColors.primary, size: 20),
+                    color: HwahaeColors.onPrimaryContainer, size: 20),
                 const SizedBox(width: 8),
                 Text('리뷰어 현황',
                     style: HwahaeTypography.titleSmall
@@ -468,7 +468,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         child: Column(
                           children: [
                             const Icon(Icons.school,
-                                color: HwahaeColors.primary),
+                                color: HwahaeColors.onPrimaryContainer),
                             const SizedBox(height: 4),
                             Text('인증', style: HwahaeTypography.labelSmall),
                             Text(
@@ -657,7 +657,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       child: Icon(
                         item.icon,
-                        color: HwahaeColors.primary,
+                        color: HwahaeColors.onPrimaryContainer,
                         size: 20,
                       ),
                     ),
@@ -757,7 +757,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Text(
               '신청하기',
               style: HwahaeTypography.labelLarge.copyWith(
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -840,7 +840,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text(
                   '${_formatCurrency(totalEarnings)}원',
                   style: HwahaeTypography.headlineSmall.copyWith(
-                    color: HwahaeColors.primary,
+                    color: HwahaeColors.onPrimaryContainer,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -899,7 +899,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     Text('등급 혜택',
                         style: HwahaeTypography.labelMedium.copyWith(
-                          color: HwahaeColors.primary,
+                          color: HwahaeColors.onPrimaryContainer,
                           fontWeight: FontWeight.bold,
                         )),
                     const SizedBox(height: 8),
@@ -923,7 +923,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildBenefitRow(IconData icon, String label) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: HwahaeColors.primary),
+        Icon(icon, size: 16, color: HwahaeColors.onPrimaryContainer),
         const SizedBox(width: 6),
         Text(label,
             style: HwahaeTypography.bodySmall.copyWith(

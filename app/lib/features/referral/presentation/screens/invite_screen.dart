@@ -174,7 +174,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildStatItem('초대', '${stats.total}명', HwahaeColors.primary),
+              _buildStatItem('초대', '${stats.total}명', HwahaeColors.onPrimaryContainer),
               _buildStatItem('가입', '${stats.registered}명', HwahaeColors.warning),
               _buildStatItem('완료', '${stats.rewarded}명', HwahaeColors.success),
               _buildStatItem('수익', '${_formatCurrency(stats.totalEarnings)}원', HwahaeColors.accent),

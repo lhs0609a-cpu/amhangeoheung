@@ -306,7 +306,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
           ),
           child: const Icon(
             Icons.mark_email_unread_outlined,
-            color: HwahaeColors.primary,
+            color: HwahaeColors.onPrimaryContainer,
             size: 36,
           ),
         ),
@@ -515,7 +515,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
                         style: HwahaeTypography.labelLarge.copyWith(
                           color: _resendCooldown > 0
                               ? HwahaeColors.textDisabled
-                              : HwahaeColors.primary,
+                              : HwahaeColors.onPrimaryContainer,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

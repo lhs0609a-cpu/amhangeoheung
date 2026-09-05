@@ -302,7 +302,7 @@ class _Certificate extends StatelessWidget {
             style: HwahaeTypography.headlineSmall.copyWith(letterSpacing: 2),
           ),
           const SizedBox(height: 10),
-          const Divider(color: HwahaeColors.primary, thickness: 1),
+          const Divider(color: HwahaeColors.onPrimaryContainer, thickness: 1),
           const SizedBox(height: 12),
           Text(
             '위 사람은 암행어흥 리뷰어 교육 과정을\n성실히 이수하였음을 인증합니다.',

@@ -51,7 +51,7 @@ class LegalScreen extends StatelessWidget {
               child: Text(
                 '최종 업데이트: ${LegalContent.lastUpdated}',
                 style: HwahaeTypography.captionMedium.copyWith(
-                  color: HwahaeColors.primary,
+                  color: HwahaeColors.onPrimaryContainer,
                 ),
               ),
             ),
@@ -149,7 +149,7 @@ class LegalScreen extends StatelessWidget {
               Icon(
                 Icons.help_outline,
                 size: 20,
-                color: HwahaeColors.primary,
+                color: HwahaeColors.onPrimaryContainer,
               ),
               const SizedBox(width: 8),
               Text(

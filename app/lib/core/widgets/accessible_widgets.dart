@@ -292,13 +292,13 @@ class AccessibleStatusBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: textColor ?? HwahaeColors.primary),
+            Icon(icon, size: 14, color: textColor ?? HwahaeColors.onPrimaryContainer),
             const SizedBox(width: 4),
           ],
           Text(
             status,
             style: HwahaeTypography.labelSmall.copyWith(
-              color: textColor ?? HwahaeColors.primary,
+              color: textColor ?? HwahaeColors.onPrimaryContainer,
               fontWeight: FontWeight.w600,
             ),
           ),

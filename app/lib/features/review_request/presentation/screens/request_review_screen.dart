@@ -69,7 +69,7 @@ class _RequestReviewScreenState extends ConsumerState<RequestReviewScreen> {
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.rate_review_rounded, size: 48, color: HwahaeColors.primary),
+                  const Icon(Icons.rate_review_rounded, size: 48, color: HwahaeColors.onPrimaryContainer),
                   const SizedBox(height: 12),
                   Text(
                     '이 업체의 리뷰를 요청하세요',
