@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
@@ -209,15 +210,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
         _startResendCooldown();
         _clearCode();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('인증 코드가 재전송되었습니다.'),
-              backgroundColor: HwahaeColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          );
+          AppToast.success(context, '인증 코드가 재전송되었습니다.');
         }
       } else {
         setState(() {
@@ -517,7 +510,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
                       )
                     : Text(
                         _resendCooldown > 0
-                            ? '재전송 (${_resendCooldown}초)'
+                            ? '재전송 ($_resendCooldown초)'
                             : '재전송',
                         style: HwahaeTypography.labelLarge.copyWith(
                           color: _resendCooldown > 0

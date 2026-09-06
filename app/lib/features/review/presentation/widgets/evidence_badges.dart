@@ -23,7 +23,7 @@ class EvidenceBadges extends StatelessWidget {
         if (gpsVerified) _buildBadge(Icons.location_on_rounded, 'GPS 인증', HwahaeColors.primary),
         if (receiptVerified) _buildBadge(Icons.receipt_long_rounded, '영수증 인증', HwahaeColors.success),
         if (stayDurationMinutes != null && stayDurationMinutes! > 0)
-          _buildBadge(Icons.timer_rounded, '${stayDurationMinutes}분 체류', HwahaeColors.warning),
+          _buildBadge(Icons.timer_rounded, '$stayDurationMinutes분 체류', HwahaeColors.warning),
       ],
     );
   }
@@ -32,9 +32,9 @@ class EvidenceBadges extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

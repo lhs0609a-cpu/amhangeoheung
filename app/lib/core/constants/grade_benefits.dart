@@ -196,7 +196,7 @@ class ReviewerGrades {
           description: '제휴 업체 특별 할인',
         ),
         GradeBenefit(
-          icon: Icons.vip_rounded,
+          icon: Icons.diamond_rounded,
           title: 'VIP 고객 지원',
           description: '전용 핫라인 및 최우선 처리',
         ),

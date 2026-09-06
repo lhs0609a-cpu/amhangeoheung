@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/network/api_client.dart';
@@ -249,7 +248,7 @@ class _SearchResultCard extends StatelessWidget {
                   const Icon(Icons.star_rounded, size: 16, color: HwahaeColors.warning),
                   const SizedBox(width: 2),
                   Text(
-                    '${(business['avg_rating'] as num).toStringAsFixed(1)}',
+                    (business['avg_rating'] as num).toStringAsFixed(1),
                     style: HwahaeTypography.labelMedium.copyWith(
                       fontWeight: FontWeight.w600,
                     ),

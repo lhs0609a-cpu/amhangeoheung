@@ -109,7 +109,7 @@ class ErrorView extends StatelessWidget {
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(

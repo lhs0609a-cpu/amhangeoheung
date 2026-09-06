@@ -7,6 +7,7 @@ import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../../review/data/repositories/review_repository.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 /// 선공개 리뷰 목록 (업체용) — 실제 API GET /reviews/preview
 final previewReviewsProvider =
@@ -20,7 +21,8 @@ class PreviewReviewsScreen extends ConsumerStatefulWidget {
   const PreviewReviewsScreen({super.key});
 
   @override
-  ConsumerState<PreviewReviewsScreen> createState() => _PreviewReviewsScreenState();
+  ConsumerState<PreviewReviewsScreen> createState() =>
+      _PreviewReviewsScreenState();
 }
 
 class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
@@ -90,11 +92,13 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
           padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
           child: Column(
             children: [
-              Icon(Icons.error_outline, size: 40, color: HwahaeColors.textTertiary),
+              Icon(Icons.error_outline,
+                  size: 40, color: HwahaeColors.textTertiary),
               const SizedBox(height: 12),
               Text(
                 '선공개 리뷰를 불러오지 못했습니다.',
-                style: HwahaeTypography.bodyMedium.copyWith(color: HwahaeColors.textSecondary),
+                style: HwahaeTypography.bodyMedium
+                    .copyWith(color: HwahaeColors.textSecondary),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
@@ -112,11 +116,13 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
               padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
               child: Column(
                 children: [
-                  Icon(Icons.rate_review_outlined, size: 48, color: HwahaeColors.textTertiary),
+                  Icon(Icons.rate_review_outlined,
+                      size: 48, color: HwahaeColors.textTertiary),
                   const SizedBox(height: 12),
                   Text(
                     '아직 선공개 리뷰가 없습니다.',
-                    style: HwahaeTypography.bodyMedium.copyWith(color: HwahaeColors.textSecondary),
+                    style: HwahaeTypography.bodyMedium
+                        .copyWith(color: HwahaeColors.textSecondary),
                   ),
                 ],
               ),
@@ -132,10 +138,12 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                 final review = reviews[index];
                 final reviewer = (review['reviewer'] as Map?) ?? {};
                 final preview = (review['preview'] as Map?) ?? {};
-                final submittedRaw =
-                    preview['submittedAt'] ?? review['submitted_at'] ?? review['created_at'];
+                final submittedRaw = preview['submittedAt'] ??
+                    review['submitted_at'] ??
+                    review['created_at'];
                 final submittedAt = submittedRaw != null
-                    ? (DateTime.tryParse(submittedRaw.toString()) ?? DateTime.now())
+                    ? (DateTime.tryParse(submittedRaw.toString()) ??
+                        DateTime.now())
                     : DateTime.now();
 
                 return Padding(
@@ -143,9 +151,13 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                   child: _buildPreviewReviewCard(
                     reviewId: (review['id'] ?? '').toString(),
                     reviewerName: (reviewer['nickname'] ?? '익명').toString(),
-                    reviewerGrade: (reviewer['reviewer_grade'] ?? 'rookie').toString(),
-                    totalScore: ((review['total_score'] ?? 0) as num).toDouble(),
-                    summary: (review['summary'] ?? review['detailed_review'] ?? '').toString(),
+                    reviewerGrade:
+                        (reviewer['reviewer_grade'] ?? 'rookie').toString(),
+                    totalScore:
+                        ((review['total_score'] ?? 0) as num).toDouble(),
+                    summary:
+                        (review['summary'] ?? review['detailed_review'] ?? '')
+                            .toString(),
                     submittedAt: submittedAt,
                     hasResponse: review['business_response'] != null,
                   ),
@@ -166,13 +178,13 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            HwahaeColors.primary.withOpacity(0.1),
-            HwahaeColors.accent.withOpacity(0.05),
+            HwahaeColors.primary.withValues(alpha: 0.1),
+            HwahaeColors.accent.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: HwahaeColors.primary.withOpacity(0.2),
+          color: HwahaeColors.primary.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -183,7 +195,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.primary.withOpacity(0.1),
+                  color: HwahaeColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -258,7 +270,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                       decoration: BoxDecoration(
                         color: step.isHighlighted
                             ? HwahaeColors.primary
-                            : HwahaeColors.primary.withOpacity(0.1),
+                            : HwahaeColors.primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -322,14 +334,14 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
         border: Border.all(
           color: isExpired
               ? HwahaeColors.border
-              : HwahaeColors.warning.withOpacity(0.3),
+              : HwahaeColors.warning.withValues(alpha: 0.3),
           width: isExpired ? 1 : 2,
         ),
         boxShadow: isExpired
             ? null
             : [
                 BoxShadow(
-                  color: HwahaeColors.warning.withOpacity(0.1),
+                  color: HwahaeColors.warning.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -344,7 +356,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: HwahaeColors.warning.withOpacity(0.1),
+                color: HwahaeColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -376,7 +388,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: HwahaeColors.error.withOpacity(0.1),
+                        color: HwahaeColors.error.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -398,7 +410,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _getGradeColor(reviewerGrade).withOpacity(0.1),
+                  color: _getGradeColor(reviewerGrade).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -431,7 +443,8 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: _getGradeColor(reviewerGrade).withOpacity(0.1),
+                            color: _getGradeColor(reviewerGrade)
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -455,9 +468,10 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
               ),
               // 점수
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _getScoreColor(totalScore).withOpacity(0.1),
+                  color: _getScoreColor(totalScore).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -507,7 +521,8 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    _showReviewDetailDialog(reviewId, reviewerName, totalScore, summary);
+                    _showReviewDetailDialog(
+                        reviewId, reviewerName, totalScore, summary);
                   },
                   icon: const Icon(Icons.visibility_outlined, size: 18),
                   label: const Text('상세보기'),
@@ -536,7 +551,8 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: HwahaeColors.primary,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: HwahaeColors.success.withOpacity(0.1),
+                    disabledBackgroundColor:
+                        HwahaeColors.success.withValues(alpha: 0.1),
                     disabledForegroundColor: HwahaeColors.success,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -649,7 +665,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                   width: 2,
                   height: 20,
                   color: isCompleted
-                      ? HwahaeColors.success.withOpacity(0.3)
+                      ? HwahaeColors.success.withValues(alpha: 0.3)
                       : HwahaeColors.border,
                 ),
             ],
@@ -689,7 +705,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
   void _showPreviewInfoDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -741,7 +757,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               '확인',
               style: HwahaeTypography.labelLarge.copyWith(
@@ -798,7 +814,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
     final disputeController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -849,7 +865,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               '취소',
               style: HwahaeTypography.labelLarge.copyWith(
@@ -861,19 +877,10 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
             onPressed: () async {
               final reason = disputeController.text.trim();
               if (reason.length < 10) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('이의 사유를 10자 이상 작성해주세요'),
-                    backgroundColor: HwahaeColors.warning,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
+                AppToast.warning(context, '이의 사유를 10자 이상 작성해주세요');
                 return;
               }
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               bool success = false;
               String errorMsg = '이의 제기 등록에 실패했습니다';
               try {
@@ -889,17 +896,11 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                 errorMsg = ApiClient.extractErrorMessage(e) ?? errorMsg;
               }
               if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(success ? '이의 제기가 접수되었습니다.' : errorMsg),
-                  backgroundColor:
-                      success ? HwahaeColors.primary : HwahaeColors.error,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              );
+              if (success) {
+                AppToast.success(context, '이의 제기가 접수되었습니다.');
+              } else {
+                AppToast.error(context, errorMsg);
+              }
               if (success && mounted) setState(() {});
             },
             child: Text(
@@ -915,12 +916,13 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
     );
   }
 
-  void _showReviewDetailDialog(String reviewId, String reviewerName, double score, String summary) {
+  void _showReviewDetailDialog(
+      String reviewId, String reviewerName, double score, String summary) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (dialogContext) => Container(
         height: MediaQuery.of(context).size.height * 0.75,
         decoration: const BoxDecoration(
           color: HwahaeColors.surface,
@@ -947,7 +949,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                   Text('리뷰 상세', style: HwahaeTypography.titleMedium),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(dialogContext),
                   ),
                 ],
               ),
@@ -964,7 +966,8 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                     Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: HwahaeColors.primary.withOpacity(0.1),
+                          backgroundColor:
+                              HwahaeColors.primary.withValues(alpha: 0.1),
                           child: Text(
                             reviewerName[0],
                             style: HwahaeTypography.titleSmall.copyWith(
@@ -977,14 +980,17 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(reviewerName, style: HwahaeTypography.titleSmall),
+                              Text(reviewerName,
+                                  style: HwahaeTypography.titleSmall),
                               Row(
                                 children: [
-                                  Icon(Icons.star, size: 16, color: HwahaeColors.ratingStar),
+                                  Icon(Icons.star,
+                                      size: 16, color: HwahaeColors.ratingStar),
                                   const SizedBox(width: 4),
                                   Text(
                                     score.toStringAsFixed(1),
-                                    style: HwahaeTypography.labelMedium.copyWith(
+                                    style:
+                                        HwahaeTypography.labelMedium.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -997,16 +1003,18 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                     ),
                     const SizedBox(height: 20),
                     // 리뷰 요약
-                    Text('리뷰 요약', style: HwahaeTypography.labelMedium.copyWith(
-                      color: HwahaeColors.textSecondary,
-                    )),
+                    Text('리뷰 요약',
+                        style: HwahaeTypography.labelMedium.copyWith(
+                          color: HwahaeColors.textSecondary,
+                        )),
                     const SizedBox(height: 8),
                     Text(summary, style: HwahaeTypography.bodyMedium),
                     const SizedBox(height: 20),
                     // 상세 평가 (Mock)
-                    Text('상세 평가', style: HwahaeTypography.labelMedium.copyWith(
-                      color: HwahaeColors.textSecondary,
-                    )),
+                    Text('상세 평가',
+                        style: HwahaeTypography.labelMedium.copyWith(
+                          color: HwahaeColors.textSecondary,
+                        )),
                     const SizedBox(height: 12),
                     _buildDetailScoreItem('서비스', 4.5),
                     _buildDetailScoreItem('청결도', 4.0),
@@ -1014,17 +1022,19 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                     _buildDetailScoreItem('품질', 4.2),
                     const SizedBox(height: 20),
                     // 장점
-                    Text('장점', style: HwahaeTypography.labelMedium.copyWith(
-                      color: HwahaeColors.success,
-                    )),
+                    Text('장점',
+                        style: HwahaeTypography.labelMedium.copyWith(
+                          color: HwahaeColors.success,
+                        )),
                     const SizedBox(height: 8),
                     _buildBulletPoint('직원들이 친절하고 응대가 빨랐습니다'),
                     _buildBulletPoint('음식 맛이 좋고 양이 푸짐했습니다'),
                     const SizedBox(height: 16),
                     // 단점
-                    Text('단점', style: HwahaeTypography.labelMedium.copyWith(
-                      color: HwahaeColors.error,
-                    )),
+                    Text('단점',
+                        style: HwahaeTypography.labelMedium.copyWith(
+                          color: HwahaeColors.error,
+                        )),
                     const SizedBox(height: 8),
                     _buildBulletPoint('대기 시간이 다소 길었습니다'),
                     _buildBulletPoint('주차 공간이 협소합니다'),
@@ -1052,8 +1062,11 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
               value: score / 5,
               backgroundColor: HwahaeColors.surfaceVariant,
               valueColor: AlwaysStoppedAnimation(
-                score >= 4 ? HwahaeColors.success :
-                score >= 3 ? HwahaeColors.warning : HwahaeColors.error,
+                score >= 4
+                    ? HwahaeColors.success
+                    : score >= 3
+                        ? HwahaeColors.warning
+                        : HwahaeColors.error,
               ),
               minHeight: 6,
               borderRadius: BorderRadius.circular(3),
@@ -1062,7 +1075,8 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
           const SizedBox(width: 12),
           Text(
             score.toStringAsFixed(1),
-            style: HwahaeTypography.labelMedium.copyWith(fontWeight: FontWeight.bold),
+            style: HwahaeTypography.labelMedium
+                .copyWith(fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -1087,7 +1101,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -1132,7 +1146,7 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               '취소',
               style: HwahaeTypography.labelLarge.copyWith(
@@ -1144,19 +1158,10 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
             onPressed: () async {
               final content = responseController.text.trim();
               if (content.length < 10) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('답변을 10자 이상 작성해주세요'),
-                    backgroundColor: HwahaeColors.warning,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                );
+                AppToast.warning(context, '답변을 10자 이상 작성해주세요');
                 return;
               }
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               bool success = false;
               String errorMsg = '답변 등록에 실패했습니다';
               try {
@@ -1172,17 +1177,11 @@ class _PreviewReviewsScreenState extends ConsumerState<PreviewReviewsScreen> {
                 errorMsg = ApiClient.extractErrorMessage(e) ?? errorMsg;
               }
               if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(success ? '답변이 등록되었습니다' : errorMsg),
-                  backgroundColor:
-                      success ? HwahaeColors.success : HwahaeColors.error,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              );
+              if (success) {
+                AppToast.success(context, '답변이 등록되었습니다');
+              } else {
+                AppToast.error(context, errorMsg);
+              }
               if (success && mounted) setState(() {});
             },
             child: Text(

@@ -93,7 +93,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
             end: Alignment.bottomCenter,
             colors: [
               HwahaeColors.background,
-              HwahaeColors.warning.withOpacity(0.05),
+              HwahaeColors.warning.withValues(alpha: 0.05),
             ],
           ),
         ),
@@ -162,7 +162,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
                 color: isCompleted
                     ? HwahaeColors.warning
                     : isCurrent
-                        ? HwahaeColors.warning.withOpacity(0.5)
+                        ? HwahaeColors.warning.withValues(alpha: 0.5)
                         : HwahaeColors.surfaceVariant,
               ),
             ),
@@ -235,9 +235,9 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: HwahaeColors.warning.withOpacity(0.08),
+              color: HwahaeColors.warning.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: HwahaeColors.warning.withOpacity(0.2)),
+              border: Border.all(color: HwahaeColors.warning.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
@@ -322,7 +322,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
                     color: allChecked ? HwahaeColors.accent : HwahaeColors.surfaceVariant,
                     width: 2,
                   ),
-                  backgroundColor: allChecked ? HwahaeColors.accent.withOpacity(0.05) : null,
+                  backgroundColor: allChecked ? HwahaeColors.accent.withValues(alpha: 0.05) : null,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -352,9 +352,9 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.08),
+                color: Colors.green.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -428,9 +428,9 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: HwahaeColors.warning.withOpacity(0.08),
+              color: HwahaeColors.warning.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: HwahaeColors.warning.withOpacity(0.2)),
+              border: Border.all(color: HwahaeColors.warning.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
@@ -505,7 +505,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
               borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
               boxShadow: [
                 BoxShadow(
-                  color: HwahaeColors.warning.withOpacity(0.3),
+                  color: HwahaeColors.warning.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -567,7 +567,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: HwahaeColors.warning.withOpacity(0.4),
+                  color: HwahaeColors.warning.withValues(alpha: 0.4),
                   blurRadius: 32,
                   offset: const Offset(0, 12),
                 ),
@@ -598,7 +598,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
               borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
               boxShadow: [
                 BoxShadow(
-                  color: HwahaeColors.warning.withOpacity(0.3),
+                  color: HwahaeColors.warning.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -652,7 +652,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: shadowColor.withOpacity(0.3),
+            color: shadowColor.withValues(alpha: 0.3),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -672,9 +672,9 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.06),
+        color: color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.15)),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -683,7 +683,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -737,12 +737,12 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: (_pledgeChecks[index] || isAccepted)
-              ? HwahaeColors.accent.withOpacity(0.05)
+              ? HwahaeColors.accent.withValues(alpha: 0.05)
               : HwahaeColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: (_pledgeChecks[index] || isAccepted)
-                ? HwahaeColors.accent.withOpacity(0.3)
+                ? HwahaeColors.accent.withValues(alpha: 0.3)
                 : HwahaeColors.surfaceVariant,
           ),
         ),
@@ -797,10 +797,10 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
       decoration: BoxDecoration(
         color: HwahaeColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -812,7 +812,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Column(
@@ -856,7 +856,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
               ],
             ),
           ),
-          Icon(icon, color: color.withOpacity(0.4), size: 28),
+          Icon(icon, color: color.withValues(alpha: 0.4), size: 28),
         ],
       ),
     );
@@ -914,7 +914,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
               ],
             ),
           ),
-          Icon(icon, color: HwahaeColors.textSecondary.withOpacity(0.4), size: 24),
+          Icon(icon, color: HwahaeColors.textSecondary.withValues(alpha: 0.4), size: 24),
         ],
       ),
     );
@@ -949,7 +949,7 @@ class _TutorialMissionScreenState extends ConsumerState<TutorialMissionScreen>
                     ? []
                     : [
                         BoxShadow(
-                          color: HwahaeColors.warning.withOpacity(0.3),
+                          color: HwahaeColors.warning.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),

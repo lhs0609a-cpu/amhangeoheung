@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/user_model.dart';
-import '../data/models/auth_response.dart';
 import '../data/repositories/auth_repository.dart';
 import '../../../core/services/fcm_service.dart';
 

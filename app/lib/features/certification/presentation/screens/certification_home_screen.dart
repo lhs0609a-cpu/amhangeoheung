@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hwahae_colors.dart';
+import '../../data/models/training_module_model.dart';
 import '../../providers/certification_provider.dart';
 import '../widgets/certification_badge.dart';
 
@@ -232,7 +233,7 @@ class CertificationHomeScreen extends ConsumerWidget {
         border: Border.all(color: const Color(0xFFD4AF37), width: 2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFD4AF37).withOpacity(0.2),
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -284,7 +285,7 @@ class CertificationHomeScreen extends ConsumerWidget {
     return '${date.year}년 ${date.month}월 ${date.day}일';
   }
 
-  double _calculateOverallProgress(status) {
+  double _calculateOverallProgress(CertificationStatus status) {
     int completed = 0;
     int total = 0;
     for (int day = 1; day <= 3; day++) {

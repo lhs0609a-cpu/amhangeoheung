@@ -47,13 +47,13 @@ class GradeProgressWidget extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              gradeInfo.colors[0].withOpacity(0.08),
-              nextGrade.colors[0].withOpacity(0.05),
+              gradeInfo.colors[0].withValues(alpha: 0.08),
+              nextGrade.colors[0].withValues(alpha: 0.05),
             ],
           ),
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
           border: Border.all(
-            color: gradeInfo.colors[0].withOpacity(0.15),
+            color: gradeInfo.colors[0].withValues(alpha: 0.15),
           ),
         ),
         child: Row(
@@ -161,7 +161,7 @@ class GradeProgressWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: gradeInfo.colors[0].withOpacity(0.3),
+                        color: gradeInfo.colors[0].withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -221,12 +221,12 @@ class GradeProgressWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      gradeInfo.colors[0].withOpacity(0.1),
-                      gradeInfo.colors[1].withOpacity(0.05),
+                      gradeInfo.colors[0].withValues(alpha: 0.1),
+                      gradeInfo.colors[1].withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: gradeInfo.colors[0].withOpacity(0.2)),
+                  border: Border.all(color: gradeInfo.colors[0].withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
@@ -269,7 +269,7 @@ class GradeProgressWidget extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: nextGrade!.colors[0].withOpacity(0.1),
+                      color: nextGrade.colors[0].withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
@@ -343,9 +343,9 @@ class GradeProgressWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: nextGrade.colors[0].withOpacity(0.05),
+                  color: nextGrade.colors[0].withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: nextGrade.colors[0].withOpacity(0.1)),
+                  border: Border.all(color: nextGrade.colors[0].withValues(alpha: 0.1)),
                 ),
                 child: Row(
                   children: [
@@ -390,7 +390,7 @@ class GradeProgressWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: HwahaeColors.surfaceVariant.withOpacity(0.5),
+        color: HwahaeColors.surfaceVariant.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(

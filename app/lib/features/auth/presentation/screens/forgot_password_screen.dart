@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -46,14 +47,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: HwahaeColors.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+    AppToast.error(context, message);
   }
 
   @override
@@ -91,7 +85,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: HwahaeColors.primary.withOpacity(0.1),
+                color: HwahaeColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(
@@ -217,7 +211,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: HwahaeColors.success.withOpacity(0.1),
+            color: HwahaeColors.success.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: const Icon(

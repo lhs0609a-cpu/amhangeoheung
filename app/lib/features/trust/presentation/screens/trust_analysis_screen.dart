@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
+import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../core/theme/hwahae_typography.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 /// 신뢰도 분석 데이터 모델
 class TrustAnalysisData {
@@ -19,6 +21,13 @@ class TrustAnalysisData {
   final List<WeaknessItem> weaknesses;
   final CompetitorComparison competitorComparison;
 
+  /// 감찰관이 실제로 쓴 지적사항. weaknesses 는 카테고리 점수에서 계산한
+  /// 추정치라 개선 여부를 말할 수 없지만, 이쪽은 리뷰를 건너 추적된다.
+  final List<InspectionFinding> findings;
+
+  /// 지적 → 약속 → 재감찰
+  final List<InspectionStep> timeline;
+
   TrustAnalysisData({
     required this.businessName,
     required this.badgeLevel,
@@ -31,6 +40,8 @@ class TrustAnalysisData {
     required this.strengths,
     required this.weaknesses,
     required this.competitorComparison,
+    this.findings = const [],
+    this.timeline = const [],
   });
 }
 
@@ -97,6 +108,62 @@ class CompetitorComparison {
   });
 }
 
+List<InspectionFinding> _parseFindings(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw.map((f) {
+    final count = (f['recurrence_count'] ?? 1) as int;
+    return InspectionFinding(
+      title: f['title']?.toString() ?? '',
+      // 재발한 지적은 "고치겠다고 하고 안 고친" 항목이라 그 사실을 적는다.
+      detail: count > 1 ? '$count차례 연속 지적됨' : f['detail']?.toString(),
+      fixed: f['status'] == 'fixed',
+    );
+  }).where((f) => f.title.isNotEmpty).toList();
+}
+
+InspectionStepKind _stepKind(String? kind) {
+  switch (kind) {
+    case 'promise':
+      return InspectionStepKind.promise;
+    case 'verified':
+      return InspectionStepKind.verified;
+    default:
+      return InspectionStepKind.finding;
+  }
+}
+
+String _stepLabel(InspectionStepKind kind) {
+  switch (kind) {
+    case InspectionStepKind.finding:
+      return '지적';
+    case InspectionStepKind.promise:
+      return '개선 약속';
+    case InspectionStepKind.verified:
+      return '개선 확인';
+  }
+}
+
+String _shortDate(String? iso) {
+  final d = DateTime.tryParse(iso ?? '');
+  if (d == null) return '';
+  final l = d.toLocal();
+  return '${l.year}.${l.month.toString().padLeft(2, '0')}'
+      '.${l.day.toString().padLeft(2, '0')}';
+}
+
+List<InspectionStep> _parseTimeline(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw.map((s) {
+    final kind = _stepKind(s['kind']?.toString());
+    return InspectionStep(
+      kind: kind,
+      label: _stepLabel(kind),
+      date: _shortDate(s['at']?.toString()),
+      detail: s['title']?.toString(),
+    );
+  }).toList();
+}
+
 /// 신뢰도 분석 데이터 Provider (API 연동)
 final trustAnalysisProvider =
     FutureProvider.family<TrustAnalysisData, String>((ref, businessId) async {
@@ -142,6 +209,8 @@ final trustAnalysisProvider =
           suggestion: w['suggestion'] ?? '',
           score: (w['score'] ?? 0).toDouble(),
         )).toList(),
+        findings: _parseFindings(report['findings']),
+        timeline: _parseTimeline(report['timeline']),
         competitorComparison: CompetitorComparison(
           myScore: (comp['myScore'] ?? 0).toDouble(),
           categoryAverage: (comp['categoryAverage'] ?? 0).toDouble(),
@@ -230,6 +299,10 @@ class TrustAnalysisScreen extends ConsumerWidget {
                 _buildOverallScoreCard(data),
                 const SizedBox(height: 20),
 
+                // 지적사항 — 이 화면의 주인공이라 차트보다 위에 둔다.
+                // 별점은 어디에나 있지만 "무엇이 잘못됐는지"는 감찰에서만 나온다.
+                _buildFindings(data),
+
                 // 카테고리별 점수
                 _buildCategoryScores(data),
                 const SizedBox(height: 20),
@@ -290,9 +363,9 @@ class TrustAnalysisScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: badgeColor.withOpacity(0.2),
+                          color: badgeColor.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: badgeColor.withOpacity(0.5)),
+                          border: Border.all(color: badgeColor.withValues(alpha: 0.5)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -323,7 +396,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   Text(
                     '총 ${data.totalReviews}개 리뷰 중 ${data.verifiedReviews}개 검증됨',
                     style: HwahaeTypography.bodyMedium.copyWith(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -373,12 +446,12 @@ class TrustAnalysisScreen extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            scoreColor.withOpacity(0.1),
-            scoreColor.withOpacity(0.05),
+            scoreColor.withValues(alpha: 0.1),
+            scoreColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: scoreColor.withOpacity(0.3)),
+        border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -395,7 +468,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   child: CircularProgressIndicator(
                     value: data.overallScore / 100,
                     strokeWidth: 10,
-                    backgroundColor: scoreColor.withOpacity(0.2),
+                    backgroundColor: scoreColor.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
                     strokeCap: StrokeCap.round,
                   ),
@@ -445,12 +518,26 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   children: [
                     _buildMiniStat(Icons.reviews, '${data.totalReviews}', '리뷰'),
                     const SizedBox(width: 16),
-                    _buildMiniStat(Icons.verified, '${((data.verifiedReviews / data.totalReviews) * 100).toInt()}%', '검증률'),
+                    // 리뷰가 0건이면 0/0 = NaN 이고 NaN.toInt() 는 예외를 던진다.
+                    // 아직 감찰되지 않은 업체에서 실제로 화면이 죽던 자리다.
+                    _buildMiniStat(
+                      Icons.verified,
+                      data.totalReviews == 0
+                          ? '-'
+                          : '${(data.verifiedReviews / data.totalReviews * 100).round()}%',
+                      '검증률',
+                    ),
                   ],
                 ),
               ],
             ),
           ),
+          // 감찰이 끝난 업체에만 인장이 찍힌다. 0건이면 SealBadge 가 스스로
+          // 아무것도 그리지 않는다.
+          if (data.verifiedReviews > 0) ...[
+            const SizedBox(width: 12),
+            SealBadge(count: data.verifiedReviews, size: 58),
+          ],
         ],
       ),
     );
@@ -483,7 +570,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -526,7 +613,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                             height: 8,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [color, color.withOpacity(0.7)],
+                                colors: [color, color.withValues(alpha: 0.7)],
                               ),
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -568,7 +655,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -587,7 +674,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.success.withOpacity(0.1),
+                  color: HwahaeColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -690,8 +777,8 @@ class TrustAnalysisScreen extends ConsumerWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          HwahaeColors.primary.withOpacity(0.3),
-                          HwahaeColors.primary.withOpacity(0.0),
+                          HwahaeColors.primary.withValues(alpha: 0.3),
+                          HwahaeColors.primary.withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -726,7 +813,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -778,7 +865,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                               gradient: LinearGradient(
                                 colors: [
                                   HwahaeColors.ratingStar,
-                                  HwahaeColors.ratingStar.withOpacity(0.7),
+                                  HwahaeColors.ratingStar.withValues(alpha: 0.7),
                                 ],
                               ),
                               borderRadius: BorderRadius.circular(10),
@@ -818,7 +905,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -837,7 +924,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.primary.withOpacity(0.1),
+                  color: HwahaeColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -912,9 +999,9 @@ class TrustAnalysisScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isHighlighted ? color.withOpacity(0.1) : HwahaeColors.surfaceVariant,
+        color: isHighlighted ? color.withValues(alpha: 0.1) : HwahaeColors.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
-        border: isHighlighted ? Border.all(color: color.withOpacity(0.3)) : null,
+        border: isHighlighted ? Border.all(color: color.withValues(alpha: 0.3)) : null,
       ),
       child: Column(
         children: [
@@ -945,7 +1032,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -959,7 +1046,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.success.withOpacity(0.1),
+                  color: HwahaeColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.thumb_up, color: HwahaeColors.success, size: 20),
@@ -977,7 +1064,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: HwahaeColors.successLight.withOpacity(0.3),
+                color: HwahaeColors.successLight.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -985,7 +1072,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: HwahaeColors.success.withOpacity(0.15),
+                      color: HwahaeColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(item.icon, color: HwahaeColors.success, size: 20),
@@ -1033,6 +1120,80 @@ class TrustAnalysisScreen extends ConsumerWidget {
     );
   }
 
+  /// 지적사항 목록.
+  ///
+  /// 백엔드가 아직 "개선 확인 여부"를 내려주지 않으므로 전부 미개선으로
+  /// 표시한다. 고쳐졌는지 모르는데 고쳤다고 적으면 이 제품의 존재 이유가
+  /// 무너지므로, 데이터가 생기기 전까지는 지어내지 않는다.
+  Widget _buildFindings(TrustAnalysisData data) {
+    // 감찰관이 실제로 쓴 지적이 있으면 그것을 쓴다. 없을 때만 카테고리 점수에서
+    // 계산한 추정치(weaknesses)로 대체하며, 그때는 개선 여부를 알 수 없으므로
+    // 전부 미개선으로 둔다 — 모르는데 고쳤다고 적으면 제품이 죽는다.
+    final List<InspectionFinding> findings = data.findings.isNotEmpty
+        ? data.findings
+        : data.weaknesses
+            .map((w) => InspectionFinding(
+                  title: w.title,
+                  detail: w.description.isEmpty ? null : w.description,
+                ))
+            .toList();
+
+    if (findings.isEmpty) return const SizedBox.shrink();
+
+    final int fixed = findings.where((f) => f.fixed).length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('지적하고, 고쳤나', style: HwahaeTypography.headlineSmall),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Container(height: 2, color: HwahaeColors.border),
+            ),
+          ],
+        ),
+        if (data.findings.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            '지적된 ${findings.length}건 중 $fixed건을 고쳤어요',
+            style: HwahaeTypography.bodyMedium
+                .copyWith(color: HwahaeColors.textSecondary),
+          ),
+        ],
+        const SizedBox(height: 12),
+        ...findings.map(
+          (f) => Padding(
+            padding: const EdgeInsets.only(bottom: 9),
+            child: FindingCard(finding: f),
+          ),
+        ),
+        if (data.timeline.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: HwahaeColors.surface,
+              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
+              border: Border.all(color: HwahaeColors.border, width: 2),
+              boxShadow: AppElevation.sticker(3),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('감찰 이력', style: HwahaeTypography.overline),
+                const SizedBox(height: 13),
+                InspectionTimeline(steps: data.timeline),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
   Widget _buildWeaknesses(TrustAnalysisData data) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1041,7 +1202,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1055,7 +1216,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.warning.withOpacity(0.1),
+                  color: HwahaeColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.lightbulb_outline, color: HwahaeColors.warning, size: 20),
@@ -1073,7 +1234,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: HwahaeColors.warningLight.withOpacity(0.3),
+                color: HwahaeColors.warningLight.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -1091,7 +1252,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: HwahaeColors.warning.withOpacity(0.2),
+                          color: HwahaeColors.warning.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(

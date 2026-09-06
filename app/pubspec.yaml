@@ -78,3 +78,12 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/characters/
+
+  # 제목·숫자용 표시 서체. 본문은 시스템 한글 서체를 그대로 쓴다 —
+  # 한글 본문 서체는 웨이트당 5MB 가까이 되어 번들이 감당되지 않는다.
+  # Jua 는 OFL 로, 라이선스 원문은 assets/fonts/Jua-OFL.txt 에 함께 둔다.
+  fonts:
+    - family: Jua
+      fonts:
+        - asset: assets/fonts/Jua-Regular.ttf

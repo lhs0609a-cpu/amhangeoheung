@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
-import '../../../../core/theme/hwahae_theme.dart';
 import '../../data/models/review_model.dart';
 import '../../providers/review_provider.dart';
 
@@ -257,7 +256,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: HwahaeColors.error.withOpacity(0.1),
+                  color: HwahaeColors.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -313,7 +312,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: HwahaeColors.primary.withOpacity(0.1),
+                  color: HwahaeColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -396,7 +395,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: HwahaeColors.primary.withOpacity(0.1),
+                    backgroundColor: HwahaeColors.primary.withValues(alpha: 0.1),
                     child: const Icon(Icons.person, color: HwahaeColors.primary),
                   ),
                   const SizedBox(width: 12),
@@ -419,7 +418,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: HwahaeColors.primary.withOpacity(0.1),
+                                color: HwahaeColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -451,7 +450,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: HwahaeColors.success.withOpacity(0.1),
+                        color: HwahaeColors.success.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Row(
@@ -531,7 +530,7 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getBadgeColor(badgeLevel).withOpacity(0.2),
+                        color: _getBadgeColor(badgeLevel).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Row(
@@ -608,10 +607,10 @@ class _ReviewListScreenState extends ConsumerState<ReviewListScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: HwahaeColors.error.withOpacity(0.05),
+                        color: HwahaeColors.error.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: HwahaeColors.error.withOpacity(0.2),
+                          color: HwahaeColors.error.withValues(alpha: 0.2),
                         ),
                       ),
                       child: Row(

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +12,7 @@ import '../../../../shared/widgets/hwahae/hwahae_buttons.dart';
 import '../../../mission/providers/mission_provider.dart';
 import '../../providers/receipt_provider.dart';
 import '../../providers/review_provider.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class WriteReviewScreen extends ConsumerStatefulWidget {
   final String missionId;
@@ -38,10 +38,10 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
   static const List<IconData> _stepIcons = [Icons.star_rounded, Icons.edit_rounded, Icons.check_circle_rounded];
 
   // Topic selection
-  List<Map<String, String>> _selectedTopics = [];
+  final List<Map<String, String>> _selectedTopics = [];
   final _tipsController = TextEditingController();
 
-  Map<String, int> _scores = {
+  final Map<String, int> _scores = {
     '대기 시간': 0,
     '서비스 품질': 0,
     '청결도': 0,
@@ -49,7 +49,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
     '가성비': 0,
   };
 
-  List<XFile> _photos = [];
+  final List<XFile> _photos = [];
   XFile? _receiptImage;
   bool _isSubmitting = false;
   bool _isLoadingMission = true;
@@ -99,7 +99,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
           _businessCategory = mission.category ?? '';
           _businessAddress = mission.region ?? '';
           _missionDate = mission.assignedAt ?? DateTime.now();
-          _missionStatus = mission.status ?? '';
+          _missionStatus = mission.status;
           _isLoadingMission = false;
         });
       } else {
@@ -164,16 +164,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
   void _goToNextStep() {
     final error = _validateCurrentStep();
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: HwahaeColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      );
+      AppToast.error(context, error);
       return;
     }
 
@@ -500,88 +491,6 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
     ],
   };
 
-  Widget _buildStep2Topics() {
-    final categoryKey = _businessCategory.toLowerCase();
-    final topics = _topicDefinitions[categoryKey] ?? _topicDefinitions['default']!;
-    final positiveTopics = topics.where((t) => t['type'] == 'positive').toList();
-    final negativeTopics = topics.where((t) => t['type'] == 'negative').toList();
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionTitle('이 업체는 어땠나요?', '해당하는 토픽을 선택해주세요 (복수 선택 가능)'),
-        const SizedBox(height: 16),
-
-        // Positive topics
-        Text('좋았던 점', style: HwahaeTypography.labelLarge.copyWith(color: HwahaeColors.success)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: positiveTopics.map((topic) => _buildTopicChip(topic)).toList(),
-        ),
-        const SizedBox(height: 20),
-
-        // Negative topics
-        Text('아쉬웠던 점', style: HwahaeTypography.labelLarge.copyWith(color: HwahaeColors.error)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: negativeTopics.map((topic) => _buildTopicChip(topic)).toList(),
-        ),
-        const SizedBox(height: 24),
-
-        // Tips input
-        _buildSectionTitle('꿀팁/노하우', '다른 방문자에게 도움이 될 팁을 공유해주세요 (선택)'),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: _tipsController,
-          maxLines: 3,
-          style: HwahaeTypography.bodyMedium,
-          decoration: InputDecoration(
-            hintText: '예: 주차는 뒷편 공영주차장 이용 추천 / 런치 메뉴가 가성비 좋음',
-            hintStyle: HwahaeTypography.bodyMedium.copyWith(color: HwahaeColors.textTertiary),
-            filled: true,
-            fillColor: HwahaeColors.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-              borderSide: const BorderSide(color: HwahaeColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-              borderSide: const BorderSide(color: HwahaeColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-              borderSide: const BorderSide(color: HwahaeColors.primary, width: 2),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: HwahaeColors.infoLight,
-            borderRadius: BorderRadius.circular(HwahaeTheme.radiusSM),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.lightbulb_outline, size: 16, color: HwahaeColors.info),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '꿀팁을 작성하면 품질 보너스를 받을 수 있어요!',
-                  style: HwahaeTypography.captionLarge.copyWith(color: HwahaeColors.info),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildTopicChip(Map<String, String> topic) {
     final isSelected = _selectedTopics.any((t) => t['key'] == topic['key']);
 
@@ -603,8 +512,8 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
       },
       backgroundColor: HwahaeColors.surface,
       selectedColor: topic['type'] == 'positive'
-          ? HwahaeColors.success.withOpacity(0.15)
-          : HwahaeColors.error.withOpacity(0.15),
+          ? HwahaeColors.success.withValues(alpha: 0.15)
+          : HwahaeColors.error.withValues(alpha: 0.15),
       checkmarkColor: topic['type'] == 'positive' ? HwahaeColors.success : HwahaeColors.error,
       side: BorderSide(
         color: isSelected
@@ -710,29 +619,6 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
   // ---------------------------------------------------------------------------
   // Step 4 : Photos + Receipt
   // ---------------------------------------------------------------------------
-
-  Widget _buildStep4Photos(ReceiptVerificationState receiptState) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionTitle(
-          '사진 첨부',
-          '최소 3장 이상 첨부해주세요 (음식, 매장 내부 등)',
-        ),
-        const SizedBox(height: 12),
-        _buildPhotoSection(),
-        const SizedBox(height: 24),
-        _buildSectionTitle(
-          '영수증 첨부',
-          '결제 영수증을 촬영해주세요 (필수)',
-          isRequired: true,
-        ),
-        const SizedBox(height: 12),
-        _buildReceiptSection(receiptState),
-        const SizedBox(height: 24),
-      ],
-    );
-  }
 
   // ---------------------------------------------------------------------------
   // Step 5 : Summary + Submit
@@ -1010,7 +896,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
         color: HwahaeColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -1172,7 +1058,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -1569,7 +1455,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: HwahaeColors.success.withOpacity(0.9),
+                color: HwahaeColors.success.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
@@ -1941,43 +1827,16 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
       if (response.success && response.review != null) {
         _draftReviewId = response.review!.id;
         if (mounted && !silent) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('임시 저장되었습니다'),
-              backgroundColor: HwahaeColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
+          AppToast.success(context, '임시 저장되었습니다');
         }
       } else {
         if (mounted && !silent) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? '임시 저장에 실패했습니다'),
-              backgroundColor: HwahaeColors.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
+          AppToast.error(context, response.message ?? '임시 저장에 실패했습니다');
         }
       }
     } catch (e) {
       if (mounted && !silent) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('임시 저장 중 오류: $e'),
-            backgroundColor: HwahaeColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
+        AppToast.error(context, '임시 저장 중 오류: $e');
       }
     } finally {
       if (mounted) {
@@ -1992,16 +1851,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
     // 점수 체크
     final hasAllScores = _scores.values.every((score) => score > 0);
     if (!hasAllScores) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('모든 항목을 평가해주세요'),
-          backgroundColor: HwahaeColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      );
+      AppToast.error(context, '모든 항목을 평가해주세요');
       return;
     }
 
@@ -2009,32 +1859,14 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
 
     // 사진 체크
     if (_photos.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('사진을 3장 이상 첨부해주세요'),
-          backgroundColor: HwahaeColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      );
+      AppToast.error(context, '사진을 3장 이상 첨부해주세요');
       return;
     }
 
     // 영수증 체크
     final receiptState = ref.read(receiptVerificationProvider);
     if (!receiptState.isVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('영수증 검증을 완료해주세요'),
-          backgroundColor: HwahaeColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      );
+      AppToast.error(context, '영수증 검증을 완료해주세요');
       return;
     }
 
@@ -2173,16 +2005,7 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('제출 중 오류가 발생했습니다: $e'),
-            backgroundColor: HwahaeColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
+        AppToast.error(context, '제출 중 오류가 발생했습니다: $e');
       }
     } finally {
       if (mounted) {

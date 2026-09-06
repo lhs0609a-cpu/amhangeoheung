@@ -45,8 +45,13 @@ class AccessibilityUtils {
   static const double accessibleIconSize = 24.0;
 
   /// 스크린 리더 알림 전송
-  static void announceToScreenReader(String message) {
-    SemanticsService.announce(message, TextDirection.ltr);
+  /// sendAnnouncement 는 대상 FlutterView 가 필요하므로 context 를 받는다.
+  static void announceToScreenReader(BuildContext context, String message) {
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      Directionality.of(context),
+    );
   }
 }
 

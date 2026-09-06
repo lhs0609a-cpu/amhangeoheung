@@ -15,7 +15,7 @@ class FinalExamScreen extends ConsumerStatefulWidget {
 
 class _FinalExamScreenState extends ConsumerState<FinalExamScreen>
     with WidgetsBindingObserver {
-  Map<int, int> _answers = {};
+  final Map<int, int> _answers = {};
   bool _isSubmitting = false;
   int _remainingSeconds = 30 * 60; // 30분
   Timer? _timer;
@@ -216,14 +216,20 @@ class _FinalExamScreenState extends ConsumerState<FinalExamScreen>
                       Text('Q${index + 1}. ${q.question}',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 12),
-                      for (int j = 0; j < q.options.length; j++)
-                        RadioListTile<int>(
-                          title: Text(q.options[j]),
-                          value: j,
-                          groupValue: _answers[index],
-                          onChanged: (val) => setState(() => _answers[index] = val!),
-                          dense: true,
+                      RadioGroup<int>(
+                        groupValue: _answers[index],
+                        onChanged: (val) => setState(() => _answers[index] = val!),
+                        child: Column(
+                          children: [
+                            for (int j = 0; j < q.options.length; j++)
+                              RadioListTile<int>(
+                                title: Text(q.options[j]),
+                                value: j,
+                                dense: true,
+                              ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                 ),

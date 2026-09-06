@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 
 class HiddenMissionBadge extends StatelessWidget {
@@ -101,12 +100,12 @@ class GlowContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: glowColors[0].withOpacity(0.2),
+            color: glowColors[0].withValues(alpha: 0.2),
             blurRadius: 12,
             spreadRadius: 1,
           ),
         ],
-        border: Border.all(color: glowColors[0].withOpacity(0.3), width: 1.5),
+        border: Border.all(color: glowColors[0].withValues(alpha: 0.3), width: 1.5),
       ),
       child: child,
     );

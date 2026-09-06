@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_elevation.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/hwahae_colors.dart';
 import '../../../core/theme/hwahae_typography.dart';
 import '../../../core/theme/hwahae_theme.dart';
@@ -30,8 +32,10 @@ class HwahaeMissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
+      scale: 0.985,
+      semanticLabel: title,
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
@@ -39,19 +43,11 @@ class HwahaeMissionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
           border: Border.all(
             color: isUrgent
-                ? HwahaeColors.accent.withOpacity(0.3)
-                : HwahaeColors.border,
+                ? HwahaeColors.accent.withValues(alpha: 0.3)
+                : HwahaeColors.borderLight,
             width: isUrgent ? 1.5 : 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isUrgent
-                  ? HwahaeColors.accent.withOpacity(0.08)
-                  : HwahaeColors.primary.withOpacity(0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: AppElevation.level2,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,13 +256,13 @@ class HwahaeRatingBadge extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             _getRatingColor(),
-            _getRatingColor().withOpacity(0.8),
+            _getRatingColor().withValues(alpha: 0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: _getRatingColor().withOpacity(0.3),
+            color: _getRatingColor().withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -332,7 +328,7 @@ class HwahaeGradeBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: colors[0].withOpacity(0.3),
+            color: colors[0].withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -415,8 +411,10 @@ class HwahaeInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
+      scale: 0.97,
+      semanticLabel: title,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -426,14 +424,10 @@ class HwahaeInfoCard extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-          boxShadow: [
-            BoxShadow(
-              color: (gradientColors?.first ?? HwahaeColors.primary)
-                  .withOpacity(0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          boxShadow: AppElevation.glow(
+            gradientColors?.first ?? HwahaeColors.primary,
+            strength: 0.7,
+          ),
         ),
         child: Row(
           children: [
@@ -441,7 +435,7 @@ class HwahaeInfoCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -466,7 +460,7 @@ class HwahaeInfoCard extends StatelessWidget {
                   Text(
                     subtitle,
                     style: HwahaeTypography.captionMedium.copyWith(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -475,7 +469,7 @@ class HwahaeInfoCard extends StatelessWidget {
             Icon(
               Icons.arrow_forward_ios_rounded,
               size: 16,
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
             ),
           ],
         ),
@@ -512,7 +506,7 @@ class HwahaeStatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: HwahaeColors.surface,
         borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-        border: Border.all(color: HwahaeColors.border),
+        boxShadow: AppElevation.level2,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,7 +516,7 @@ class HwahaeStatCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: cardColor.withOpacity(0.1),
+                  color: cardColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(

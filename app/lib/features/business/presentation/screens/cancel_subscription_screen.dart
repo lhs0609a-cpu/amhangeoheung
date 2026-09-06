@@ -7,6 +7,7 @@ import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../data/models/cancel_flow_model.dart';
 import '../../providers/cancel_flow_provider.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class CancelSubscriptionScreen extends ConsumerStatefulWidget {
   final String businessId;
@@ -80,9 +81,9 @@ class _CancelSubscriptionScreenState extends ConsumerState<CancelSubscriptionScr
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: HwahaeColors.error.withOpacity(0.05),
+              color: HwahaeColors.error.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-              border: Border.all(color: HwahaeColors.error.withOpacity(0.2)),
+              border: Border.all(color: HwahaeColors.error.withValues(alpha: 0.2)),
             ),
             child: Column(
               children: [
@@ -215,9 +216,9 @@ class _CancelSubscriptionScreenState extends ConsumerState<CancelSubscriptionScr
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [HwahaeColors.primary.withOpacity(0.05), HwahaeColors.primary.withOpacity(0.02)]),
+              gradient: LinearGradient(colors: [HwahaeColors.primary.withValues(alpha: 0.05), HwahaeColors.primary.withValues(alpha: 0.02)]),
               borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
-              border: Border.all(color: HwahaeColors.primary.withOpacity(0.2)),
+              border: Border.all(color: HwahaeColors.primary.withValues(alpha: 0.2)),
             ),
             child: Column(
               children: [
@@ -236,7 +237,7 @@ class _CancelSubscriptionScreenState extends ConsumerState<CancelSubscriptionScr
                     onPressed: () async {
                       final success = await ref.read(cancelFlowProvider(widget.businessId).notifier).pauseSubscription();
                       if (success && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('구독이 일시정지되었습니다')));
+                        AppToast.info(context, '구독이 일시정지되었습니다');
                         context.pop();
                       }
                     },
@@ -285,13 +286,13 @@ class _CancelSubscriptionScreenState extends ConsumerState<CancelSubscriptionScr
                 try {
                   final success = await ref.read(cancelFlowProvider(widget.businessId).notifier).confirmCancel();
                   if (success && mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('구독이 해지되었습니다.')));
+                    AppToast.info(context, '구독이 해지되었습니다.');
                   } else if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('해지 처리에 실패했습니다. 다시 시도해주세요.')));
+                    AppToast.info(context, '해지 처리에 실패했습니다. 다시 시도해주세요.');
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('해지 처리 중 문제가 발생했습니다. 다시 시도해주세요.')));
+                    AppToast.info(context, '해지 처리 중 문제가 발생했습니다. 다시 시도해주세요.');
                   }
                 }
               },

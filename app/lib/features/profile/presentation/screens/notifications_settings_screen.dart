@@ -233,7 +233,7 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
       trailing: Switch(
         value: value,
         onChanged: enabled ? onChanged : null,
-        activeColor: HwahaeColors.primary,
+        activeThumbColor: HwahaeColors.primary,
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../data/models/training_module_model.dart';
 import '../../providers/certification_provider.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 class TrainingModuleScreen extends ConsumerStatefulWidget {
   final int day;
@@ -194,15 +195,21 @@ class _TrainingModuleScreenState extends ConsumerState<TrainingModuleScreen> {
                   Text('Q${i + 1}. ${questions[i].question}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 12),
-                  for (int j = 0; j < questions[i].options.length; j++)
-                    RadioListTile<int>(
-                      title: Text(questions[i].options[j]),
-                      value: j,
-                      groupValue: _quizAnswers[i],
-                      onChanged: (val) {
-                        setState(() => _quizAnswers[i] = val!);
-                      },
+                  RadioGroup<int>(
+                    groupValue: _quizAnswers[i],
+                    onChanged: (val) {
+                      setState(() => _quizAnswers[i] = val!);
+                    },
+                    child: Column(
+                      children: [
+                        for (int j = 0; j < questions[i].options.length; j++)
+                          RadioListTile<int>(
+                            title: Text(questions[i].options[j]),
+                            value: j,
+                          ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             ),
@@ -308,13 +315,9 @@ class _TrainingModuleScreenState extends ConsumerState<TrainingModuleScreen> {
     if (!mounted) return;
 
     if (result.containsKey('error')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['error'].toString())),
-      );
+      AppToast.info(context, result['error'].toString());
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Day ${widget.day} 교육을 완료했습니다!')),
-      );
+      AppToast.info(context, 'Day ${widget.day} 교육을 완료했습니다!');
       context.pop();
     }
   }

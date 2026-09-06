@@ -86,7 +86,7 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
       ),
       value: value,
       onChanged: onChanged,
-      activeColor: HwahaeColors.primary,
+      activeThumbColor: HwahaeColors.primary,
     );
   }
 }

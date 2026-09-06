@@ -26,6 +26,9 @@ class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
 
+  /// `ApiClient.instance.dio` 형태로 쓰는 호출부를 위한 별칭.
+  static ApiClient get instance => _instance;
+
   late final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final AuthEventBus _authEventBus = AuthEventBus();

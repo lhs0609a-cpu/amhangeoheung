@@ -6,6 +6,7 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../data/repositories/review_repository.dart';
 import '../../data/models/review_model.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 /// 리뷰 상세 데이터 모델
 class ReviewDetailData {
@@ -244,7 +245,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
               // 유용성 투표
               _buildHelpfulSection(review),
 
-              const SizedBox(height: 100),
+              const AppBottomSpacer.plain(),
             ],
           ),
         ),
@@ -313,7 +314,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.success.withOpacity(0.1),
+                  color: HwahaeColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -349,7 +350,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
             height: 48,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [gradeColor, gradeColor.withOpacity(0.7)],
+                colors: [gradeColor, gradeColor.withValues(alpha: 0.7)],
               ),
               borderRadius: BorderRadius.circular(14),
             ),
@@ -380,7 +381,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: gradeColor.withOpacity(0.1),
+                        color: gradeColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -407,7 +408,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: HwahaeColors.success.withOpacity(0.1),
+                color: HwahaeColors.success.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -491,7 +492,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: badgeColor.withOpacity(0.1),
+                        color: badgeColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Row(
@@ -527,8 +528,8 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            HwahaeColors.primary.withOpacity(0.1),
-            HwahaeColors.primary.withOpacity(0.05),
+            HwahaeColors.primary.withValues(alpha: 0.1),
+            HwahaeColors.primary.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
@@ -636,9 +637,9 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: HwahaeColors.success.withOpacity(0.05),
+                color: HwahaeColors.success.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: HwahaeColors.success.withOpacity(0.2)),
+                border: Border.all(color: HwahaeColors.success.withValues(alpha: 0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,9 +679,9 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: HwahaeColors.error.withOpacity(0.05),
+                color: HwahaeColors.error.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: HwahaeColors.error.withOpacity(0.2)),
+                border: Border.all(color: HwahaeColors.error.withValues(alpha: 0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -800,9 +801,9 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: HwahaeColors.primary.withOpacity(0.05),
+        color: HwahaeColors.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: HwahaeColors.primary.withOpacity(0.2)),
+        border: Border.all(color: HwahaeColors.primary.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -841,9 +842,9 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: HwahaeColors.success.withOpacity(0.05),
+                color: HwahaeColors.success.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: HwahaeColors.success.withOpacity(0.2)),
+                border: Border.all(color: HwahaeColors.success.withValues(alpha: 0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -906,7 +907,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: _isHelpful
-                      ? HwahaeColors.primary.withOpacity(0.1)
+                      ? HwahaeColors.primary.withValues(alpha: 0.1)
                       : HwahaeColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
@@ -963,9 +964,9 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: HwahaeColors.success.withOpacity(0.05),
+                  color: HwahaeColors.success.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: HwahaeColors.success.withOpacity(0.2)),
+                  border: Border.all(color: HwahaeColors.success.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
@@ -1178,8 +1179,8 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: isPositive
-                      ? HwahaeColors.success.withOpacity(0.1)
-                      : HwahaeColors.error.withOpacity(0.1),
+                      ? HwahaeColors.success.withValues(alpha: 0.1)
+                      : HwahaeColors.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isPositive ? HwahaeColors.success : HwahaeColors.error,

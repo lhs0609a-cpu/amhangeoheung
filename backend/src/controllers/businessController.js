@@ -2,6 +2,11 @@ const supabase = require('../config/supabase');
 const { confirmPayment, cancelPayment } = require('../utils/tossPayments');
 const { createErrorResponse, createPaymentErrorResponse } = require('../utils/errorMessages');
 const { PLAN_DETAILS: PLAN_DETAILS_RAW } = require('../config/constants');
+const {
+  listFindings,
+  improvementRate,
+  buildTimeline,
+} = require('../services/findingService');
 
 // 표시명을 포함한 플랜 상세. 코드 키(starter/growth/pro)는 스키마 enum과 일치.
 const PLAN_DETAILS = {
@@ -920,6 +925,14 @@ exports.getCompetitiveReport = async (req, res, next) => {
       .order('average_rating', { ascending: false })
       .limit(50);
 
+    // 실제 지적사항. 조회 실패가 리포트 전체를 막지 않도록 감싼다.
+    let findings = [];
+    try {
+      findings = await listFindings(req.params.id);
+    } catch (findingErr) {
+      console.error('[REPORT] Finding lookup failed:', findingErr.message);
+    }
+
     const strengths = [];
     const weaknesses = [];
     const recommendations = [];
@@ -1040,6 +1053,14 @@ exports.getCompetitiveReport = async (req, res, next) => {
         })),
         strengths,
         weaknesses,
+
+        // 실제 감찰관이 쓴 지적사항. 위의 weaknesses 는 카테고리 점수에서
+        // 계산한 추정치라 "고쳐졌는지"를 말할 수 없다. findings 는 리뷰를
+        // 건너 살아남아 개선 여부를 추적한다.
+        findings,
+        improvement: improvementRate(findings),
+        timeline: buildTimeline(findings),
+
         recommendations: recommendations.sort((a, b) => {
           const priority = { high: 0, medium: 1, low: 2 };
           return priority[a.priority] - priority[b.priority];

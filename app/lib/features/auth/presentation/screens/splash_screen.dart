@@ -53,11 +53,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (_isCheckingOnboarding || !_onboardingCompleted) return;
 
       if (!next.isLoading) {
+        if (!context.mounted) return;
         if (next.isAuthenticated) {
           context.go('/home');
         } else {
           Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
+            if (mounted && context.mounted) {
               context.go('/login');
             }
           });
@@ -80,7 +81,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -107,7 +108,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               '리뷰 신뢰 플랫폼',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 48),

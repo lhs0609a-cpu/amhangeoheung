@@ -1,5 +1,6 @@
 /// 암행어흥 법적 문서 콘텐츠
 /// 상용화 전 법률 전문가 검토 필수
+library;
 
 import '../../../core/config/company_info.dart';
 

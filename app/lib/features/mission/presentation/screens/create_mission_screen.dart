@@ -259,7 +259,7 @@ class _CreateMissionScreenState extends ConsumerState<CreateMissionScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: selected ? HwahaeColors.primary.withOpacity(0.06) : HwahaeColors.surface,
+          color: selected ? HwahaeColors.primary.withValues(alpha: 0.06) : HwahaeColors.surface,
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
           border: Border.all(
             color: selected ? HwahaeColors.primary : HwahaeColors.border,

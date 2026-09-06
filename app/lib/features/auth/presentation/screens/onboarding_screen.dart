@@ -156,7 +156,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             end: Alignment.bottomCenter,
             colors: [
               HwahaeColors.background,
-              _pages[_currentPage].accentColor.withOpacity(0.05),
+              _pages[_currentPage].accentColor.withValues(alpha: 0.05),
             ],
           ),
         ),
@@ -200,7 +200,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             end: Alignment.bottomCenter,
             colors: [
               HwahaeColors.background,
-              HwahaeColors.primary.withOpacity(0.03),
+              HwahaeColors.primary.withValues(alpha: 0.03),
             ],
           ),
         ),
@@ -309,7 +309,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: HwahaeColors.primary.withOpacity(0.3),
+                color: HwahaeColors.primary.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -355,7 +355,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? accentColor.withOpacity(0.08) : HwahaeColors.surface,
+          color: isSelected ? accentColor.withValues(alpha: 0.08) : HwahaeColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? accentColor : HwahaeColors.border,
@@ -364,7 +364,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: accentColor.withOpacity(0.15),
+                    color: accentColor.withValues(alpha: 0.15),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -560,8 +560,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              page.accentColor.withOpacity(0.15),
-                              page.accentColor.withOpacity(0.0),
+                              page.accentColor.withValues(alpha: 0.15),
+                              page.accentColor.withValues(alpha: 0.0),
                             ],
                           ),
                         ),
@@ -573,7 +573,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         child: Icon(
                           page.backgroundIcon,
                           size: 60,
-                          color: page.accentColor.withOpacity(0.1),
+                          color: page.accentColor.withValues(alpha: 0.1),
                         ),
                       ),
                       // 메인 아이콘 박스
@@ -589,7 +589,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           borderRadius: BorderRadius.circular(36),
                           boxShadow: [
                             BoxShadow(
-                              color: page.gradient[0].withOpacity(0.4),
+                              color: page.gradient[0].withValues(alpha: 0.4),
                               blurRadius: 30,
                               offset: const Offset(0, 15),
                             ),
@@ -639,10 +639,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: page.accentColor.withOpacity(0.1),
+                          color: page.accentColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: page.accentColor.withOpacity(0.2),
+                            color: page.accentColor.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
@@ -765,7 +765,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
               boxShadow: [
                 BoxShadow(
-                  color: _pages[_currentPage].accentColor.withOpacity(0.3),
+                  color: _pages[_currentPage].accentColor.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),

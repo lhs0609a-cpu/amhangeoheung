@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +6,7 @@ import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
 import '../../../../core/theme/hwahae_theme.dart';
 import '../../../../shared/widgets/hwahae/hwahae_cards.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 /// 업체 랭킹 모델
 class BusinessRanking {
@@ -230,7 +230,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -255,7 +255,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
               Text(
                 '신뢰도 높은 업체와 우수 리뷰어를 확인하세요',
                 style: HwahaeTypography.bodyMedium.copyWith(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                 ),
               ),
             ],
@@ -269,7 +269,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
       ),
       child: PopupMenuButton<String>(
@@ -442,7 +442,7 @@ class _BusinessRankingTab extends ConsumerWidget {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            const SliverBottomSpacer(),
           ],
         ),
       ),
@@ -510,12 +510,12 @@ class _BusinessRankingTab extends ConsumerWidget {
           color: HwahaeColors.surface,
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
           border: Border.all(
-            color: gradients[position]![0].withOpacity(0.3),
+            color: gradients[position]![0].withValues(alpha: 0.3),
             width: isFirst ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: gradients[position]![0].withOpacity(0.15),
+              color: gradients[position]![0].withValues(alpha: 0.15),
               blurRadius: isFirst ? 16 : 8,
               offset: const Offset(0, 4),
             ),
@@ -532,7 +532,7 @@ class _BusinessRankingTab extends ConsumerWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: gradients[position]![0].withOpacity(0.4),
+                    color: gradients[position]![0].withValues(alpha: 0.4),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -836,7 +836,7 @@ class _ReviewerRankingTab extends ConsumerWidget {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            const SliverBottomSpacer(),
           ],
         ),
       ),
@@ -905,12 +905,12 @@ class _ReviewerRankingTab extends ConsumerWidget {
           color: HwahaeColors.surface,
           borderRadius: BorderRadius.circular(HwahaeTheme.radiusLG),
           border: Border.all(
-            color: gradeColors[0].withOpacity(0.3),
+            color: gradeColors[0].withValues(alpha: 0.3),
             width: isFirst ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: gradeColors[0].withOpacity(0.15),
+              color: gradeColors[0].withValues(alpha: 0.15),
               blurRadius: isFirst ? 16 : 8,
               offset: const Offset(0, 4),
             ),
@@ -998,19 +998,19 @@ class _ReviewerRankingTab extends ConsumerWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            HwahaeColors.primary.withOpacity(0.1),
-            HwahaeColors.accent.withOpacity(0.1),
+            HwahaeColors.primary.withValues(alpha: 0.1),
+            HwahaeColors.accent.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-        border: Border.all(color: HwahaeColors.primary.withOpacity(0.2)),
+        border: Border.all(color: HwahaeColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: HwahaeColors.primary.withOpacity(0.1),
+              color: HwahaeColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(

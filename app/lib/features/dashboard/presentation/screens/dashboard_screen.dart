@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -7,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
+import '../../../../shared/widgets/ui/ui.dart';
 
 /// 대시보드 통계 모델
 class DashboardStats {
@@ -199,7 +199,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Text(
                             '안녕하세요!',
                             style: HwahaeTypography.bodyMedium.copyWith(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -242,19 +242,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
               error: (error, stack) => SliverFillRemaining(
+                hasScrollBody: false,
                 child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: HwahaeColors.error),
-                      const SizedBox(height: 16),
-                      Text('데이터를 불러오는데 실패했습니다', style: HwahaeTypography.bodyMedium),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => ref.invalidate(dashboardStatsProvider),
-                        child: const Text('다시 시도'),
-                      ),
-                    ],
+                  child: AppErrorState.fromMessage(
+                    error.toString(),
+                    onRetry: () => ref.invalidate(dashboardStatsProvider),
                   ),
                 ),
               ),
@@ -299,7 +291,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                     // 빠른 액션 (배지 추가)
                     _buildQuickActions(),
-                    const SizedBox(height: 120),
+                    const AppBottomSpacer(),
                   ]),
                 ),
               ),
@@ -312,9 +304,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   /// 선공개 리뷰 긴급 카드 (배민 사장님앱 참고)
   Widget _buildUrgentReviewCard(DashboardStats stats) {
-    return InkWell(
+    return Pressable(
       onTap: () => context.push('/preview-reviews'),
-      borderRadius: BorderRadius.circular(16),
+      scale: 0.98,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -324,7 +316,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: HwahaeColors.warning.withOpacity(0.3)),
+          border: Border.all(color: HwahaeColors.warning.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -332,7 +324,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: HwahaeColors.warning.withOpacity(0.15),
+                color: HwahaeColors.warning.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Stack(
@@ -397,9 +389,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// 신규 업체용: 첫 미션 무료 시작 CTA
   /// 가입 직후 가치를 경험할 수 있도록 가장 위 노출. 무료체험(free_experience) 보상으로 등록.
   Widget _buildFirstFreeMissionCard() {
-    return InkWell(
+    return Pressable(
       onTap: () => context.push('/missions/create'),
-      borderRadius: BorderRadius.circular(16),
+      scale: 0.98,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -409,7 +401,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             colors: [Color(0xFFEDE9FE), Color(0xFFDDD6FE)],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: HwahaeColors.primary.withOpacity(0.25)),
+          border: Border.all(color: HwahaeColors.primary.withValues(alpha: 0.25)),
         ),
         child: Row(
           children: [
@@ -417,7 +409,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: HwahaeColors.primary.withOpacity(0.15),
+                color: HwahaeColors.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(
@@ -458,15 +450,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// 선공개 보호 안심 카드 (대기 리뷰 0건일 때)
   /// "악평이 바로 공개되지 않는다" = 사장님 가장 큰 공포 해소 메시지를 첫날부터 노출.
   Widget _buildPreviewProtectionCard() {
-    return InkWell(
+    return Pressable(
       onTap: () => context.push('/preview-reviews'),
-      borderRadius: BorderRadius.circular(16),
+      scale: 0.98,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: HwahaeColors.infoLight,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: HwahaeColors.info.withOpacity(0.25)),
+          border: Border.all(color: HwahaeColors.info.withValues(alpha: 0.25)),
         ),
         child: Row(
           children: [
@@ -474,7 +466,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: HwahaeColors.info.withOpacity(0.15),
+                color: HwahaeColors.info.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(
@@ -627,12 +619,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            scoreColor.withOpacity(0.1),
-            scoreColor.withOpacity(0.05),
+            scoreColor.withValues(alpha: 0.1),
+            scoreColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scoreColor.withOpacity(0.3)),
+        border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -649,7 +641,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: CircularProgressIndicator(
                     value: stats.trustScore / 100,
                     strokeWidth: 8,
-                    backgroundColor: scoreColor.withOpacity(0.2),
+                    backgroundColor: scoreColor.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
                   ),
                 ),
@@ -737,7 +729,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               height: 4,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(2),
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
               ),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
@@ -781,7 +773,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -883,7 +875,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1044,7 +1036,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1098,7 +1090,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             height: 40,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [gradeColor, gradeColor.withOpacity(0.7)],
+                colors: [gradeColor, gradeColor.withValues(alpha: 0.7)],
               ),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -1130,7 +1122,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: gradeColor.withOpacity(0.1),
+                        color: gradeColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -1145,7 +1137,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -1291,85 +1283,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-/// 요약 카드 위젯
-class _SummaryCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-
-  const _SummaryCard({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: HwahaeColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const Spacer(),
-              Icon(
-                Icons.trending_up,
-                color: HwahaeColors.success,
-                size: 16,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: HwahaeTypography.headlineSmall.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: HwahaeTypography.bodySmall.copyWith(
-              color: HwahaeColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: HwahaeTypography.labelSmall.copyWith(
-              color: HwahaeColors.textTertiary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// KPI 데이터 모델
 class _KpiData {
   final String title;
@@ -1407,31 +1320,29 @@ class _QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.2)),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: color, size: 28),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: HwahaeTypography.labelMedium.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
+    return Pressable(
+      onTap: onTap,
+      scale: 0.95,
+      semanticLabel: label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: HwahaeTypography.labelMedium.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
