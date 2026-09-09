@@ -4,7 +4,22 @@ const {
   normalizeTitle,
   improvementRate,
   buildTimeline,
+  resolveFindingsFromReview,
 } = require('../src/services/findingService');
+
+test('a published review with no cons cannot resolve earlier findings', async () => {
+  const result = await resolveFindingsFromReview({
+    id: 'new-review', business_id: 'business', status: 'published', cons: [],
+  });
+  assert.deepStrictEqual(result, { resolved: 0, reason: 'explicit_reinspection_required' });
+});
+
+test('untrusted fixed IDs cannot bypass explicit reinspection', async () => {
+  const result = await resolveFindingsFromReview({
+    id: 'new-review', business_id: 'business', resolved_finding_ids: ['old-finding'],
+  });
+  assert.strictEqual(result.resolved, 0);
+});
 
 // ── 같은 지적인지 판정 ───────────────────────────────────────────────────────
 // 감찰관마다 문장부호와 띄어쓰기가 다르다. 같은 지적을 다른 지적으로 세면

@@ -6,7 +6,6 @@ import '../../review/data/repositories/review_repository.dart';
 import '../../ranking/data/models/ranking_model.dart';
 import '../../ranking/data/repositories/ranking_repository.dart';
 
-// Home Data State
 class HomeDataState {
   final bool isLoading;
   final List<ReviewModel> recentReviews;
@@ -14,135 +13,116 @@ class HomeDataState {
   final List<RegionalRankingModel> topBusinesses;
   final List<ReviewerRankingModel> topReviewers;
   final String? error;
+  final String? reviewsError;
+  final String? rankingsError;
+  final String? missionsError;
   final String selectedCategory;
 
   const HomeDataState({
-    this.isLoading = false,
+    this.isLoading = true,
     this.recentReviews = const [],
     this.availableMissions = const [],
     this.topBusinesses = const [],
     this.topReviewers = const [],
     this.error,
+    this.reviewsError,
+    this.rankingsError,
+    this.missionsError,
     this.selectedCategory = '전체',
   });
 
-  HomeDataState copyWith({
-    bool? isLoading,
-    List<ReviewModel>? recentReviews,
-    List<MissionModel>? availableMissions,
-    List<RegionalRankingModel>? topBusinesses,
-    List<ReviewerRankingModel>? topReviewers,
-    String? error,
-    String? selectedCategory,
-  }) {
-    return HomeDataState(
-      isLoading: isLoading ?? this.isLoading,
-      recentReviews: recentReviews ?? this.recentReviews,
-      availableMissions: availableMissions ?? this.availableMissions,
-      topBusinesses: topBusinesses ?? this.topBusinesses,
-      topReviewers: topReviewers ?? this.topReviewers,
-      error: error,
-      selectedCategory: selectedCategory ?? this.selectedCategory,
-    );
-  }
-
-  // 카테고리로 필터링된 미션 목록
-  List<MissionModel> get filteredMissions {
-    if (selectedCategory == '전체') {
-      return availableMissions;
-    }
-    return availableMissions
-        .where((m) => m.category?.toLowerCase() == selectedCategory.toLowerCase())
-        .toList();
-  }
-
-  // 카테고리로 필터링된 리뷰 목록
-  List<ReviewModel> get filteredReviews {
-    if (selectedCategory == '전체') {
-      return recentReviews;
-    }
-    return recentReviews
-        .where((r) => r.business?.category?.toLowerCase() == selectedCategory.toLowerCase())
-        .toList();
-  }
+  List<MissionModel> get filteredMissions => availableMissions;
+  List<ReviewModel> get filteredReviews => recentReviews;
 }
 
-// Home Data Notifier
 class HomeDataNotifier extends StateNotifier<HomeDataState> {
   final ReviewRepository _reviewRepository;
   final MissionRepository _missionRepository;
   final RankingRepository _rankingRepository;
+  int _request = 0;
+  bool _includeMissions = false;
 
-  HomeDataNotifier(this._reviewRepository, this._missionRepository, this._rankingRepository)
+  HomeDataNotifier(
+      this._reviewRepository, this._missionRepository, this._rankingRepository)
       : super(const HomeDataState());
 
-  Future<void> loadHomeData({String? category}) async {
-    state = state.copyWith(isLoading: true, error: null);
+  Future<void> loadHomeData({String? category, bool? includeMissions}) async {
+    final request = ++_request;
+    final selected = category ?? state.selectedCategory;
+    final filter = selected == '전체' ? null : selected;
+    _includeMissions = includeMissions ?? _includeMissions;
+    final loadMissions = _includeMissions;
+    state = HomeDataState(selectedCategory: selected);
+    List<ReviewModel> reviews = [];
+    List<MissionModel> missions = [];
+    List<RegionalRankingModel> businesses = [];
+    String? reviewsError;
+    String? rankingsError;
+    String? missionsError;
 
-    try {
-      // 병렬로 데이터 로드
-      final results = await Future.wait([
-        _reviewRepository.getRecentReviews(),
-        _missionRepository.getAvailableMissions(
-          limit: 10,
-          category: category != '전체' ? category : null,
-        ),
-        _rankingRepository.getRegionalRanking().catchError((_) => <RegionalRankingModel>[]),
-        _rankingRepository.getReviewerRanking(limit: 5).catchError((_) => <ReviewerRankingModel>[]),
-      ]);
-
-      final reviewResponse = results[0] as ReviewListResponse;
-      final missionResponse = results[1] as MissionListResponse;
-      final topBusinesses = results[2] as List<RegionalRankingModel>;
-      final topReviewers = results[3] as List<ReviewerRankingModel>;
-
-      state = state.copyWith(
-        isLoading: false,
-        recentReviews: reviewResponse.success ? reviewResponse.reviews : [],
-        availableMissions: missionResponse.success ? missionResponse.missions : [],
-        topBusinesses: topBusinesses.take(5).toList(),
-        topReviewers: topReviewers.take(5).toList(),
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: '데이터를 불러오는데 실패했습니다.',
-      );
-    }
+    // 섹션별 실패 분리. 로그인 전 미션 접근 실패가 공개 리뷰를 가리지 않는다.
+    await Future.wait([
+      () async {
+        try {
+          final result =
+              await _reviewRepository.getReviews(category: filter, limit: 6);
+          if (!result.success) throw StateError('reviews unavailable');
+          reviews = result.reviews;
+        } catch (_) {
+          reviewsError = '감찰 목록을 불러오지 못했어요.';
+        }
+      }(),
+      () async {
+        try {
+          businesses =
+              await _rankingRepository.getRegionalRanking(category: filter);
+        } catch (_) {
+          rankingsError = '랭킹을 불러오지 못했어요.';
+        }
+      }(),
+      if (loadMissions)
+        () async {
+          try {
+            final result = await _missionRepository.getAvailableMissions(
+                limit: 5, category: filter);
+            if (!result.success) throw StateError('missions unavailable');
+            missions = result.missions;
+          } catch (_) {
+            missionsError = '모집 중인 감찰을 불러오지 못했어요.';
+          }
+        }(),
+    ]);
+    if (!mounted || request != _request) return;
+    state = HomeDataState(
+      isLoading: false,
+      selectedCategory: selected,
+      recentReviews: reviews,
+      availableMissions: missions,
+      topBusinesses: businesses.take(5).toList(),
+      reviewsError: reviewsError,
+      rankingsError: rankingsError,
+      missionsError: missionsError,
+    );
   }
 
   void setCategory(String category) {
-    if (state.selectedCategory != category) {
-      state = state.copyWith(selectedCategory: category);
-      // 카테고리 변경 시 데이터 다시 로드
-      loadHomeData(category: category);
-    }
+    if (category != state.selectedCategory) loadHomeData(category: category);
   }
 
-  Future<void> refresh() async {
-    await loadHomeData(category: state.selectedCategory);
-  }
+  Future<void> refresh() => loadHomeData();
 }
 
-// Providers
-final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
-  return ReviewRepository();
+final reviewRepositoryProvider =
+    Provider<ReviewRepository>((ref) => ReviewRepository());
+final missionRepositoryProvider =
+    Provider<MissionRepository>((ref) => MissionRepository());
+final rankingRepositoryProvider =
+    Provider<RankingRepository>((ref) => RankingRepository());
+final homeDataProvider =
+    StateNotifierProvider<HomeDataNotifier, HomeDataState>((ref) {
+  return HomeDataNotifier(
+      ref.watch(reviewRepositoryProvider),
+      ref.watch(missionRepositoryProvider),
+      ref.watch(rankingRepositoryProvider));
 });
-
-final missionRepositoryProvider = Provider<MissionRepository>((ref) {
-  return MissionRepository();
-});
-
-final rankingRepositoryProvider = Provider<RankingRepository>((ref) {
-  return RankingRepository();
-});
-
-final homeDataProvider = StateNotifierProvider<HomeDataNotifier, HomeDataState>((ref) {
-  final reviewRepository = ref.watch(reviewRepositoryProvider);
-  final missionRepository = ref.watch(missionRepositoryProvider);
-  final rankingRepository = ref.watch(rankingRepositoryProvider);
-  return HomeDataNotifier(reviewRepository, missionRepository, rankingRepository);
-});
-
-// 선택된 카테고리 프로바이더 (UI 상태 관리용)
 final selectedCategoryProvider = StateProvider<String>((ref) => '전체');

@@ -308,7 +308,7 @@ class _NavTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? HwahaeColors.primary : HwahaeColors.textTertiary;
+    final color = selected ? HwahaeColors.onPrimaryContainer : HwahaeColors.textTertiary;
 
     return Expanded(
       child: Semantics(

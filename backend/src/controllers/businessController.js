@@ -474,7 +474,7 @@ exports.getTrustAnalysis = async (req, res, next) => {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const { data: recentReviews } = await supabase
+    const { data: recentReviews, error: recentReviewsError } = await supabase
       .from('reviews')
       .select('total_score, created_at')
       .eq('business_id', req.params.id)
@@ -483,12 +483,14 @@ exports.getTrustAnalysis = async (req, res, next) => {
       .order('created_at', { ascending: true });
 
     // 전체 게시 리뷰 평균 (신뢰도 산정용)
-    const { data: allReviews } = await supabase
+    const { data: allReviews, error: allReviewsError } = await supabase
       .from('reviews')
       .select('total_score')
       .eq('business_id', req.params.id)
       .eq('status', 'published');
 
+    if (recentReviewsError) throw recentReviewsError;
+    if (allReviewsError) throw allReviewsError;
     const reviewList = allReviews || [];
     const totalReviews = reviewList.length;
     const averageScore = totalReviews > 0
@@ -535,9 +537,21 @@ exports.getTrustAnalysis = async (req, res, next) => {
       ? Math.round((competitorList.reduce((s, c) => s + (c.average_rating || 0), 0) / competitorList.length) * 100) / 100
       : averageScore;
 
+    let findings = [];
+    let findingsAvailable = true;
+    try {
+      findings = await listFindings(req.params.id);
+    } catch (_) {
+      findingsAvailable = false;
+    }
+
     res.json({
       success: true,
       data: {
+        findings,
+        findingsAvailable,
+        improvement: findingsAvailable ? improvementRate(findings) : null,
+        timeline: buildTimeline(findings),
         businessName: business.name,
         category: business.category,
         trustScore,

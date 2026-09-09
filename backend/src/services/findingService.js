@@ -105,51 +105,12 @@ async function recordFindingsFromReview(review) {
 }
 
 /**
- * 재감찰에서 개선이 확인된 지적을 닫는다.
- *
- * 이번 감찰의 cons 에 더 이상 나오지 않는, 이전에 열려 있던 지적이 대상이다.
- * "안 적혔으니 고쳐졌다"로 단정하는 것이라 재감찰이 실제로 수행된 경우에만
- * 호출해야 한다.
- *
- * @param {{id: string, business_id: string, cons: string[]}} review
- * @returns {Promise<{resolved: number}>}
+ * 일반 리뷰의 미언급은 개선 증거가 아니다.
+ * 항목별 재감찰 증거·감찰관 권한을 검증하는 별도 경로가 생기기 전에는
+ * 자동 해결을 하지 않는다. 기존 호출자도 fail-closed로 동작한다.
  */
-async function resolveFindingsFromReview(review) {
-  if (!review?.id || !review?.business_id) return { resolved: 0 };
-
-  const stillOpen = new Set(
-    (Array.isArray(review.cons) ? review.cons : [])
-      .map(normalizeTitle)
-      .filter(Boolean)
-  );
-
-  const { data: open, error } = await db()
-    .from('review_findings')
-    .select('id, title, review_id')
-    .eq('business_id', review.business_id)
-    .eq('status', 'open');
-
-  if (error) throw error;
-
-  // 이번 감찰에서 처음 생긴 지적은 대상이 아니다.
-  const targets = (open || []).filter(
-    (f) => f.review_id !== review.id && !stillOpen.has(normalizeTitle(f.title))
-  );
-
-  if (targets.length === 0) return { resolved: 0 };
-
-  const now = new Date().toISOString();
-  const { error: updateError } = await db()
-    .from('review_findings')
-    .update({
-      status: 'fixed',
-      resolved_review_id: review.id,
-      resolved_at: now,
-    })
-    .in('id', targets.map((f) => f.id));
-
-  if (updateError) throw updateError;
-  return { resolved: targets.length };
+async function resolveFindingsFromReview() {
+  return { resolved: 0, reason: 'explicit_reinspection_required' };
 }
 
 /**

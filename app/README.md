@@ -1,16 +1,19 @@
-# amhangeoheung_app
+﻿# 암행어흥
 
-A new Flutter project.
+독립 감찰 기록으로 업체의 장단점과 개선 과정을 확인하는 리뷰 신뢰 플랫폼입니다.
 
-## Getting Started
+- [제품 설계 명세](../docs/PRODUCT_SPEC.md)
+- [조사·디자인 보고서](../docs/quality-report.html)
+- [기존 디자인 시스템](DESIGN_SYSTEM.md)
+- [배포 가이드](DEPLOY.md)
+- [검증 기록](../docs/qa/VALIDATION.md)
 
-This project is a starting point for a Flutter application.
+Flutter 앱은 이 디렉터리, Express/Supabase API는 ../backend에 있습니다.
 
-A few resources to get you started if this is your first Flutter project:
+```powershell
+flutter pub get
+flutter analyze
+flutter test
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+운영 API·결제·회사 정보는 DEPLOY.md의 환경별 설정을 따릅니다. 디자인 시안과 테스트 데이터는 운영 업체 데이터가 아닙니다.

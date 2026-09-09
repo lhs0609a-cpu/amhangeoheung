@@ -10,7 +10,6 @@ const NT = require('../config/notificationTypes');
 const { processReferralReward } = require('../controllers/referralController');
 const {
   recordFindingsFromReview,
-  resolveFindingsFromReview,
 } = require('./findingService');
 const { updateTrustWeightedRating, calculateTrustScore } = require('./trustScoreService');
 
@@ -78,17 +77,10 @@ async function processAutoPublish() {
         continue;
       }
 
-      // 지적사항을 추적 가능한 실체로 남긴다.
-      //
-      // 순서가 중요하다. 먼저 이번 감찰의 지적을 기록해 재발을 세고, 그 다음
-      // 이번에 더 이상 나오지 않은 이전 지적을 닫는다. 순서를 바꾸면 이번에
-      // 새로 만든 지적까지 "안 나왔다"고 보고 닫아버린다.
-      //
-      // 이 경로가 status 를 'fixed' 로 바꾸는 유일한 곳이다. 업체는 약속만
-      // 남길 수 있고 결과를 바꿀 수 없다.
+      // 공개된 리뷰의 지적만 기록한다. 미언급을 개선 확인으로 추론하지 않는다.
+      // 해결은 항목별 재감찰 증거와 감찰관 권한을 검증하는 별도 경로가 필요하다.
       try {
         await recordFindingsFromReview(review);
-        await resolveFindingsFromReview(review);
       } catch (findingErr) {
         // 지적사항 기록 실패가 리뷰 게시를 막아서는 안 된다.
         console.error(

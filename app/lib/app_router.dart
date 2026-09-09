@@ -159,8 +159,11 @@ class AppRouter {
           // 소비자 유형: 검색 (ShellRoute 내부)
           GoRoute(
             path: '/search',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: SearchScreen(),
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: SearchScreen(
+                initialCategory: state.uri.queryParameters['category'],
+                initialQuery: state.uri.queryParameters['q'] ?? '',
+              ),
             ),
           ),
           // 리뷰어 유형: 내 활동 (미션 진행 + 완료 목록)
