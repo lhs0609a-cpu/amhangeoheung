@@ -1,3 +1,4 @@
+import '../../../../core/theme/brand_assets.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,20 +39,22 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         _OnboardingPageData(
           icon: Icons.workspace_premium_rounded,
           backgroundIcon: Icons.star_rounded,
-          title: '리뷰어로\n보상을 받으세요',
-          description: '정직한 리뷰를 작성하고\n포인트와 미션 보상을 받아가세요',
+          artwork: BrandAssets.exam,
+          title: '아무나 어사가\n될 수는 없으니까.',
+          description: '교육과 실습, 선발 시험을 통과한 뒤\n솔직한 현장 기록을 남기는 어사가 됩니다.',
           gradient: HwahaeColors.gradientWarm,
           accentColor: HwahaeColors.warning,
-          features: ['미션 페이백', '등급 시스템', '우선 배정'],
+          features: ['선발 시험', '어사 등급', '현장 파견'],
         ),
         _OnboardingPageData(
           icon: Icons.verified_user_rounded,
           backgroundIcon: Icons.shield_outlined,
-          title: '첫 미션을\n체험해보세요',
-          description: '튜토리얼 미션을 완료하면\n바로 리뷰어 활동을 시작할 수 있어요',
+          artwork: BrandAssets.integrity,
+          title: '마패는 돈으로\n살 수 없습니다.',
+          description: '청탁에 흔들리지 않는 리뷰.\n평가를 돈과 바꾸는 어사는 파면 원칙.',
           gradient: HwahaeColors.gradientPrimary,
           accentColor: HwahaeColors.primary,
-          features: ['튜토리얼 미션', 'GPS 인증 체험', '첫 보상 획득'],
+          features: ['독립적인 평가', '근거 중심', '청탁 제보'],
         ),
       ];
     } else if (_selectedUserType == UserType.business) {
@@ -59,8 +62,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         _OnboardingPageData(
           icon: Icons.storefront_rounded,
           backgroundIcon: Icons.trending_up_rounded,
-          title: '우리 가게\n신뢰도를 높여요',
-          description: '리뷰 미션으로 진성 리뷰를 모으고\n경쟁업체 대비 우위를 확보하세요',
+          artwork: BrandAssets.dispatch,
+          title: '우리 업장에\n암행어사 출두요.',
+          description: '좋은 평가를 구매하는 곳이 아닙니다.\n솔직한 점검을 받아들일 업장을 찾습니다.',
           gradient: HwahaeColors.gradientAccent,
           accentColor: HwahaeColors.accent,
           features: ['맞춤 미션 제공', '경쟁 분석', '신뢰도 리포트'],
@@ -68,8 +72,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         _OnboardingPageData(
           icon: Icons.auto_awesome,
           backgroundIcon: Icons.analytics_rounded,
-          title: '무료로 시작하세요',
-          description: '지금 바로 우리 가게 신뢰도를 분석하고\n개선 포인트를 확인해보세요',
+          artwork: BrandAssets.integrity,
+          title: '아픈 말도,\n바꿀 기회로.',
+          description: '평가에 개입하지 않고, 사실에 답합니다.\n현장 기록을 통해 개선할 지점을 찾으세요.',
           gradient: HwahaeColors.gradientPrimary,
           accentColor: HwahaeColors.primary,
           features: ['무료 신뢰도 분석', '리뷰 진단', '맞춤 추천'],
@@ -81,11 +86,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         _OnboardingPageData(
           icon: Icons.verified_user_rounded,
           backgroundIcon: Icons.shield_outlined,
-          title: '진짜 리뷰만\n모았습니다',
-          description: 'AI가 검증한 실제 방문자의 리뷰만 보여드려요\n가짜 리뷰 걱정 없이 신뢰할 수 있어요',
+          artwork: BrandAssets.dispatch,
+          title: '도무지 못 믿을 리뷰,\n이제 어사가 나섭니다.',
+          description: '이 세상의 모든 작업 리뷰가 사라질 때까지.\n선발된 어사들의 솔직하고 대담한 현장 기록.',
           gradient: HwahaeColors.gradientPrimary,
           accentColor: HwahaeColors.primary,
-          features: ['AI 리뷰 검증', 'GPS 위치 인증', '영수증 확인'],
+          features: ['선발된 어사', '방문 근거', '청탁 배제 원칙'],
         ),
       ];
     }
@@ -355,7 +361,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? accentColor.withOpacity(0.08) : HwahaeColors.surface,
+          color:
+              isSelected ? accentColor.withOpacity(0.08) : HwahaeColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? accentColor : HwahaeColors.border,
@@ -548,63 +555,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 배경 아이콘 + 메인 아이콘
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // 배경 원형 그라디언트
-                      Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              page.accentColor.withOpacity(0.15),
-                              page.accentColor.withOpacity(0.0),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // 배경 아이콘
-                      Positioned(
-                        right: 20,
-                        top: 20,
-                        child: Icon(
-                          page.backgroundIcon,
-                          size: 60,
-                          color: page.accentColor.withOpacity(0.1),
-                        ),
-                      ),
-                      // 메인 아이콘 박스
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: page.gradient,
-                          ),
-                          borderRadius: BorderRadius.circular(36),
-                          boxShadow: [
-                            BoxShadow(
-                              color: page.gradient[0].withOpacity(0.4),
-                              blurRadius: 30,
-                              offset: const Offset(0, 15),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          page.icon,
-                          size: 56,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(page.artwork,
+                        height: 220,
+                        width: double.infinity,
+                        fit: BoxFit.contain),
                   ),
-                  const SizedBox(height: 48),
-
+                  const SizedBox(height: 28),
                   // 제목
                   Text(
                     page.title,
@@ -720,7 +678,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     switch (_selectedUserType) {
       case UserType.reviewer:
         primaryCtaText = isLastPage ? '첫 미션 체험하기' : '다음';
-        primaryCtaIcon = isLastPage ? Icons.play_circle_filled : Icons.arrow_forward;
+        primaryCtaIcon =
+            isLastPage ? Icons.play_circle_filled : Icons.arrow_forward;
         primaryCtaAction = isLastPage
             ? () async {
                 await _completeOnboardingWithType(UserType.reviewer);
@@ -854,6 +813,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
 class _OnboardingPageData {
   final IconData icon;
+  final String artwork;
   final IconData backgroundIcon;
   final String title;
   final String description;
@@ -863,6 +823,7 @@ class _OnboardingPageData {
 
   _OnboardingPageData({
     required this.icon,
+    this.artwork = BrandAssets.tiger,
     required this.backgroundIcon,
     required this.title,
     required this.description,

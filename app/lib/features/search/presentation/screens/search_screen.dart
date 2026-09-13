@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
-import '../../../../core/theme/hwahae_typography.dart';
-import '../../../../core/theme/hwahae_theme.dart';
+import '../../../../shared/widgets/content_image.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
-
+  final String? initialCategory;
+  const SearchScreen({super.key, this.initialCategory});
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
@@ -17,60 +17,79 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
   Timer? _debounce;
-  List<dynamic> _results = [];
-  bool _isLoading = false;
+  int _requestId = 0;
+  String? _category;
   String? _error;
+  bool _loading = false;
+  bool _searched = false;
+  List<dynamic> _results = [];
+  static const _categories = ['음식점', '카페', '뷰티', '건강', '레저', '교육'];
+
+  @override
+  void initState() {
+    super.initState();
+    _category = widget.initialCategory;
+    if (_category != null) _search();
+  }
+
+  @override
+  void didUpdateWidget(covariant SearchScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialCategory != oldWidget.initialCategory) {
+      _category = widget.initialCategory;
+      _changed(_controller.text);
+    }
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
     _debounce?.cancel();
+    _controller.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged(String query) {
+  void _changed(String value) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      if (query.trim().length >= 2) {
-        _performSearch(query.trim());
-      } else {
-        setState(() {
-          _results = [];
-          _error = null;
-        });
-      }
+    _requestId++;
+    setState(() {
+      _results = [];
+      _error = null;
+      _loading = false;
+      _searched = false;
     });
+    if (value.trim().isEmpty && _category == null) return;
+    _debounce = Timer(const Duration(milliseconds: 350), _search);
   }
 
-  Future<void> _performSearch(String query) async {
+  Future<void> _search() async {
+    _debounce?.cancel();
+    final query = _controller.text.trim();
+    if (query.isEmpty && _category == null) return;
+    final request = ++_requestId;
     setState(() {
-      _isLoading = true;
+      _loading = true;
       _error = null;
     });
-
     try {
       final response = await ApiClient.instance.dio.get(
         '/businesses/search',
-        queryParameters: {'q': query},
+        queryParameters: {
+          if (query.isNotEmpty) 'q': query,
+          if (_category != null) 'category': _category,
+        },
       );
-      final data = response.data;
-
-      if (data['success'] == true) {
-        setState(() {
-          _results = data['data']['businesses'] as List? ?? [];
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _results = [];
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('[SearchScreen] Error searching: $e');
+      if (!mounted || request != _requestId) return;
+      if (response.data['success'] != true) throw StateError('Search failed');
       setState(() {
-        _isLoading = false;
-        _error = '검색 중 오류가 발생했습니다.';
+        _results = response.data['data']['businesses'] as List? ?? [];
+        _loading = false;
+        _searched = true;
+      });
+    } catch (_) {
+      if (!mounted || request != _requestId) return;
+      setState(() {
+        _loading = false;
+        _error = '검색 결과를 불러오지 못했어요.';
       });
     }
   }
@@ -78,184 +97,220 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: HwahaeColors.background,
-      appBar: AppBar(
-        backgroundColor: HwahaeColors.surface,
-        title: TextField(
-          controller: _controller,
-          autofocus: true,
-          onChanged: _onSearchChanged,
-          decoration: InputDecoration(
-            hintText: '업체, 미션, 리뷰 검색',
-            hintStyle: HwahaeTypography.bodyMedium.copyWith(
-              color: HwahaeColors.textTertiary,
+      appBar: AppBar(title: const Text('발견하기')),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: TextField(
+              controller: _controller,
+              maxLength: 100,
+              textInputAction: TextInputAction.search,
+              onChanged: _changed,
+              onSubmitted: (_) => _search(),
+              decoration: InputDecoration(
+                hintText: '어떤 업체를 찾고 있나요?',
+                counterText: '',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _controller.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: '검색어 지우기',
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () {
+                          _controller.clear();
+                          _changed('');
+                        },
+                      ),
+              ),
             ),
-            border: InputBorder.none,
-            filled: false,
-            suffixIcon: _controller.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, size: 20),
-                    onPressed: () {
-                      _controller.clear();
-                      setState(() {
-                        _results = [];
-                        _error = null;
-                      });
-                    },
-                  )
-                : null,
           ),
-        ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                for (final category in ['전체', ..._categories])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(category),
+                      selected: category == (_category ?? '전체'),
+                      onSelected: (_) {
+                        setState(
+                          () => _category = category == '전체' ? null : category,
+                        );
+                        _changed(_controller.text);
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(child: _body()),
+        ],
       ),
-      body: _buildBody(),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: HwahaeColors.primary));
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: HwahaeColors.error),
-            const SizedBox(height: 16),
-            Text(_error!, style: HwahaeTypography.bodyMedium),
-            const SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: () {
-                if (_controller.text.trim().length >= 2) {
-                  _performSearch(_controller.text.trim());
-                }
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('다시 시도'),
-            ),
-          ],
+  Widget _body() {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null)
+      return _message(
+        Icons.wifi_off_rounded,
+        _error!,
+        action: TextButton.icon(
+          onPressed: _search,
+          icon: const Icon(Icons.refresh),
+          label: const Text('다시 시도'),
         ),
       );
-    }
-
-    if (_controller.text.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search, size: 64, color: HwahaeColors.textTertiary),
-            const SizedBox(height: 16),
-            Text(
-              '검색어를 입력해주세요',
-              style: HwahaeTypography.bodyMedium.copyWith(
-                color: HwahaeColors.textSecondary,
+    if (!_searched)
+      return _message(
+        Icons.travel_explore_rounded,
+        '우리 동네의 새로운 발견',
+        subtitle: '업체 이름을 검색하거나 카테고리를 선택해보세요.',
+      );
+    if (_results.isEmpty)
+      return _message(
+        Icons.search_off_rounded,
+        '아직 일치하는 업체가 없어요',
+        subtitle: '다른 검색어나 카테고리로 찾아보세요.',
+      );
+    return RefreshIndicator(
+      onRefresh: _search,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        itemCount: _results.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          if (index == 0)
+            return Text(
+              '검색 결과 ${_results.length}곳',
+              style: Theme.of(context).textTheme.titleSmall,
+            );
+          final business = _results[index - 1] as Map<String, dynamic>;
+          final photo = ContentImage.firstUrl(business['images']);
+          final rating = business['average_rating'];
+          return Card(
+            margin: EdgeInsets.zero,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: business['id'] == null
+                  ? null
+                  : () => context.push('/trust/${business['id']}'),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    ContentImage(
+                      url: photo,
+                      label: '${business['name']} 업체 사진',
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            business['name'] ?? '업체',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            [business['category'], business['address_city']]
+                                .whereType<String>()
+                                .where((s) => s.isNotEmpty)
+                                .join(' · '),
+                            style: const TextStyle(
+                              color: HwahaeColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star_rounded,
+                                color: HwahaeColors.ratingStar,
+                                size: 17,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                rating is num
+                                    ? rating.toStringAsFixed(1)
+                                    : '평점 없음',
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  '리뷰 ${business['total_reviews'] ?? 0}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: HwahaeColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: HwahaeColors.textTertiary,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
-      );
-    }
-
-    if (_results.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 64, color: HwahaeColors.textTertiary),
-            const SizedBox(height: 16),
-            Text(
-              '검색 결과가 없습니다',
-              style: HwahaeTypography.bodyMedium.copyWith(
-                color: HwahaeColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _results.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final business = _results[index] as Map<String, dynamic>;
-        return _SearchResultCard(
-          business: business,
-          onTap: () => context.push('/trust/${business['id']}'),
-        );
-      },
+          );
+        },
+      ),
     );
   }
-}
 
-class _SearchResultCard extends StatelessWidget {
-  final Map<String, dynamic> business;
-  final VoidCallback onTap;
-
-  const _SearchResultCard({required this.business, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: HwahaeColors.surface,
-          borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
-          border: Border.all(color: HwahaeColors.border),
-        ),
-        child: Row(
+  Widget _message(
+    IconData icon,
+    String title, {
+    String? subtitle,
+    Widget? action,
+  }) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: HwahaeColors.surfaceVariant,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.storefront,
-                color: HwahaeColors.primary,
-              ),
+            CircleAvatar(
+              radius: 36,
+              backgroundColor: HwahaeColors.primaryContainer,
+              child: Icon(icon, size: 32, color: HwahaeColors.primary),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    business['name'] ?? '',
-                    style: HwahaeTypography.titleSmall.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${business['category'] ?? ''} • ${business['address_city'] ?? ''}',
-                    style: HwahaeTypography.captionMedium.copyWith(
-                      color: HwahaeColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
-            if (business['avg_rating'] != null)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.star_rounded, size: 16, color: HwahaeColors.warning),
-                  const SizedBox(width: 2),
-                  Text(
-                    '${(business['avg_rating'] as num).toStringAsFixed(1)}',
-                    style: HwahaeTypography.labelMedium.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+            if (subtitle != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: HwahaeColors.textSecondary),
               ),
+            ],
+            if (action != null) ...[const SizedBox(height: 12), action],
           ],
         ),
       ),

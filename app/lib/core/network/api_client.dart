@@ -24,6 +24,7 @@ class AuthEventBus {
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
+  static ApiClient get instance => _instance;
   factory ApiClient() => _instance;
 
   late final Dio _dio;

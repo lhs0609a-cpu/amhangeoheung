@@ -1,42 +1,42 @@
 import 'package:flutter/material.dart';
 
-/// 암행어흥 컬러 시스템 - 힙하고 모던한 테마
+/// 암행어흥 컬러 시스템 - 먹색·한지·호랑이·주홍 인장
 class HwahaeColors {
   HwahaeColors._();
 
-  // === Primary Colors - 딥 바이올렛 ===
-  static const Color primary = Color(0xFF6C5CE7);
-  static const Color primaryLight = Color(0xFF8B7CF6);
-  static const Color primaryDark = Color(0xFF5541D9);
-  static const Color primaryContainer = Color(0xFFF0EEFF);
+  // === Primary Colors - 먹색 ===
+  static const Color primary = Color(0xFF253A35);
+  static const Color primaryLight = Color(0xFF496158);
+  static const Color primaryDark = Color(0xFF182523);
+  static const Color primaryContainer = Color(0xFFEEE8DC);
   static const Color onPrimary = Color(0xFFFFFFFF);
 
-  // === Secondary/Accent - 네온 민트 ===
-  static const Color secondary = Color(0xFF00D4AA);
-  static const Color secondaryLight = Color(0xFF5EEAD4);
-  static const Color secondaryDark = Color(0xFF00B894);
-  static const Color secondaryContainer = Color(0xFFE6FBF6);
+  // === Secondary/Accent - 절제된 녹청 ===
+  static const Color secondary = Color(0xFF253A35);
+  static const Color secondaryLight = Color(0xFFD7B875);
+  static const Color secondaryDark = Color(0xFF182523);
+  static const Color secondaryContainer = Color(0xFFF4E7C8);
   static const Color onSecondary = Color(0xFF0A0A0A);
 
-  // === Accent - 핫핑크 ===
-  static const Color accent = Color(0xFFFF6B9D);
-  static const Color accentLight = Color(0xFFFF8FB3);
-  static const Color accentDark = Color(0xFFE84A7F);
-  static const Color accentContainer = Color(0xFFFFF0F5);
+  // === Accent - 주홍 인장 ===
+  static const Color accent = Color(0xFFBC4938);
+  static const Color accentLight = Color(0xFFD3755F);
+  static const Color accentDark = Color(0xFF913626);
+  static const Color accentContainer = Color(0xFFF9E8E0);
 
   // === Background & Surface ===
-  static const Color background = Color(0xFFFAFAFC);
+  static const Color background = Color(0xFFF8F3E8);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF4F4F8);
-  static const Color surfaceContainer = Color(0xFFEEEEF2);
+  static const Color surfaceVariant = Color(0xFFF0EADF);
+  static const Color surfaceContainer = Color(0xFFE8DFD0);
   static const Color surfaceElevated = Color(0xFFFFFFFF);
 
   // === Text Colors ===
-  static const Color textPrimary = Color(0xFF1A1A2E);
-  static const Color textSecondary = Color(0xFF6B6B80);
-  static const Color textTertiary = Color(0xFF8E8E9E);
+  static const Color textPrimary = Color(0xFF182523);
+  static const Color textSecondary = Color(0xFF6A685F);
+  static const Color textTertiary = Color(0xFF78736A);
   static const Color textDisabled = Color(0xFFD0D0D8);
-  static const Color textOnDark = Color(0xFFFAFAFC);
+  static const Color textOnDark = Color(0xFFF8F3E8);
 
   // === Status Colors ===
   static const Color success = Color(0xFF10B981);
@@ -57,17 +57,17 @@ class HwahaeColors {
   static const Color gradeDiamond = Color(0xFF8B5CF6);
 
   // === Mission Type Colors (미션 유형) ===
-  static const Color missionRegular = Color(0xFF3B82F6);     // 일반 미션 - 블루
-  static const Color missionHidden = Color(0xFF8B5CF6);      // 히든 미션 - 퍼플
-  static const Color missionSeason = Color(0xFFEC4899);      // 시즌 미션 - 핑크
-  static const Color missionUrgent = Color(0xFFEF4444);      // 긴급 미션 - 레드
-  static const Color missionPremium = Color(0xFFF59E0B);     // 프리미엄 미션 - 골드
+  static const Color missionRegular = Color(0xFF3B82F6); // 일반 미션 - 블루
+  static const Color missionHidden = Color(0xFF8B5CF6); // 히든 미션 - 퍼플
+  static const Color missionSeason = Color(0xFFEC4899); // 시즌 미션 - 핑크
+  static const Color missionUrgent = Color(0xFFEF4444); // 긴급 미션 - 레드
+  static const Color missionPremium = Color(0xFFF59E0B); // 프리미엄 미션 - 골드
 
   // === Rating Semantic Colors ===
-  static const Color ratingExcellent = Color(0xFF10B981);    // 4.5+ 녹색
-  static const Color ratingGood = Color(0xFFF59E0B);         // 3.5~4.4 골드
-  static const Color ratingAverage = Color(0xFFF97316);      // 3.0~3.4 주황
-  static const Color ratingPoor = Color(0xFFEF4444);         // 3.0 미만 빨강
+  static const Color ratingExcellent = Color(0xFF10B981); // 4.5+ 녹색
+  static const Color ratingGood = Color(0xFFF59E0B); // 3.5~4.4 골드
+  static const Color ratingAverage = Color(0xFFF97316); // 3.0~3.4 주황
+  static const Color ratingPoor = Color(0xFFEF4444); // 3.0 미만 빨강
 
   /// 평점에 따른 시맨틱 색상 반환
   static Color getRatingColor(double rating) {
@@ -94,10 +94,10 @@ class HwahaeColors {
   }
 
   // === Border & Divider ===
-  static const Color divider = Color(0xFFE8E8EE);
-  static const Color border = Color(0xFFE2E2EA);
-  static const Color borderLight = Color(0xFFF0F0F4);
-  static const Color borderFocused = Color(0xFF6C5CE7);
+  static const Color divider = Color(0xFFE8DFD0);
+  static const Color border = Color(0xFFDED4C4);
+  static const Color borderLight = Color(0xFFF0F4F2);
+  static const Color borderFocused = Color(0xFF253A35);
 
   // === Rating Colors ===
   static const Color ratingStar = Color(0xFFFBBF24);
@@ -105,17 +105,17 @@ class HwahaeColors {
 
   // === Gradient Colors ===
   static const List<Color> gradientPrimary = [
-    Color(0xFF6C5CE7),
-    Color(0xFF8B5CF6),
+    Color(0xFF253A35),
+    Color(0xFF496158),
   ];
 
   static const List<Color> gradientAccent = [
-    Color(0xFF00D4AA),
-    Color(0xFF00B4D8),
+    Color(0xFF253A35),
+    Color(0xFF157A83),
   ];
 
   static const List<Color> gradientWarm = [
-    Color(0xFFFF6B9D),
+    Color(0xFFBC4938),
     Color(0xFFFF8E53),
   ];
 

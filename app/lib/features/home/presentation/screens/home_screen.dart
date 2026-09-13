@@ -1,4 +1,9 @@
+import '../../../../core/theme/brand_assets.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../shared/widgets/discovery_banner.dart';
+import '../../../../shared/widgets/content_image.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -25,15 +30,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentBannerIndex = 0;
 
-  final List<String> _categories = [
-    '전체',
-    '음식점',
-    '카페',
-    '뷰티',
-    '건강',
-    '레저',
-    '교육',
-  ];
+  final List<String> _categories = ['전체', '음식점', '카페', '뷰티', '건강', '레저', '교육'];
 
   @override
   void initState() {
@@ -59,14 +56,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               color: HwahaeColors.primary,
               backgroundColor: HwahaeColors.surface,
               child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   // 앱바
                   _buildAppBar(),
+                  const SliverToBoxAdapter(child: DiscoveryBanner()),
 
                   // 리뷰어 홈: "오늘의 미션 브리핑" 레이아웃
                   if (userType == UserType.reviewer) ...[
                     // 진행 중 미션 스티키 카드
-                    SliverToBoxAdapter(child: _buildActiveMissionCard(homeState)),
+                    SliverToBoxAdapter(
+                      child: _buildActiveMissionCard(homeState),
+                    ),
                     // 오늘의 미션 추천
                     SliverToBoxAdapter(child: _buildMissionsSection(homeState)),
                     // 정산 대기 금액 카드
@@ -74,28 +75,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     // 등급 진행 상황
                     SliverToBoxAdapter(child: _buildGradeProgressCard()),
                     // 베스트 리뷰
-                    SliverToBoxAdapter(child: _buildBestReviewsSection(homeState)),
+                    SliverToBoxAdapter(
+                      child: _buildBestReviewsSection(homeState),
+                    ),
                   ],
 
                   // 소비자 홈: 검색 + 탐색 레이아웃
                   if (userType == UserType.consumer) ...[
                     // 검색 바
                     SliverToBoxAdapter(child: _buildSearchBar()),
+                    SliverToBoxAdapter(child: _buildCategoryExplore()),
                     // 내 주변 TOP 업체
-                    SliverToBoxAdapter(child: _buildTopBusinessSection(homeState)),
+                    SliverToBoxAdapter(
+                      child: _buildTopBusinessSection(homeState),
+                    ),
                     // 카테고리 탭
                     SliverToBoxAdapter(child: _buildCategoryTabs()),
                     // 최근 인증 리뷰 피드
-                    SliverToBoxAdapter(child: _buildBestReviewsSection(homeState)),
-                    // 카테고리별 탐색
-                    SliverToBoxAdapter(child: _buildCategoryExplore()),
+                    SliverToBoxAdapter(
+                      child: _buildBestReviewsSection(homeState),
+                    ),
                   ],
 
                   // 업체 홈: 대시보드 요약 (실제 대시보드로 리다이렉트)
                   if (userType == UserType.business) ...[
                     SliverToBoxAdapter(child: _buildQuickActions()),
-                    SliverToBoxAdapter(child: _buildTopBusinessSection(homeState)),
-                    SliverToBoxAdapter(child: _buildBestReviewsSection(homeState)),
+                    SliverToBoxAdapter(
+                      child: _buildTopBusinessSection(homeState),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildBestReviewsSection(homeState),
+                    ),
                   ],
 
                   // 하단 여백 (네비게이션 바 고려)
@@ -134,7 +144,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.explore_rounded, color: Colors.white, size: 24),
+                child: const Icon(
+                  Icons.explore_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -161,7 +175,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               InkWell(
                 onTap: () => context.push('/missions'),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
@@ -206,7 +223,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.flag_rounded, color: Colors.white, size: 24),
+                child: const Icon(
+                  Icons.flag_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -240,7 +261,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               if (activeMissions.length > 1)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -343,7 +367,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: HwahaeColors.gradeRookie.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -351,7 +378,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.eco_rounded, size: 14, color: HwahaeColors.gradeRookie),
+                        const Icon(
+                          Icons.eco_rounded,
+                          size: 14,
+                          color: HwahaeColors.gradeRookie,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Rookie',
@@ -379,7 +410,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   value: 0.0,
                   minHeight: 8,
                   backgroundColor: HwahaeColors.surfaceVariant,
-                  valueColor: AlwaysStoppedAnimation<Color>(HwahaeColors.primary),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    HwahaeColors.primary,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -411,10 +444,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.search_rounded, color: HwahaeColors.textTertiary),
+              const Icon(
+                Icons.search_rounded,
+                color: HwahaeColors.textTertiary,
+              ),
               const SizedBox(width: 12),
               Text(
-                '업체, 카테고리, 지역 검색',
+                '어사가 다녀온 업장 찾기',
                 style: HwahaeTypography.bodyMedium.copyWith(
                   color: HwahaeColors.textTertiary,
                 ),
@@ -429,12 +465,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// 소비자 홈: 카테고리별 탐색
   Widget _buildCategoryExplore() {
     final categories = [
-      {'icon': Icons.restaurant, 'label': '음식점', 'gradient': HwahaeColors.gradientWarm},
-      {'icon': Icons.coffee, 'label': '카페', 'gradient': HwahaeColors.gradientAccent},
-      {'icon': Icons.spa, 'label': '뷰티', 'gradient': HwahaeColors.gradientSunset},
-      {'icon': Icons.fitness_center, 'label': '건강', 'gradient': HwahaeColors.gradientCool},
-      {'icon': Icons.park, 'label': '레저', 'gradient': HwahaeColors.gradientOcean},
-      {'icon': Icons.school, 'label': '교육', 'gradient': HwahaeColors.gradientPrimary},
+      {
+        'icon': Icons.restaurant,
+        'label': '음식점',
+        'gradient': HwahaeColors.gradientWarm,
+      },
+      {
+        'icon': Icons.coffee,
+        'label': '카페',
+        'gradient': HwahaeColors.gradientAccent,
+      },
+      {
+        'icon': Icons.spa,
+        'label': '뷰티',
+        'gradient': HwahaeColors.gradientSunset,
+      },
+      {
+        'icon': Icons.fitness_center,
+        'label': '건강',
+        'gradient': HwahaeColors.gradientCool,
+      },
+      {
+        'icon': Icons.park,
+        'label': '레저',
+        'gradient': HwahaeColors.gradientOcean,
+      },
+      {
+        'icon': Icons.school,
+        'label': '교육',
+        'gradient': HwahaeColors.gradientPrimary,
+      },
     ];
 
     return Column(
@@ -457,7 +517,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             itemBuilder: (context, index) {
               final cat = categories[index];
               return InkWell(
-                onTap: () => context.push('/search'),
+                onTap: () => context.push(
+                  Uri(
+                    path: '/search',
+                    queryParameters: {'category': cat['label'] as String},
+                  ).toString(),
+                ),
                 borderRadius: BorderRadius.circular(HwahaeTheme.radiusMD),
                 child: Container(
                   decoration: BoxDecoration(
@@ -472,10 +537,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: cat['gradient'] as List<Color>),
+                          gradient: LinearGradient(
+                            colors: cat['gradient'] as List<Color>,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(cat['icon'] as IconData, color: Colors.white, size: 22),
+                        child: Icon(
+                          cat['icon'] as IconData,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -526,17 +597,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.verified_user_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: Image.asset(BrandAssets.mapae, width: 24, height: 28),
           ),
           const SizedBox(width: 10),
           ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: HwahaeColors.gradientPrimary,
-            ).createShader(bounds),
+            shaderCallback: (bounds) =>
+                const LinearGradient(colors: HwahaeColors.gradientPrimary)
+                    .createShader(bounds),
             child: Text(
               '암행어흥',
               style: HwahaeTypography.headlineSmall.copyWith(
@@ -575,17 +642,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.verified_user_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: Image.asset(BrandAssets.mapae, width: 24, height: 28),
           ),
           const SizedBox(width: 10),
           ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: HwahaeColors.gradientPrimary,
-            ).createShader(bounds),
+            shaderCallback: (bounds) =>
+                const LinearGradient(colors: HwahaeColors.gradientPrimary)
+                    .createShader(bounds),
             child: Text(
               '암행어흥',
               style: HwahaeTypography.headlineSmall.copyWith(
@@ -629,11 +692,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Icon(
-              icon,
-              color: HwahaeColors.textPrimary,
-              size: 22,
-            ),
+            Icon(icon, color: HwahaeColors.textPrimary, size: 22),
             if (showBadge)
               Positioned(
                 top: 8,
@@ -793,7 +852,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 height: 8,
                 decoration: BoxDecoration(
                   gradient: _currentBannerIndex == index
-                      ? const LinearGradient(colors: HwahaeColors.gradientPrimary)
+                      ? const LinearGradient(
+                          colors: HwahaeColors.gradientPrimary,
+                        )
                       : null,
                   color: _currentBannerIndex == index
                       ? null
@@ -946,7 +1007,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           _QuickActionData(
             icon: Icons.rate_review_rounded,
-            label: '베스트 리뷰',
+            label: '어사들의 현장 기록',
             gradient: HwahaeColors.gradientAccent,
             onTap: () => context.push('/reviews'),
           ),
@@ -970,7 +1031,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _getUserTypeColor(userType).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -1040,18 +1104,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ],
                 ),
-                child: Icon(
-                  action.icon,
-                  color: Colors.white,
-                  size: 26,
-                ),
+                child: Icon(action.icon, color: Colors.white, size: 26),
               ),
               if (action.badge != null)
                 Positioned(
                   top: -4,
                   right: -4,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: HwahaeColors.error,
                       borderRadius: BorderRadius.circular(10),
@@ -1139,9 +1202,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildUserTypeOption(UserType.reviewer, '리뷰어', '미션 수행 및 보상', Icons.rate_review_rounded, HwahaeColors.warning),
-            _buildUserTypeOption(UserType.business, '업체', '신뢰도 관리 및 미션 등록', Icons.storefront_rounded, HwahaeColors.accent),
-            _buildUserTypeOption(UserType.consumer, '소비자', '리뷰 탐색 및 업체 검색', Icons.person_rounded, HwahaeColors.primary),
+            _buildUserTypeOption(
+              UserType.reviewer,
+              '리뷰어',
+              '미션 수행 및 보상',
+              Icons.rate_review_rounded,
+              HwahaeColors.warning,
+            ),
+            _buildUserTypeOption(
+              UserType.business,
+              '업체',
+              '신뢰도 관리 및 미션 등록',
+              Icons.storefront_rounded,
+              HwahaeColors.accent,
+            ),
+            _buildUserTypeOption(
+              UserType.consumer,
+              '소비자',
+              '리뷰 탐색 및 업체 검색',
+              Icons.person_rounded,
+              HwahaeColors.primary,
+            ),
             const SizedBox(height: 16),
           ],
         ),
@@ -1149,7 +1230,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildUserTypeOption(UserType type, String title, String description, IconData icon, Color color) {
+  Widget _buildUserTypeOption(
+    UserType type,
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+  ) {
     final currentType = ref.watch(userTypeProvider);
     final isSelected = currentType == type;
 
@@ -1200,15 +1287,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
             ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: color),
+            if (isSelected) Icon(Icons.check_circle, color: color),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, {String? emoji, VoidCallback? onSeeAll}) {
+  Widget _buildSectionHeader(
+    String title, {
+    String? emoji,
+    VoidCallback? onSeeAll,
+  }) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
       child: Row(
@@ -1232,7 +1322,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             GestureDetector(
               onTap: onSeeAll,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: HwahaeColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(20),
@@ -1266,14 +1359,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('이번 달 TOP 업체', emoji: '🏆', onSeeAll: () {
-          context.push('/ranking');
-        }),
+        _buildSectionHeader(
+          '어사들이 확인한 업장',
+          emoji: '🏆',
+          onSeeAll: () {
+            context.push('/ranking');
+          },
+        ),
         if (businesses.isEmpty)
-          _buildEmptyState(icon: Icons.store_outlined, message: 'TOP 업체 데이터가 없습니다')
+          _buildEmptyState(
+            icon: Icons.store_outlined,
+            message: 'TOP 업체 데이터가 없습니다',
+          )
         else
           SizedBox(
-            height: 150,
+            height: 210,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1393,16 +1493,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildMissionsSection(HomeDataState homeState) {
     final missions = homeState.filteredMissions;
     final categoryLabel = homeState.selectedCategory == '전체'
-        ? '참여 가능한 미션'
+        ? '출두할 업장을 찾습니다'
         : '${homeState.selectedCategory} 미션';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 28),
-        _buildSectionHeader(categoryLabel, emoji: '✨', onSeeAll: () {
-          context.push('/missions');
-        }),
+        _buildSectionHeader(
+          categoryLabel,
+          emoji: '✨',
+          onSeeAll: () {
+            context.push('/missions');
+          },
+        ),
         if (homeState.isLoading)
           SkeletonListView(
             itemCount: 3,
@@ -1446,16 +1550,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildBestReviewsSection(HomeDataState homeState) {
     final reviews = homeState.filteredReviews;
     final reviewLabel = homeState.selectedCategory == '전체'
-        ? '베스트 리뷰'
+        ? '어사들의 현장 기록'
         : '${homeState.selectedCategory} 리뷰';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 28),
-        _buildSectionHeader(reviewLabel, emoji: '📝', onSeeAll: () {
-          context.push('/reviews');
-        }),
+        _buildSectionHeader(
+          reviewLabel,
+          emoji: '📝',
+          onSeeAll: () {
+            context.push('/reviews');
+          },
+        ),
         if (homeState.isLoading)
           SizedBox(
             height: 260,
@@ -1567,13 +1675,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 14),
 
+            if (review.photos.isNotEmpty) ...[
+              ContentImage(
+                url: review.photos.first.url,
+                label: '$storeName 리뷰 사진',
+                width: double.infinity,
+                height: 64,
+              ),
+              const SizedBox(height: 8),
+            ],
             // 리뷰 내용
             Expanded(
               child: Text(
                 content,
-                style: HwahaeTypography.bodySmall.copyWith(
-                  height: 1.6,
-                ),
+                style: HwahaeTypography.bodySmall.copyWith(height: 1.6),
                 maxLines: 5,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1585,8 +1700,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: HwahaeColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(8),
@@ -1611,8 +1728,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SizedBox(width: 8),
                 if (review.status == 'published')
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: HwahaeColors.gradientAccent,
@@ -1629,7 +1748,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '인증됨',
+                          '게시된 리뷰',
                           style: HwahaeTypography.captionSmall.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -1654,11 +1773,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 28),
-        _buildSectionHeader('우수 리뷰어', emoji: '👑', onSeeAll: () {
-          context.push('/ranking?tab=reviewer');
-        }),
+        _buildSectionHeader(
+          '우수 리뷰어',
+          emoji: '👑',
+          onSeeAll: () {
+            context.push('/ranking?tab=reviewer');
+          },
+        ),
         if (reviewers.isEmpty)
-          _buildEmptyState(icon: Icons.person_outline, message: '우수 리뷰어 데이터가 없습니다')
+          _buildEmptyState(
+            icon: Icons.person_outline,
+            message: '우수 리뷰어 데이터가 없습니다',
+          )
         else
           SizedBox(
             height: 110,
@@ -1697,10 +1823,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: colors[0].withOpacity(0.3),
-                  width: 2,
-                ),
+                border: Border.all(color: colors[0].withOpacity(0.3), width: 2),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -1769,11 +1892,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 color: HwahaeColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(
-                icon,
-                size: 32,
-                color: HwahaeColors.textTertiary,
-              ),
+              child: Icon(icon, size: 32, color: HwahaeColors.textTertiary),
             ),
             const SizedBox(height: 14),
             Text(

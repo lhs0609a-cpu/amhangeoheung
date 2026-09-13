@@ -1,8 +1,10 @@
+import '../../../../core/theme/brand_assets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../providers/certification_provider.dart';
+import '../../data/models/training_module_model.dart';
 import '../widgets/certification_badge.dart';
 
 class CertificationHomeScreen extends ConsumerWidget {
@@ -14,10 +16,11 @@ class CertificationHomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('리뷰어 인증 프로그램'),
+        title: const Text('암행어사 선발원'),
       ),
       body: statusAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: HwahaeColors.primary)),
+        loading: () => const Center(
+            child: CircularProgressIndicator(color: HwahaeColors.primary)),
         error: (e, _) => Center(child: Text('오류: $e')),
         data: (status) => _buildContent(context, status),
       ),
@@ -30,6 +33,17 @@ class CertificationHomeScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Image.asset(BrandAssets.exam,
+                  width: double.infinity, height: 210, fit: BoxFit.cover)),
+          const SizedBox(height: 20),
+          const Text('아무나 어사가 될 수는 없으니까.',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          const Text('솔직함에 기준을 더합니다. 교육 · 실습 · 종합 시험을 거쳐 마패를 받으세요.',
+              style: TextStyle(height: 1.7)),
+          const SizedBox(height: 24),
           // 수료증 표시
           if (status.isCertified) _buildCertificate(context, status),
           if (status.isCertified) const SizedBox(height: 24),
@@ -50,17 +64,19 @@ class CertificationHomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          _buildDayCard(context, status, 1, '암행어흥의 철학', '왜 객관적 리뷰가 중요한가, 평가 기준 학습'),
+          _buildDayCard(
+              context, status, 1, '암행어흥의 철학', '왜 객관적 리뷰가 중요한가, 평가 기준 학습'),
           const SizedBox(height: 12),
-          _buildDayCard(context, status, 2, '현장 행동 수칙', '신분 노출 방지, 사진 촬영 가이드, 문제 대응'),
+          _buildDayCard(
+              context, status, 2, '현장 행동 수칙', '신분 노출 방지, 사진 촬영 가이드, 문제 대응'),
           const SizedBox(height: 12),
-          _buildDayCard(context, status, 3, '리뷰 작성 실습', '객관적 글쓰기, 실전 연습, 종합 시험'),
+          _buildDayCard(
+              context, status, 3, '리뷰 작성 실습', '객관적 글쓰기, 실전 연습, 종합 시험'),
 
           const SizedBox(height: 24),
 
           // 품질 점수
-          if (status.qualityScore > 0)
-            _buildQualityCard(status),
+          if (status.qualityScore > 0) _buildQualityCard(status),
         ],
       ),
     );
@@ -129,7 +145,8 @@ class CertificationHomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDayCard(BuildContext context, status, int day, String title, String subtitle) {
+  Widget _buildDayCard(
+      BuildContext context, status, int day, String title, String subtitle) {
     final isCompleted = status.isDayCompleted(day);
     final isUnlocked = status.isDayUnlocked(day);
     final dayProg = status.dayProgress[day];
@@ -201,7 +218,9 @@ class CertificationHomeScreen extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: status.qualityScore >= 70 ? Colors.green : Colors.orange,
+                    color: status.qualityScore >= 70
+                        ? Colors.green
+                        : Colors.orange,
                   ),
                 ),
                 const Spacer(),
@@ -240,7 +259,8 @@ class CertificationHomeScreen extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          const Icon(Icons.workspace_premium, size: 48, color: Color(0xFFD4AF37)),
+          const Icon(Icons.workspace_premium,
+              size: 48, color: Color(0xFFD4AF37)),
           const SizedBox(height: 12),
           const Text(
             '암행어사 수료증',
@@ -284,7 +304,7 @@ class CertificationHomeScreen extends ConsumerWidget {
     return '${date.year}년 ${date.month}월 ${date.day}일';
   }
 
-  double _calculateOverallProgress(status) {
+  double _calculateOverallProgress(CertificationStatus status) {
     int completed = 0;
     int total = 0;
     for (int day = 1; day <= 3; day++) {

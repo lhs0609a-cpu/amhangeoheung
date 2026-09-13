@@ -378,7 +378,7 @@ class _SeasonBannerCarousel extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const SeasonBadge(),
+                      const SeasonMissionBadge(),
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -447,7 +447,7 @@ class _HiddenMissionsSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const HiddenBadge(),
+              const HiddenMissionBadge(),
               const SizedBox(width: 8),
               Text(
                 '히든 미션',
@@ -757,11 +757,11 @@ class _MissionCard extends StatelessWidget {
                 ),
                 if (mission.isHidden) ...[
                   const SizedBox(width: 6),
-                  const HiddenBadge(),
+                  const HiddenMissionBadge(),
                 ],
                 if (mission.isSeason) ...[
                   const SizedBox(width: 6),
-                  const SeasonBadge(),
+                  const SeasonMissionBadge(),
                 ],
                 // 미션 유형 배지
                 const SizedBox(width: 6),

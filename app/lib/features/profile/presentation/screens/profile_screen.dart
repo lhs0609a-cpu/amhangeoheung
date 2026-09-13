@@ -413,7 +413,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildReviewerStatusCard(profileState) {
     if (profileState.user?.userType != 'reviewer') return const SizedBox.shrink();
 
-    return HwahaeCard(
+    return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -796,7 +796,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: HwahaeCard(
+      child: Card(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

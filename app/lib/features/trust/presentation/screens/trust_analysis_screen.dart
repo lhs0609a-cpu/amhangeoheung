@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/hwahae_colors.dart';
 import '../../../../core/theme/hwahae_typography.dart';
@@ -98,79 +101,43 @@ class CompetitorComparison {
 }
 
 /// 신뢰도 분석 데이터 Provider (API 연동)
-final trustAnalysisProvider =
-    FutureProvider.family<TrustAnalysisData, String>((ref, businessId) async {
-  try {
-    final response = await ApiClient.instance.dio.get('/businesses/$businessId/report');
-    final data = response.data;
-
-    if (data['success'] == true) {
-      final report = data['data'];
-      final business = report['business'] ?? {};
-      final scores = report['categoryScores'] as Map<String, dynamic>? ?? {};
-      final trends = report['monthlyTrend'] as List? ?? [];
-      final dist = report['ratingDistribution'] as List? ?? [];
-      final pros = report['strengths'] as List? ?? [];
-      final cons = report['weaknesses'] as List? ?? [];
-      final comp = report['competitorComparison'] as Map<String, dynamic>? ?? {};
-
-      return TrustAnalysisData(
-        businessName: business['name'] ?? '업체',
-        badgeLevel: business['badge_level'] ?? 'none',
-        overallScore: (report['trustScore'] ?? report['overall_score'] ?? 0).toDouble(),
-        totalReviews: report['totalReviews'] ?? 0,
-        verifiedReviews: report['verifiedReviews'] ?? 0,
-        categoryScores: scores.map((k, v) => MapEntry(k, (v as num).toDouble())),
-        monthlyTrend: trends.map((t) => TrustTrend(
-          month: t['month'] ?? '',
-          score: (t['score'] ?? 0).toDouble(),
-        )).toList(),
-        ratingDistribution: dist.map((d) => ReviewDistribution(
-          rating: d['rating'] ?? 0,
-          count: d['count'] ?? 0,
-          percentage: (d['percentage'] ?? 0).toDouble(),
-        )).toList(),
-        strengths: pros.map((s) => StrengthItem(
-          title: s['title'] ?? '',
-          description: s['description'] ?? '',
-          score: (s['score'] ?? 0).toDouble(),
-          icon: Icons.check_circle_outline,
-        )).toList(),
-        weaknesses: cons.map((w) => WeaknessItem(
-          title: w['title'] ?? '',
-          description: w['description'] ?? '',
-          suggestion: w['suggestion'] ?? '',
-          score: (w['score'] ?? 0).toDouble(),
-        )).toList(),
-        competitorComparison: CompetitorComparison(
-          myScore: (comp['myScore'] ?? 0).toDouble(),
-          categoryAverage: (comp['categoryAverage'] ?? 0).toDouble(),
-          topPerformer: (comp['topPerformer'] ?? 0).toDouble(),
-          rankInCategory: comp['rankInCategory'] ?? 0,
-          totalInCategory: comp['totalInCategory'] ?? 0,
-        ),
-      );
-    }
-  } catch (_) {}
-
-  // API 실패 시 빈 데이터
+final trustAnalysisProvider = FutureProvider.family<TrustAnalysisData, String>((
+  ref,
+  businessId,
+) async {
+  final response = await ApiClient.instance.dio.get(
+    '/businesses/$businessId/trust-analysis',
+  );
+  final payload = response.data;
+  if (payload['success'] != true) throw StateError('신뢰도 정보를 불러오지 못했습니다.');
+  final report = payload['data'] as Map<String, dynamic>;
+  final comparison =
+      report['categoryComparison'] as Map<String, dynamic>? ?? {};
   return TrustAnalysisData(
-    businessName: '',
-    badgeLevel: 'none',
-    overallScore: 0,
-    totalReviews: 0,
-    verifiedReviews: 0,
+    businessName: report['businessName'] ?? '업체',
+    badgeLevel: report['badgeLevel'] ?? 'none',
+    overallScore: (report['trustScore'] as num? ?? 0).toDouble(),
+    totalReviews: report['totalReviews'] as int? ?? 0,
+    verifiedReviews: report['verifiedReviews'] as int? ?? 0,
     categoryScores: {},
-    monthlyTrend: [],
+    monthlyTrend: (report['trend'] as List? ?? [])
+        .map(
+          (t) => TrustTrend(
+            month: t['month'] ?? '',
+            score: (t['averageScore'] as num? ?? 0).toDouble() * 20,
+          ),
+        )
+        .toList(),
     ratingDistribution: [],
     strengths: [],
     weaknesses: [],
     competitorComparison: CompetitorComparison(
-      myScore: 0,
-      categoryAverage: 0,
+      myScore: (report['trustScore'] as num? ?? 0).toDouble(),
+      categoryAverage:
+          (comparison['categoryAverage'] as num? ?? 0).toDouble() * 20,
       topPerformer: 0,
       rankInCategory: 0,
-      totalInCategory: 0,
+      totalInCategory: comparison['totalInCategory'] as int? ?? 0,
     ),
   );
 });
@@ -194,12 +161,17 @@ class TrustAnalysisScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: HwahaeColors.error),
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: HwahaeColors.error,
+              ),
               const SizedBox(height: 16),
               Text('데이터를 불러오는데 실패했습니다', style: HwahaeTypography.bodyMedium),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () => ref.invalidate(trustAnalysisProvider(businessId)),
+                onPressed: () =>
+                    ref.invalidate(trustAnalysisProvider(businessId)),
                 child: const Text('다시 시도'),
               ),
             ],
@@ -210,16 +182,26 @@ class TrustAnalysisScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, TrustAnalysisData data) {
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    TrustAnalysisData data,
+  ) {
     return RefreshIndicator(
       color: HwahaeColors.primary,
       onRefresh: () async {
         ref.invalidate(trustAnalysisProvider(businessId));
+        try {
+          await ref.read(trustAnalysisProvider(businessId).future);
+        } catch (_) {
+          // AsyncValue renders the retry state; don't leak a refresh exception.
+        }
       },
       child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           // 헤더
-          _buildHeader(data),
+          _buildHeader(context, data),
 
           // 콘텐츠
           SliverPadding(
@@ -231,27 +213,29 @@ class TrustAnalysisScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
 
                 // 카테고리별 점수
-                _buildCategoryScores(data),
+                if (data.categoryScores.isNotEmpty) _buildCategoryScores(data),
                 const SizedBox(height: 20),
 
                 // 신뢰도 추이 차트
-                _buildTrendChart(data),
+                if (data.monthlyTrend.isNotEmpty) _buildTrendChart(data),
                 const SizedBox(height: 20),
 
                 // 평점 분포
-                _buildRatingDistribution(data),
+                if (data.ratingDistribution.isNotEmpty)
+                  _buildRatingDistribution(data),
                 const SizedBox(height: 20),
 
                 // 경쟁사 비교
-                _buildCompetitorComparison(data),
+                if (data.competitorComparison.rankInCategory > 0)
+                  _buildCompetitorComparison(data),
                 const SizedBox(height: 20),
 
                 // 강점
-                _buildStrengths(data),
+                if (data.strengths.isNotEmpty) _buildStrengths(data),
                 const SizedBox(height: 20),
 
                 // 개선점
-                _buildWeaknesses(data),
+                if (data.weaknesses.isNotEmpty) _buildWeaknesses(data),
                 const SizedBox(height: 32),
               ]),
             ),
@@ -261,7 +245,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(TrustAnalysisData data) {
+  Widget _buildHeader(BuildContext context, TrustAnalysisData data) {
     final badgeColor = _getBadgeColor(data.badgeLevel);
 
     return SliverAppBar(
@@ -288,11 +272,16 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: badgeColor.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: badgeColor.withOpacity(0.5)),
+                          border: Border.all(
+                            color: badgeColor.withOpacity(0.5),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -321,7 +310,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '총 ${data.totalReviews}개 리뷰 중 ${data.verifiedReviews}개 검증됨',
+                    '게시된 리뷰 ${data.totalReviews}개 기준',
                     style: HwahaeTypography.bodyMedium.copyWith(
                       color: Colors.white.withOpacity(0.8),
                     ),
@@ -339,32 +328,69 @@ class TrustAnalysisScreen extends ConsumerWidget {
       actions: [
         IconButton(
           icon: const Icon(Icons.share_outlined, color: Colors.white),
-          onPressed: () {},
+          tooltip: '신뢰도 공유',
+          onPressed: () async {
+            final box = context.findRenderObject() as RenderBox?;
+            try {
+              await Share.share(
+                _shareText(data),
+                sharePositionOrigin: box == null
+                    ? null
+                    : box.localToGlobal(Offset.zero) & box.size,
+              );
+            } catch (_) {
+              if (context.mounted)
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('공유를 열지 못했어요. 정보 복사를 이용해주세요.')),
+                );
+            }
+          },
         ),
         IconButton(
-          icon: const Icon(Icons.download_outlined, color: Colors.white),
-          onPressed: () {},
+          icon: const Icon(Icons.copy_outlined, color: Colors.white),
+          tooltip: '정보 복사',
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: _shareText(data)));
+            if (context.mounted)
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('신뢰도 정보를 복사했어요.')));
+          },
         ),
       ],
     );
   }
 
+  String _shareText(TrustAnalysisData data) =>
+      data.businessName +
+      ' · 신뢰도 ' +
+      data.overallScore.toStringAsFixed(0) +
+      '점\n' +
+      '게시 리뷰 ' +
+      data.totalReviews.toString() +
+      '개 기준\nhttps://amhangeoheung.com/trust/$businessId';
+
   Widget _buildOverallScoreCard(TrustAnalysisData data) {
+    if (data.totalReviews == 0)
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Text('아직 게시된 리뷰가 없어요. 리뷰가 쌓이면 신뢰도 정보를 확인할 수 있어요.'),
+      );
     final scoreColor = data.overallScore >= 90
         ? HwahaeColors.success
         : data.overallScore >= 70
-            ? HwahaeColors.warning
-            : HwahaeColors.error;
+        ? HwahaeColors.warning
+        : HwahaeColors.error;
 
     final scoreGrade = data.overallScore >= 90
         ? 'A+'
         : data.overallScore >= 80
-            ? 'A'
-            : data.overallScore >= 70
-                ? 'B'
-                : data.overallScore >= 60
-                    ? 'C'
-                    : 'D';
+        ? 'A'
+        : data.overallScore >= 70
+        ? 'B'
+        : data.overallScore >= 60
+        ? 'C'
+        : 'D';
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -372,10 +398,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            scoreColor.withOpacity(0.1),
-            scoreColor.withOpacity(0.05),
-          ],
+          colors: [scoreColor.withOpacity(0.1), scoreColor.withOpacity(0.05)],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: scoreColor.withOpacity(0.3)),
@@ -445,7 +468,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   children: [
                     _buildMiniStat(Icons.reviews, '${data.totalReviews}', '리뷰'),
                     const SizedBox(width: 16),
-                    _buildMiniStat(Icons.verified, '${((data.verifiedReviews / data.totalReviews) * 100).toInt()}%', '검증률'),
+                    _buildMiniStat(Icons.info_outline, '5점 환산', '산정 기준'),
                   ],
                 ),
               ],
@@ -464,12 +487,16 @@ class TrustAnalysisScreen extends ConsumerWidget {
         const SizedBox(width: 4),
         Text(
           value,
-          style: HwahaeTypography.labelMedium.copyWith(fontWeight: FontWeight.bold),
+          style: HwahaeTypography.labelMedium.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(width: 2),
         Text(
           label,
-          style: HwahaeTypography.labelSmall.copyWith(color: HwahaeColors.textSecondary),
+          style: HwahaeTypography.labelSmall.copyWith(
+            color: HwahaeColors.textSecondary,
+          ),
         ),
       ],
     );
@@ -494,7 +521,9 @@ class TrustAnalysisScreen extends ConsumerWidget {
         children: [
           Text(
             '카테고리별 평점',
-            style: HwahaeTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+            style: HwahaeTypography.titleMedium.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 16),
           ...data.categoryScores.entries.map((entry) {
@@ -505,10 +534,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                 children: [
                   SizedBox(
                     width: 60,
-                    child: Text(
-                      entry.key,
-                      style: HwahaeTypography.bodySmall,
-                    ),
+                    child: Text(entry.key, style: HwahaeTypography.bodySmall),
                   ),
                   Expanded(
                     child: Stack(
@@ -582,7 +608,9 @@ class TrustAnalysisScreen extends ConsumerWidget {
             children: [
               Text(
                 '신뢰도 추이',
-                style: HwahaeTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                style: HwahaeTypography.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -593,7 +621,11 @@ class TrustAnalysisScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.trending_up, size: 14, color: HwahaeColors.success),
+                    const Icon(
+                      Icons.trending_up,
+                      size: 14,
+                      color: HwahaeColors.success,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '+7.3%',
@@ -617,10 +649,7 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   drawVerticalLine: false,
                   horizontalInterval: 10,
                   getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: HwahaeColors.divider,
-                      strokeWidth: 1,
-                    );
+                    return FlLine(color: HwahaeColors.divider, strokeWidth: 1);
                   },
                 ),
                 titlesData: FlTitlesData(
@@ -660,8 +689,12 @@ class TrustAnalysisScreen extends ConsumerWidget {
                       },
                     ),
                   ),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                 ),
                 borderData: FlBorderData(show: false),
                 minY: 70,
@@ -704,7 +737,9 @@ class TrustAnalysisScreen extends ConsumerWidget {
                       return touchedSpots.map((spot) {
                         return LineTooltipItem(
                           '${spot.y.toStringAsFixed(1)}점',
-                          HwahaeTypography.labelSmall.copyWith(color: Colors.white),
+                          HwahaeTypography.labelSmall.copyWith(
+                            color: Colors.white,
+                          ),
                         );
                       }).toList();
                     },
@@ -737,7 +772,9 @@ class TrustAnalysisScreen extends ConsumerWidget {
         children: [
           Text(
             '평점 분포',
-            style: HwahaeTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+            style: HwahaeTypography.titleMedium.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 16),
           ...data.ratingDistribution.map((item) {
@@ -755,7 +792,11 @@ class TrustAnalysisScreen extends ConsumerWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const Icon(Icons.star, size: 12, color: HwahaeColors.ratingStar),
+                        const Icon(
+                          Icons.star,
+                          size: 12,
+                          color: HwahaeColors.ratingStar,
+                        ),
                       ],
                     ),
                   ),
@@ -832,10 +873,15 @@ class TrustAnalysisScreen extends ConsumerWidget {
             children: [
               Text(
                 '동종업계 비교',
-                style: HwahaeTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                style: HwahaeTypography.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: HwahaeColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -890,7 +936,11 @@ class TrustAnalysisScreen extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.emoji_events, color: HwahaeColors.info, size: 20),
+                const Icon(
+                  Icons.emoji_events,
+                  color: HwahaeColors.info,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -908,13 +958,22 @@ class TrustAnalysisScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildComparisonItem(String label, double score, Color color, bool isHighlighted) {
+  Widget _buildComparisonItem(
+    String label,
+    double score,
+    Color color,
+    bool isHighlighted,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isHighlighted ? color.withOpacity(0.1) : HwahaeColors.surfaceVariant,
+        color: isHighlighted
+            ? color.withOpacity(0.1)
+            : HwahaeColors.surfaceVariant,
         borderRadius: BorderRadius.circular(12),
-        border: isHighlighted ? Border.all(color: color.withOpacity(0.3)) : null,
+        border: isHighlighted
+            ? Border.all(color: color.withOpacity(0.3))
+            : null,
       ),
       child: Column(
         children: [
@@ -962,72 +1021,88 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   color: HwahaeColors.success.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.thumb_up, color: HwahaeColors.success, size: 20),
+                child: const Icon(
+                  Icons.thumb_up,
+                  color: HwahaeColors.success,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
                 '강점',
-                style: HwahaeTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                style: HwahaeTypography.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ...data.strengths.map((item) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: HwahaeColors.successLight.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: HwahaeColors.success.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
+          ...data.strengths.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: HwahaeColors.successLight.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: HwahaeColors.success.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        item.icon,
+                        color: HwahaeColors.success,
+                        size: 20,
+                      ),
                     ),
-                    child: Icon(item.icon, color: HwahaeColors.success, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              item.title,
-                              style: HwahaeTypography.bodyMedium.copyWith(
-                                fontWeight: FontWeight.w600,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                item.title,
+                                style: HwahaeTypography.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            const Spacer(),
-                            const Icon(Icons.star, size: 14, color: HwahaeColors.ratingStar),
-                            const SizedBox(width: 2),
-                            Text(
-                              item.score.toStringAsFixed(1),
-                              style: HwahaeTypography.labelMedium.copyWith(
-                                fontWeight: FontWeight.bold,
+                              const Spacer(),
+                              const Icon(
+                                Icons.star,
+                                size: 14,
+                                color: HwahaeColors.ratingStar,
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.description,
-                          style: HwahaeTypography.bodySmall.copyWith(
-                            color: HwahaeColors.textSecondary,
+                              const SizedBox(width: 2),
+                              Text(
+                                item.score.toStringAsFixed(1),
+                                style: HwahaeTypography.labelMedium.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            item.description,
+                            style: HwahaeTypography.bodySmall.copyWith(
+                              color: HwahaeColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -1058,85 +1133,100 @@ class TrustAnalysisScreen extends ConsumerWidget {
                   color: HwahaeColors.warning.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.lightbulb_outline, color: HwahaeColors.warning, size: 20),
+                child: const Icon(
+                  Icons.lightbulb_outline,
+                  color: HwahaeColors.warning,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
                 '개선 제안',
-                style: HwahaeTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                style: HwahaeTypography.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ...data.weaknesses.map((item) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: HwahaeColors.warningLight.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        item.title,
-                        style: HwahaeTypography.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: HwahaeColors.warning.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          item.score.toStringAsFixed(1),
-                          style: HwahaeTypography.labelSmall.copyWith(
-                            color: HwahaeColors.warning,
-                            fontWeight: FontWeight.bold,
+          ...data.weaknesses.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: HwahaeColors.warningLight.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          item.title,
+                          style: HwahaeTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.description,
-                    style: HwahaeTypography.bodySmall.copyWith(
-                      color: HwahaeColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: HwahaeColors.surface,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.tips_and_updates, size: 14, color: HwahaeColors.info),
-                        const SizedBox(width: 6),
-                        Expanded(
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: HwahaeColors.warning.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: Text(
-                            item.suggestion,
+                            item.score.toStringAsFixed(1),
                             style: HwahaeTypography.labelSmall.copyWith(
-                              color: HwahaeColors.info,
+                              color: HwahaeColors.warning,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      item.description,
+                      style: HwahaeTypography.bodySmall.copyWith(
+                        color: HwahaeColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: HwahaeColors.surface,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.tips_and_updates,
+                            size: 14,
+                            color: HwahaeColors.info,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              item.suggestion,
+                              style: HwahaeTypography.labelSmall.copyWith(
+                                color: HwahaeColors.info,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          )),
+          ),
         ],
       ),
     );

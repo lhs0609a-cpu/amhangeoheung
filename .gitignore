@@ -41,3 +41,6 @@ uploads/
 
 # Windows: accidental redirects to the NUL device create a literal `nul` file
 nul
+
+# Local headless browser profile used for design verification
+.brand-preview-profile/

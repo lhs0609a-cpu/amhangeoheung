@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'hwahae_colors.dart';
 import 'hwahae_typography.dart';
 
@@ -113,7 +114,7 @@ class HwahaeTheme {
       ),
 
       // Card
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: HwahaeColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -230,7 +231,7 @@ class HwahaeTheme {
       ),
 
       // Dialog
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: HwahaeColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -252,7 +253,7 @@ class HwahaeTheme {
       ),
 
       // Tab Bar
-      tabBarTheme: TabBarTheme(
+      tabBarTheme: TabBarThemeData(
         labelColor: HwahaeColors.primary,
         unselectedLabelColor: HwahaeColors.textSecondary,
         labelStyle: HwahaeTypography.labelLarge,

@@ -1,3 +1,4 @@
+import 'features/trust/presentation/screens/inspector_code_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -59,6 +60,9 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
     routes: [
+      GoRoute(
+          path: '/inspector-code',
+          builder: (context, state) => const InspectorCodeScreen()),
       // Splash
       GoRoute(
         path: '/splash',
@@ -72,10 +76,7 @@ class AppRouter {
       ),
 
       // Auth Routes
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
@@ -118,64 +119,57 @@ class AppRouter {
           // 공통 라우트
           GoRoute(
             path: '/home',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomeScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: HomeScreen()),
           ),
           GoRoute(
             path: '/missions',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: MissionListScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: MissionListScreen()),
           ),
           GoRoute(
             path: '/ranking',
             pageBuilder: (context, state) {
               final tab = state.uri.queryParameters['tab'];
-              return NoTransitionPage(
-                child: RankingScreen(initialTab: tab),
-              );
+              return NoTransitionPage(child: RankingScreen(initialTab: tab));
             },
           ),
           GoRoute(
             path: '/reviews',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ReviewListScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ReviewListScreen()),
           ),
           GoRoute(
             path: '/profile',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ProfileScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ProfileScreen()),
           ),
           // 업체 유형: 대시보드 (ShellRoute 내부)
           GoRoute(
             path: '/dashboard',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: DashboardScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DashboardScreen()),
           ),
           // 소비자 유형: 검색 (ShellRoute 내부)
           GoRoute(
             path: '/search',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: SearchScreen(),
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: SearchScreen(
+                initialCategory: state.uri.queryParameters['category'],
+              ),
             ),
           ),
           // 리뷰어 유형: 내 활동 (미션 진행 + 완료 목록)
           GoRoute(
             path: '/my-activity',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: MyReviewsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: MyReviewsScreen()),
           ),
           // 업체 유형: 분석 (센터 FAB)
           GoRoute(
             path: '/trust-overview',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: DashboardScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DashboardScreen()),
           ),
         ],
       ),
@@ -188,21 +182,18 @@ class AppRouter {
       ),
       GoRoute(
         path: '/missions/:id',
-        builder: (context, state) => MissionDetailScreen(
-          missionId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            MissionDetailScreen(missionId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/reviews/:id',
-        builder: (context, state) => ReviewDetailScreen(
-          reviewId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            ReviewDetailScreen(reviewId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/write-review/:missionId',
-        builder: (context, state) => WriteReviewScreen(
-          missionId: state.pathParameters['missionId']!,
-        ),
+        builder: (context, state) =>
+            WriteReviewScreen(missionId: state.pathParameters['missionId']!),
       ),
 
       // Trust Analysis Route
@@ -252,9 +243,8 @@ class AppRouter {
       // Portfolio Route
       GoRoute(
         path: '/portfolio/:userId',
-        builder: (context, state) => PortfolioScreen(
-          userId: state.pathParameters['userId']!,
-        ),
+        builder: (context, state) =>
+            PortfolioScreen(userId: state.pathParameters['userId']!),
       ),
 
       // Accessibility Route
@@ -274,19 +264,20 @@ class AppRouter {
       ),
       GoRoute(
         path: '/location-privacy',
-        builder: (context, state) => const LegalScreen(type: LegalType.locationPrivacy),
+        builder: (context, state) =>
+            const LegalScreen(type: LegalType.locationPrivacy),
       ),
       GoRoute(
         path: '/marketing',
-        builder: (context, state) => const LegalScreen(type: LegalType.marketing),
+        builder: (context, state) =>
+            const LegalScreen(type: LegalType.marketing),
       ),
 
       // Season Detail Route
       GoRoute(
         path: '/seasons/:id',
-        builder: (context, state) => SeasonDetailScreen(
-          seasonId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            SeasonDetailScreen(seasonId: state.pathParameters['id']!),
       ),
 
       // Invite Route (추천인 시스템)
@@ -298,9 +289,8 @@ class AppRouter {
       // Cancel Subscription Route (구독 해지 리텐션)
       GoRoute(
         path: '/business/:id/cancel',
-        builder: (context, state) => CancelSubscriptionScreen(
-          businessId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            CancelSubscriptionScreen(businessId: state.pathParameters['id']!),
       ),
 
       // Regional Ranking Route
@@ -331,9 +321,8 @@ class AppRouter {
       ),
       GoRoute(
         path: '/certification/training/:day',
-        builder: (context, state) => TrainingModuleScreen(
-          day: int.parse(state.pathParameters['day']!),
-        ),
+        builder: (context, state) =>
+            TrainingModuleScreen(day: int.parse(state.pathParameters['day']!)),
       ),
       GoRoute(
         path: '/certification/exam',
@@ -343,9 +332,8 @@ class AppRouter {
       // Detection Test Routes (역탐지 테스트)
       GoRoute(
         path: '/detection-test/:id',
-        builder: (context, state) => DetectionTestScreen(
-          testId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            DetectionTestScreen(testId: state.pathParameters['id']!),
       ),
 
       // Stealth Stats Route (은밀성 통계)
@@ -383,10 +371,7 @@ class AppRouter {
         path: '/notifications-settings',
         builder: (context, state) => const NotificationsSettingsScreen(),
       ),
-      GoRoute(
-        path: '/about',
-        builder: (context, state) => const AboutScreen(),
-      ),
+      GoRoute(path: '/about', builder: (context, state) => const AboutScreen()),
     ],
   );
 }

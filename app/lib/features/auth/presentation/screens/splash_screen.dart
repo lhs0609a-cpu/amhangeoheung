@@ -1,3 +1,4 @@
+import '../../../../core/theme/brand_assets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +27,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<void> _checkOnboardingAndAuth() async {
     // 온보딩 완료 여부 확인
     final prefs = await SharedPreferences.getInstance();
-    final onboardingCompleted = prefs.getBool(AppConstants.onboardingKey) ?? false;
+    final onboardingCompleted =
+        prefs.getBool(AppConstants.onboardingKey) ?? false;
 
     if (mounted) {
       setState(() {
@@ -73,10 +75,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           children: [
             // 로고 아이콘
             Container(
-              width: 120,
-              height: 120,
+              width: 180,
+              height: 210,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFFF8F3E8),
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
@@ -86,11 +88,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.verified_user,
-                size: 60,
-                color: AppColors.primary,
-              ),
+              child: Image.asset(BrandAssets.tiger, fit: BoxFit.contain),
             ),
             const SizedBox(height: 24),
             // 앱 이름
@@ -104,7 +102,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '리뷰 신뢰 플랫폼',
+              '진짜 리뷰를 위해, 암행어사 출두요.',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.white.withOpacity(0.8),

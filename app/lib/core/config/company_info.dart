@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import 'environment.dart';
 
 /// 회사 법적 정보 (사업자 정보, 연락처 등)
@@ -63,6 +64,11 @@ class CompanyInfo {
   static const String privacyEmail = String.fromEnvironment(
     'COMPANY_PRIVACY_EMAIL',
     defaultValue: 'privacy@amhangeoheung.com',
+  );
+
+  static const String supportEmail = String.fromEnvironment(
+    'COMPANY_SUPPORT_EMAIL',
+    defaultValue: 'support@amhangeoheung.com',
   );
 
   /// 앱 버전 (pubspec.yaml 과 일치 유지)

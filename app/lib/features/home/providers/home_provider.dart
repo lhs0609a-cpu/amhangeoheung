@@ -52,7 +52,8 @@ class HomeDataState {
       return availableMissions;
     }
     return availableMissions
-        .where((m) => m.category?.toLowerCase() == selectedCategory.toLowerCase())
+        .where(
+            (m) => m.category?.toLowerCase() == selectedCategory.toLowerCase())
         .toList();
   }
 
@@ -62,21 +63,27 @@ class HomeDataState {
       return recentReviews;
     }
     return recentReviews
-        .where((r) => r.business?.category?.toLowerCase() == selectedCategory.toLowerCase())
+        .where((r) =>
+            r.business?.category?.toLowerCase() ==
+            selectedCategory.toLowerCase())
         .toList();
   }
 }
 
 // Home Data Notifier
 class HomeDataNotifier extends StateNotifier<HomeDataState> {
+  int _loadId = 0;
   final ReviewRepository _reviewRepository;
   final MissionRepository _missionRepository;
   final RankingRepository _rankingRepository;
 
-  HomeDataNotifier(this._reviewRepository, this._missionRepository, this._rankingRepository)
+  HomeDataNotifier(
+      this._reviewRepository, this._missionRepository, this._rankingRepository)
       : super(const HomeDataState());
 
   Future<void> loadHomeData({String? category}) async {
+    final loadId = ++_loadId;
+    final selectedCategory = category ?? state.selectedCategory;
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -85,11 +92,17 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
         _reviewRepository.getRecentReviews(),
         _missionRepository.getAvailableMissions(
           limit: 10,
-          category: category != '전체' ? category : null,
+          category: selectedCategory != '전체' ? selectedCategory : null,
         ),
-        _rankingRepository.getRegionalRanking().catchError((_) => <RegionalRankingModel>[]),
-        _rankingRepository.getReviewerRanking(limit: 5).catchError((_) => <ReviewerRankingModel>[]),
+        _rankingRepository
+            .getRegionalRanking()
+            .catchError((_) => <RegionalRankingModel>[]),
+        _rankingRepository
+            .getReviewerRanking(limit: 5)
+            .catchError((_) => <ReviewerRankingModel>[]),
       ]);
+
+      if (!mounted || loadId != _loadId) return;
 
       final reviewResponse = results[0] as ReviewListResponse;
       final missionResponse = results[1] as MissionListResponse;
@@ -99,11 +112,13 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
       state = state.copyWith(
         isLoading: false,
         recentReviews: reviewResponse.success ? reviewResponse.reviews : [],
-        availableMissions: missionResponse.success ? missionResponse.missions : [],
+        availableMissions:
+            missionResponse.success ? missionResponse.missions : [],
         topBusinesses: topBusinesses.take(5).toList(),
         topReviewers: topReviewers.take(5).toList(),
       );
     } catch (e) {
+      if (!mounted || loadId != _loadId) return;
       state = state.copyWith(
         isLoading: false,
         error: '데이터를 불러오는데 실패했습니다.',
@@ -137,11 +152,13 @@ final rankingRepositoryProvider = Provider<RankingRepository>((ref) {
   return RankingRepository();
 });
 
-final homeDataProvider = StateNotifierProvider<HomeDataNotifier, HomeDataState>((ref) {
+final homeDataProvider =
+    StateNotifierProvider<HomeDataNotifier, HomeDataState>((ref) {
   final reviewRepository = ref.watch(reviewRepositoryProvider);
   final missionRepository = ref.watch(missionRepositoryProvider);
   final rankingRepository = ref.watch(rankingRepositoryProvider);
-  return HomeDataNotifier(reviewRepository, missionRepository, rankingRepository);
+  return HomeDataNotifier(
+      reviewRepository, missionRepository, rankingRepository);
 });
 
 // 선택된 카테고리 프로바이더 (UI 상태 관리용)
